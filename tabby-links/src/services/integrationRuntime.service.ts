@@ -527,7 +527,10 @@ export class IntegrationRuntimeService {
         const preview: LinkPreview = {
             integrationId: integration.id,
             integrationName: integration.name,
-            icon: integration.manifest.icon ?? '',
+            // The resolved form, not the manifest's raw string: that may be an
+            // `ms-appx:` URI, which only the Windows Terminal fork's packaging
+            // resolves and which an <img> here would render as a broken image.
+            icon: integration.iconUri,
             fields: [],
             groups: [],
             tabs: [],

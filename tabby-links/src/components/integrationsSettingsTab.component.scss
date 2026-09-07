@@ -24,6 +24,17 @@
     }
 }
 
+.integration-icon {
+    // The row is a flex container, so without `flex: none` a wide logo would be
+    // allowed to shrink the name beside it.
+    flex: none;
+    width: 24px;
+    height: 24px;
+    // The marks are square tiles today; `contain` keeps a non-square one from
+    // being stretched rather than letterboxed.
+    object-fit: contain;
+}
+
 .integration-info {
     flex: 1 1 auto;
     min-width: 0;

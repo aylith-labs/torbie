@@ -219,6 +219,13 @@ Top-level keys: `id` (required — a manifest without one is invalid), `name`, `
 format grow — and is what let the four keys above be added without breaking anything that had
 never heard of them.
 
+`icon` is the logo shown beside the integration on a preview and in the settings list. Accepted
+forms: `ms-appx:///IntegrationIcons/<name>.png` for one of the marks this fork bundles
+(`github.png`, `jira.png`, `slack.png`, `aylith.png` — spelled that way for interchange with
+the Windows Terminal fork, which resolves the same string through its own package), or an
+`https:`, `data:` or `file:` URI for a manifest of your own. Omit it, or give `""`, for no
+logo. Anything else draws nothing and is logged rather than reaching an `<img src>`.
+
 A useful manifest is far smaller than that list suggests: an `id`, one matcher, one fetch step and
 a short `fields` list is the whole of Slack's. Everything else is optional.
 
@@ -477,10 +484,13 @@ The manifest format is the same. Two things about the surrounding app are not:
 
 - **The `html` representation runs here and is switched off there.** See
   [Availability](#availability). The contract is identical; only whether it draws differs.
-- **`icon` is a URI here, a glyph there.** That fork passes it to WinUI's `IconPathConverter`,
-  which accepts a Segoe MDL2 character as readily as a path; here it is the `src` of an `<img>`,
-  so its `"\uE82D"` for GitHub would be a broken image. A manifest meant for both should give a
-  URI, or leave the key out.
+- **`icon` names a file both forks carry.** The built-ins write
+  `ms-appx:///IntegrationIcons/<file>.png` — that fork's package scheme, resolved by its
+  `IconPathConverter`; here the file name is looked up in a map of PNGs webpack has inlined
+  into the plugin bundle. The JSON is identical, and each host resolves the URI its own way. A
+  manifest of your own should give an `https:`, `data:` or `file:` URI instead, since only
+  the built-in names are bundled. Anything else — a relative path, or a bare glyph — draws no
+  icon and is logged.
 - **Owner-less GitHub references (`repo#123`) are not resolved here.** That fork answers "which
   owner?" in host code — a cached probe of the `candidateOwners` setting, falling back to
   `gh auth token`. Nothing in the manifest format expresses that, so this fork carries neither

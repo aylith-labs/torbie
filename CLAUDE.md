@@ -446,9 +446,8 @@ to "one manifest, many terminals", far more than any cosmetic divergence.
 
 `github.json` joins the built-ins. All four manifests are held to the
 reference's copies **key by key** — every top-level key, so one nobody thought
-to compare cannot drift — at a **pinned commit**, `c4e76ecd3` ("Give the Slack
-rule capture-group names ICU will accept"), the newest one there that touches a
-manifest.
+to compare cannot drift — at a **pinned commit**, `b9a41937a1` ("Give Slack its
+logo too"), the newest one there that touches a manifest.
 
 Pinning is the point. That checkout is somebody's live workspace; its HEAD moved
 four times during one session here, so a test that reads its HEAD reports a
@@ -464,9 +463,14 @@ really differs, so one resolved upstream fails too and asks for its entry back:
 
 - **Jira's `normalize`/`suffix`** and **stith's `html`** — additive, documented
   above, and ignorable by a host that has never heard of them.
-- **`github.icon`.** `icon` is the `src` of an `<img>` here and a WinUI
-  `IconPathConverter` string there, where a bare Segoe MDL2 code point is a
-  legal glyph. Their `"\uE82D"` would be a broken image on every GitHub card.
+- **`github.icon` used to be here, and is not any more.** That fork wrote its
+  icon as a bare Segoe MDL2 code point, which an `<img src>` cannot load; it
+  now ships `ms-appx:///IntegrationIcons/<file>.png`, and so do we, verbatim.
+  Each host resolves that URI its own way — `IconPathConverter` there,
+  `integrationIcons.ts` against a map of PNGs webpack inlines into the bundle
+  here — so the key is identical again and the entry is spent. An icon this
+  host cannot resolve yields `''` and one log line, so the card draws no icon
+  rather than a broken one.
 - **`github.settings` and `github.matchers`** — `candidateOwners` and the
   `repo#number` matcher, which are one feature whose working half is host code
   there: a cached probe of each candidate owner, falling back to

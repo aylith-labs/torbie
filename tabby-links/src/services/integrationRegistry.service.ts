@@ -5,6 +5,8 @@ import { BehaviorSubject, Observable } from 'rxjs'
 import { ConfigService, LogService, Logger, PlatformService } from 'tabby-core'
 
 import { Integration, IntegrationField, IntegrationManifest } from '../api'
+import { INTEGRATION_ICONS } from '../integrationIconAssets'
+import { resolveIntegrationIcon } from '../integrationIcons'
 import { IntegrationCredentialsService } from './integrationCredentials.service'
 
 /**
@@ -187,6 +189,14 @@ export class IntegrationRegistryService {
                 id: manifest.id,
                 name: manifest.name ? manifest.name : manifest.id,
                 source,
+                // Resolved once per rebuild, not per hover. A value this host
+                // cannot load yields '' and one log line naming the manifest —
+                // the template then draws no icon rather than a broken one.
+                iconUri: resolveIntegrationIcon(
+                    manifest.icon ?? '',
+                    INTEGRATION_ICONS,
+                    reason => this.logger.warn(`${manifest.id}: ${reason}`),
+                ),
                 enabled: state.enabled !== false,
                 settings,
                 credentials: credentialValues,

@@ -11,6 +11,10 @@ div(*ngIf='!current')
 
     .integration-list
         .integration-row(*ngFor='let integration of integrations', (click)='select(integration)')
+            //- The manifest's own logo. Guarded rather than given a placeholder:
+            //- an icon this host cannot resolve is '' (and one log line), so the
+            //- row simply has no image instead of a broken one.
+            img.integration-icon(*ngIf='integration.iconUri', [src]='integration.iconUri')
             .integration-info
                 .integration-name
                     span {{integration.name}}

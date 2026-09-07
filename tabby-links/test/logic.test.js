@@ -68,6 +68,15 @@ Module._extensions['.ts'] = function (module, filename) {
     }).outputText
     module._compile(js, filename)
 }
+// Webpack turns a `.png` import into a data URI (`asset/inline`); Node would
+// try to parse the file as JavaScript. Stand in for the loader so a source
+// module that pulls in an icon is still loadable here — the data URIs the app
+// really ships are asserted separately, against the built bundle.
+Module._extensions['.png'] = function (module, filename) {
+    const bytes = require('fs').readFileSync(filename)
+    module.exports = { default: `data:image/png;base64,${bytes.toString('base64')}` }
+}
+
 function loadSource (relative) {
     return require(path.join(REPO, relative))
 }
@@ -265,10 +274,11 @@ const ADDITIVE = new Set(['normalize', 'suffix', 'description', 'placeholder'])
 // reconciling the new state needs, including the table below.
 const TERMINAL_REPO = process.env.TERMINAL_REPO || 'C:/Users/steve/projects/terminal'
 const TERMINAL_MANIFESTS = 'src/cascadia/TerminalSettingsModel/integrations'
-// "Give the Slack rule capture-group names ICU will accept" — the newest commit
-// there that touches a manifest, so it is the reference state itself and not a
-// HEAD that happens to sit above it.
-const TERMINAL_REF = process.env.TERMINAL_REF || 'c4e76ecd364ae5e7c7831a646108cabfe9c103ee'
+// "Give Slack its logo too" — the newest commit there that touches a manifest,
+// so it is the reference state itself and not a HEAD that happens to sit above
+// it. (Verified when re-pointed: `git log b9a41937a1..HEAD -- <manifests>` in
+// that checkout is empty, which is what "newest" has to mean here.)
+const TERMINAL_REF = process.env.TERMINAL_REF || 'b9a41937a18a2705a19c6152e3ce4ebfcc26269e'
 
 function git (args) {
     return require('child_process').execFileSync('git', args,
@@ -304,10 +314,14 @@ function referenceManifest (id) {
  * resolved upstream fails here too, asking for its entry back.
  */
 const DIVERGENCES = {
-    // `icon` is the `src` of an `<img>` here and a WinUI `IconPathConverter`
-    // string there, where a bare Segoe MDL2 code point is a legal glyph.
-    // Adopting their "\uE82D" would put a broken image on every GitHub card.
-    'github.icon': true,
+    // `github.icon` used to be here, when that fork wrote its icon as a bare
+    // Segoe MDL2 code point and this one needed an <img> src. Both forks now
+    // ship the same `ms-appx:///IntegrationIcons/<file>.png` string and each
+    // host resolves it its own way \u2014 `IconPathConverter` there,
+    // `integrationIcons.ts` against a map of inlined PNGs here \u2014 so the key is
+    // identical again and its entry is spent. Deleted rather than kept as a
+    // no-op: the assertion below fails an excused key that does not differ.
+    //
     // `candidateOwners` and the `repo#number` matcher are one feature, and the
     // half that makes it work is host code there: a cached probe of each
     // candidate owner, falling back to `gh auth token`. No manifest key
@@ -377,6 +391,82 @@ check('its page does not assume a theme',
 for (const id of ['jira', 'slack']) {
     const m = require(path.join(REPO, `tabby-links/src/integrations/${id}.json`))
     check(`${id} has no html, as upstream`, m.html, undefined)
+}
+
+// ── integration logos ───────────────────────────────────────────────────────
+// The manifests name their icons in the reference fork's `ms-appx:` scheme so
+// the JSON stays identical across both forks; resolving it is this host's job.
+// Every failure mode below builds green and shows no icon, so none of it is
+// caught by the compiler.
+console.log('\n── integration logos ──')
+{
+    const icons = loadSource('tabby-links/src/integrationIcons.ts')
+    const assets = { 'jira.png': 'data:image/png;base64,AAAA' }
+    const seen = []
+    const resolve = v => icons.resolveIntegrationIcon(v, assets, r => seen.push(r))
+
+    check('a bundled ms-appx icon resolves to its asset',
+        resolve('ms-appx:///IntegrationIcons/jira.png'), 'data:image/png;base64,AAAA')
+    check('an empty icon is not an error', resolve(''), '')
+    check('http(s) and data URIs pass through for user manifests',
+        [resolve('https://example.invalid/i.png'), resolve('data:image/png;base64,ZZ')],
+        ['https://example.invalid/i.png', 'data:image/png;base64,ZZ'])
+    check('a file: URI passes through', resolve('file:///C:/i.png'), 'file:///C:/i.png')
+    // Nothing above should have complained.
+    check('a resolvable icon logs nothing', seen.length, 0)
+
+    // The two that must warn rather than reach an <img src>.
+    check('an unbundled ms-appx name draws nothing',
+        resolve('ms-appx:///IntegrationIcons/nope.png'), '')
+    // U+E82D — what github.json carried before it grew a logo. A bare glyph in
+    // `src` is a broken image; this is the case the divergence entry used to
+    // excuse and the resolver now handles.
+    check('a bare Segoe glyph draws nothing', resolve('\uE82D'), '')
+    check('a relative path draws nothing', resolve('icons/jira.png'), '')
+    check('each unresolvable icon is reported once', seen.length, 3)
+
+    // The assets themselves, against the real map the app ships. A wrong
+    // webpack rule (`asset/resource`) yields a path, and a missed `.default`
+    // yields "[object Object]" — both render as a broken image and fail
+    // nothing else.
+    const assetMap = loadSource('tabby-links/src/integrationIconAssets.ts').INTEGRATION_ICONS
+    for (const id of ['github', 'jira', 'slack', 'stith']) {
+        const manifest = require(path.join(REPO, `tabby-links/src/integrations/${id}.json`))
+        const uri = icons.resolveIntegrationIcon(manifest.icon, assetMap)
+        check(`${id}'s icon resolves to a PNG data URI`,
+            /^data:image\/png;base64,/.test(uri) && uri.length > 1000, true)
+    }
+
+    // A manifest naming a file nothing carries is the one failure with no
+    // symptom at all, so the map and the directory are held to each other.
+    // (stith's mark is `aylith.png` — the ids deliberately disagree.)
+    const iconDir = path.join(REPO, 'tabby-links/src/integrations/icons')
+    const onDisk = require('fs').readdirSync(iconDir).filter(f => f.endsWith('.png')).sort()
+    check('every bundled icon file is in the asset map, and vice versa',
+        Object.keys(assetMap).sort(), onDisk)
+
+    // The rule's absence is exactly the reference fork's own mistake: an asset
+    // no build file names, a green build, and a missing icon as the first sign.
+    const wp = require('fs').readFileSync(
+        path.join(REPO, 'tabby-links/webpack.config.mjs'), 'utf8')
+    // The built artefact, which is the only thing that proves the loader ran.
+    // Everything above this point goes through the source and a stand-in for
+    // webpack, so it would still pass with no png rule configured at all.
+    // `asset/resource` would emit files here and leave paths in the bundle.
+    const dist = require('fs').readFileSync(
+        path.join(REPO, 'tabby-links/dist/index.js'), 'utf8')
+    check('the bundle carries one inlined PNG per icon',
+        (dist.match(/data:image\/png;base64,/g) ?? []).length, onDisk.length)
+    check('the bundle emits no separate asset files',
+        require('fs').readdirSync(path.join(REPO, 'tabby-links/dist'))
+            .filter(f => f.endsWith('.png')), [])
+
+    // Read the rule itself, with comments stripped first — the prose above it
+    // names all three asset types to explain the choice, so a plain substring
+    // search would pass on a config that had been switched to `asset/resource`.
+    const png = /test:\s*\/\\\.png\$\/\s*,\s*type:\s*'([a-z/]+)'/
+        .exec(wp.replace(/\/\/[^\n]*/g, ''))
+    check('the package builds png as an inlined asset', png && png[1], 'asset/inline')
 }
 
 console.log('\n── parity fixes ──')

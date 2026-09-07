@@ -357,6 +357,15 @@ export interface Integration {
     name: string
     /** 'built-in' or the absolute path of the manifest file. */
     source: string
+    /**
+     * `manifest.icon` resolved to something an `<img src>` can load, or `''`.
+     *
+     * Held here rather than written back onto the manifest, which has to stay
+     * byte-identical to the JSON — `test/logic.test.js` compares it to the
+     * Windows Terminal fork's copy key by key, and a key we invented would
+     * fail that.
+     */
+    iconUri: string
     enabled: boolean
     settings: Record<string, string>
     /** Credential values, resolved once per rebuild — never re-read on a hover. */
