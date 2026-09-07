@@ -301,3 +301,40 @@ export function applyPreset (preset: RulePreset, rule: LinkTooltipRule = newRule
     rule.alternativeAction = ''
     return rule
 }
+
+/**
+ * Is this rule this preset?
+ *
+ * Name first, pattern as the fallback. The name is what identifies a preset in
+ * the menu, and a rule whose pattern has since been hand-edited — or which was
+ * added before the preset's own pattern changed — is still that preset to the
+ * person reading the list. A pattern-only comparison is right about the regex
+ * and wrong about the question being asked, which is "is this already in my
+ * list". Measured: three of the shipped presets take their pattern from a
+ * manifest, and those manifests move.
+ *
+ * The pattern fallback is what still recognises a renamed rule.
+ */
+export function ruleIsPreset (rule: LinkTooltipRule, preset: RulePreset): boolean {
+    if (rule.name && rule.name === preset.name) {
+        return true
+    }
+    if (preset.pattern) {
+        return rule.match === preset.match && rule.pattern === preset.pattern
+    }
+    // The two file-type presets have no pattern of their own; the group is the
+    // whole of what they say.
+    return rule.match === preset.match
+        && !rule.pattern
+        && rule.fileTypeGroup === preset.fileTypeGroup
+}
+
+/** The preset a rule came from, or null. */
+export function presetForRule (rule: LinkTooltipRule, presets: RulePreset[]): RulePreset | null {
+    return presets.find(preset => ruleIsPreset(rule, preset)) ?? null
+}
+
+/** Whether any rule in the list already is this preset. */
+export function presetInUse (preset: RulePreset, rules: LinkTooltipRule[]): boolean {
+    return rules.some(rule => ruleIsPreset(rule, preset))
+}

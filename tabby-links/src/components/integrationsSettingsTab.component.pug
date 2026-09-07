@@ -175,6 +175,11 @@ div(*ngIf='current')
         button.btn.btn-secondary((click)='addAsRule(current, matcher)')
             span(translate) Add as rule
 
+    .alert.alert-secondary.py-2.mt-2(*ngIf='addedRuleAlready')
+        i.fas.fa-fw.fa-circle-info.me-2
+        span(translate) That rule is already in your list
+        div {{addedRuleAlready}}
+
     .alert.alert-success.py-2.mt-2(*ngIf='addedRuleName')
         strong(translate) Rule added
         div {{addedRuleName}}

@@ -1332,5 +1332,131 @@ console.log('\n── custom actions have their own switch ──')
         resolveWith({}).actions.length, 1)
 }
 
+
+// ── preset identity, and the rule probe ─────────────────────────────────────
+// Two things the rule editor needed: "is this preset already in my list", and
+// "what does this rule actually find in this text".
+console.log('\n── preset identity ──')
+{
+    const preset = allPresets.find(p => p.pattern)
+    if (!preset) {
+        check('a preset with a pattern exists to test against', false, true)
+    } else {
+        const asAdded = presets.applyPreset(preset)
+        check('a rule made from a preset is recognised as it',
+            presets.ruleIsPreset(asAdded, preset), true)
+        check('and so the preset counts as in use',
+            presets.presetInUse(preset, [asAdded]), true)
+        check('an empty list uses nothing',
+            presets.presetInUse(preset, []), false)
+
+        // The case the reference fork found the hard way: a shipped preset's
+        // pattern changed, so a rule added before that no longer matches on
+        // pattern — but it is still that preset to whoever is reading the list.
+        const stale = { ...asAdded, pattern: '(?<repo>[a-z-]+)#\\d+' }
+        check('a rule whose pattern has since changed is still that preset',
+            presets.ruleIsPreset(stale, preset), true)
+
+        // And the other direction, which is what the pattern fallback is for.
+        const renamed = { ...asAdded, name: 'my own name for it' }
+        check('a renamed rule is still recognised by its pattern',
+            presets.ruleIsPreset(renamed, preset), true)
+
+        // Neither: a different rule entirely.
+        const unrelated = { ...api.newRule(), name: 'something else', pattern: 'zzz' }
+        check('an unrelated rule is not mistaken for a preset',
+            presets.ruleIsPreset(unrelated, preset), false)
+
+        check('presetForRule finds the one it came from',
+            presets.presetForRule(asAdded, allPresets)?.id, preset.id)
+        check('and answers null for a rule that came from none',
+            presets.presetForRule(unrelated, allPresets), null)
+    }
+
+    // The two file-type presets carry no pattern, so the group is the whole of
+    // what they say and a pattern comparison would match them to each other.
+    const byGroup = allPresets.filter(p => !p.pattern)
+    if (byGroup.length >= 2) {
+        check('two pattern-less presets are told apart by their file-type group',
+            presets.ruleIsPreset(presets.applyPreset(byGroup[0]), byGroup[1]), false)
+    }
+}
+
+console.log('\n── the rule probe ──')
+{
+    const probeMod = loadSource('tabby-links/src/ruleProbe.ts')
+    const textRule = (pattern, extra = {}) => ({
+        ...api.newRule(), match: 'text', pattern, ...extra,
+    })
+    const linkRule = (pattern, extra = {}) => ({
+        ...api.newRule(), match: 'link', pattern, ...extra,
+    })
+
+    const found = probeMod.probeRule(textRule('[A-Z]{2,}-\\d+'), 'see PROJ-1234 now')
+    check('a text rule reports where it matched',
+        found.spans.map(s => [s.start, s.end, s.text]), [[4, 13, 'PROJ-1234']])
+    check('and no error', found.error, '')
+
+    const groups = probeMod.probeRule(
+        textRule('(?<key>[A-Z]{2,}-(?<num>\\d+))'), 'see PROJ-1234 now')
+    check('named captures are read back, as an integration would',
+        probeMod.probeCaptures(groups), [{ name: 'key', value: 'PROJ-1234' }, { name: 'num', value: '1234' }])
+
+    const many = probeMod.probeRule(textRule('\\d+'), 'a 1 b 22 c 333')
+    check('a text rule finds every match on the line, as the terminal does',
+        many.spans.map(s => s.text), ['1', '22', '333'])
+
+    // The segments the template renders. Their concatenation must be the
+    // sample, exactly — this is what the whitespace hazard would break.
+    check('the segments reassemble into the sample with nothing added',
+        probeMod.probeSegments(many).map(s => s.text).join(''), 'a 1 b 22 c 333')
+    check('and they alternate plain and matched',
+        probeMod.probeSegments(many).map(s => s.hit), [false, true, false, true, false, true])
+
+    // A pattern that will not compile is a permanent no-match everywhere else,
+    // and silently so. Here it says why.
+    const broken = probeMod.probeRule(textRule('([a-z'), 'anything')
+    check('an invalid pattern reports an error rather than matching', broken.error.length > 0, true)
+    check('and finds nothing', broken.spans.length, 0)
+
+    // The criteria beyond the pattern. A preview showing only the pattern would
+    // claim a match the terminal refuses — the exact failure this guards.
+    const wrongScheme = probeMod.probeRule(
+        linkRule('example', { schemes: ['ftp'] }), 'https://example.com/x')
+    check('a link rule whose scheme list excludes the sample says so',
+        [wrongScheme.spans.length > 0, wrongScheme.rejectedBy], [true, 'scheme'])
+
+    const wrongType = probeMod.probeRule(
+        linkRule('example', { fileTypeGroup: 'image' }), 'https://example.com/notes.txt')
+    check('and so does one whose file-type group excludes it',
+        wrongType.rejectedBy, 'fileType')
+
+    const rightType = probeMod.probeRule(
+        linkRule('example', { fileTypeGroup: 'image' }), 'https://example.com/cat.png')
+    check('a matching file type is not rejected', rightType.rejectedBy, '')
+
+    // The terminal never offers a rule more of a line than this, so neither
+    // does the box — otherwise it would claim a match that can never happen.
+    const longSample = 'x'.repeat(guard.MAX_TEXT_INPUT) + ' PROJ-1234'
+    const capped = probeMod.probeRule(textRule('[A-Z]{2,}-\\d+'), longSample)
+    check('a sample longer than the terminal would offer is truncated',
+        capped.truncated, true)
+    check('and a match past the cap is not claimed', capped.spans.length, 0)
+
+    // The ReDoS guard is not optional here: the constructor runs it whatever
+    // the caller wants, so a pattern the terminal would refuse is refused here
+    // too — and it returns rather than hanging the settings page.
+    const started = Date.now()
+    const evil = probeMod.probeRule(textRule('(a+)+b'), 'a'.repeat(40))
+    const elapsed = Date.now() - started
+    check('a catastrophic pattern is refused rather than run', evil.error.length > 0, true)
+    check('and refusing it is fast', elapsed < 1000, true)
+
+    check('an empty sample is not an error',
+        probeMod.probeRule(textRule('x'), ''), { error: '', spans: [], rejectedBy: '', truncated: false, scanned: '' })
+    check('a rule with no pattern matches nothing and complains about nothing',
+        probeMod.probeRule(textRule(''), 'anything').error, '')
+}
+
 console.log(`\n${passed} passed, ${failed} failed`)
 process.exit(failed ? 1 : 0)

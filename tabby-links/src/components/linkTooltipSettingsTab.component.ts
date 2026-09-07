@@ -14,7 +14,8 @@ import {
     ClickableKind,
 } from '../clickChords'
 import { FILE_TYPE_GROUP_LABELS } from '../fileTypes'
-import { RulePreset, applyPreset, rulePresets } from '../presets'
+import { RulePreset, applyPreset, presetForRule, presetInUse, rulePresets } from '../presets'
+import { ProbeSegment, RuleProbe, probeCaptures, probeRule, probeSegments } from '../ruleProbe'
 import { checkPattern } from '../regexGuard'
 import { IntegrationRegistryService } from '../services/integrationRegistry.service'
 import { LinkClicksService } from '../services/linkClicks.service'
@@ -72,6 +73,18 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
     currentRule: LinkTooltipRule | null = null
     private navSubscription: Subscription | null = null
     patternError = ''
+    /**
+     * The sample the rule is tried against, and what it found.
+     *
+     * Not stored on the rule and not persisted — a scratch pad. `api.ts` says
+     * the rule shape is deliberately identical to the Windows Terminal fork's
+     * so rules can be pasted between them, and a field for a text box is not
+     * worth spending that on.
+     */
+    sampleText = ''
+    probe: RuleProbe | null = null
+    probeSegments: ProbeSegment[] = []
+    probeCaptures: { name: string, value: string }[] = []
     integrations: Integration[] = []
     /**
      * A field, rebuilt when the integrations change, rather than a method the
@@ -127,6 +140,7 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
     selectRuleTarget (target: RuleTarget): void {
         this.currentRule = resolveRuleTarget(this.rules, target)
         this.patternError = this.currentRule ? checkPresetPattern(this.currentRule.pattern) : ''
+        this.seedSample(this.currentRule)
     }
 
     get rules (): LinkTooltipRule[] {
@@ -185,6 +199,7 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
         this.rules.push(rule)
         this.currentRule = rule
         this.patternError = ''
+        this.seedSample(rule)
         this.saveConfiguration()
     }
 
@@ -194,6 +209,7 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
         this.rules.push(rule)
         this.currentRule = rule
         this.patternError = checkPresetPattern(rule.pattern)
+        this.seedSample(rule)
         this.saveConfiguration()
     }
 
@@ -210,16 +226,80 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
         }
         applyPreset(preset, this.currentRule)
         this.patternError = checkPresetPattern(this.currentRule.pattern)
+        this.seedSample(this.currentRule)
         this.saveConfiguration()
+    }
+
+    /**
+     * Re-run the rule against the sample box.
+     *
+     * Cheap enough to do on every keystroke: the guard caps a single run at
+     * `MATCH_BUDGET_MS`, and this builds its own regex rather than touching the
+     * service's shared cache, so a slow pattern typed here cannot disable the
+     * rule for the session.
+     */
+    runProbe (): void {
+        const rule = this.currentRule
+        if (!rule) {
+            this.probe = null
+            this.probeSegments = []
+            this.probeCaptures = []
+            return
+        }
+        const probe = probeRule(rule, this.sampleText)
+        this.probe = probe
+        // Built once per run, not by a method the template calls: `*ngFor`
+        // tracks by identity, and a method handing back fresh objects on every
+        // change-detection pass is the shape that froze the Integrations page.
+        this.probeSegments = probeSegments(probe)
+        this.probeCaptures = probeCaptures(probe)
+        // One error line, fed from the probe rather than from a second
+        // `checkPattern` call, so the box and the message cannot disagree.
+        this.patternError = probe.error
+    }
+
+    /**
+     * Start the sample box from the preset's own example, when the rule came
+     * from one. Every shipped preset is asserted to match its example, so this
+     * opens on a rule that visibly works.
+     */
+    private seedSample (rule: LinkTooltipRule | null): void {
+        this.sampleText = rule ? presetForRule(rule, this.presets)?.example ?? '' : ''
+        this.runProbe()
+    }
+
+    /** Whether this preset is already in the rule list, so it is not offered twice. */
+    presetInUse (preset: RulePreset): boolean {
+        return presetInUse(preset, this.rules)
+    }
+
+    /**
+     * The same question for the editor's own menu, which must still offer the
+     * preset the open rule already is: there it means "re-sync me", not
+     * "duplicate me".
+     */
+    presetInUseElsewhere (preset: RulePreset): boolean {
+        return presetInUse(preset, this.rules.filter(rule => rule !== this.currentRule))
     }
 
     trackPreset (index: number): number {
         return index
     }
 
+    // Index, like every other trackBy in this package: these are rebuilt as a
+    // set on each probe, so identity would re-create every node each time.
+    trackSegment (index: number): number {
+        return index
+    }
+
+    trackCapture (index: number): number {
+        return index
+    }
+
     editRule (rule: LinkTooltipRule): void {
         this.currentRule = this.currentRule === rule ? null : rule
         this.patternError = ''
+        this.seedSample(this.currentRule)
     }
 
     moveRule (rule: LinkTooltipRule, delta: number): void {

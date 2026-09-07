@@ -143,3 +143,69 @@
         flex: 0 0 220px;
     }
 }
+
+// The live rule preview.
+.rule-sample .form-control {
+    font-family: var(--bs-font-monospace);
+}
+
+.sample-result {
+    margin: 4px 0 10px;
+}
+
+// Ordinary inline content, deliberately — measured rather than assumed.
+//
+// pug is compiled with `pretty: true`, so markup indentation between two
+// *literal* sibling elements does become a real space, and the Windows Terminal
+// fork hit exactly that with its three side-by-side text blocks. It does not
+// arise here: the segments come from one `*ngFor` over one element, and Angular
+// inserts nothing between the instances. Verified live — `textContent` is the
+// sample character for character.
+//
+// A flex container was tried first, as belt and braces, and is worse: flex
+// items are block-level, so `innerText` reports a line break between every
+// segment even though they render on one line. That is the text model a
+// selection and a copy go through.
+.sample-render {
+    font-family: var(--bs-font-monospace);
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: var(--theme-bg-more);
+
+    .seg {
+        // The sample is the user's text: keep its spaces, and let a long one
+        // wrap anywhere rather than widening the page.
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        min-width: 0;
+        opacity: .6;
+    }
+
+    .seg-hit {
+        opacity: 1;
+        font-weight: 600;
+        border-radius: 2px;
+        background: var(--theme-accent, var(--bs-primary));
+        color: var(--bs-body-bg, #fff);
+    }
+}
+
+.sample-verdict {
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.sample-captures {
+    margin-top: 6px;
+    font-family: var(--bs-font-monospace);
+    font-size: 12px;
+
+    .capture-name {
+        font-weight: 600;
+    }
+
+    .capture-eq {
+        opacity: .5;
+    }
+}

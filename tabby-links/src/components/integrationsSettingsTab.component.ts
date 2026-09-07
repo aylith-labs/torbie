@@ -3,7 +3,8 @@ import { ConfigService, NotificationsService, PlatformService } from 'tabby-core
 import { SettingsTabComponent } from 'tabby-settings'
 
 import {
-    Integration, IntegrationDisplayField, IntegrationField, IntegrationMatcher, newRule,
+    Integration, IntegrationDisplayField, IntegrationField, IntegrationMatcher,
+    LinkTooltipRule, newRule,
 } from '../api'
 import { IntegrationCredentialsService } from '../services/integrationCredentials.service'
 import { IntegrationRegistryService, isSecretField, normalizeSettingValue } from '../services/integrationRegistry.service'
@@ -51,6 +52,8 @@ export class IntegrationsSettingsTabComponent {
     userDirectory = ''
     encryptionAvailable = true
     addedRuleName = ''
+    /** Set instead of `addedRuleName` when the rule was already there. */
+    addedRuleAlready = ''
 
     constructor (
         public config: ConfigService,
@@ -262,7 +265,21 @@ export class IntegrationsSettingsTabComponent {
         rule.match = 'text'
         rule.pattern = matcher.pattern
         rule.integration = integration.id
-        this.config.store.linkTooltip.rules.push(rule)
+        // Asked before pushing, because there was no check at all: clicking
+        // twice made two identical rules and reported success both times. The
+        // same question the preset menus ask — name first, pattern as the
+        // fallback — since this builds exactly the rule a preset would.
+        const existing: LinkTooltipRule[] = this.config.store.linkTooltip.rules ?? []
+        const already = existing.some(other =>
+            other.name && other.name === rule.name
+            || other.match === 'text' && other.pattern === rule.pattern)
+        if (already) {
+            this.addedRuleName = ''
+            this.addedRuleAlready = rule.name
+            return
+        }
+        this.addedRuleAlready = ''
+        existing.push(rule)
         this.config.save()
         this.addedRuleName = rule.name
     }

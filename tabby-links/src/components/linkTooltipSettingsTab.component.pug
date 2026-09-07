@@ -242,6 +242,8 @@ h4.mt-4.mb-2(translate) Rules
             ngbDropdownItem,
             *ngFor='let preset of presets; trackBy: trackPreset',
             (click)='addRuleFromPreset(preset)',
+            [disabled]='presetInUse(preset)',
+            [title]='presetInUse(preset) ? ("Already in your rules"|translate) : preset.description',
         )
             .preset-name {{preset.name}}
             .preset-description {{preset.description}}
@@ -288,6 +290,8 @@ h4.mt-4.mb-2(translate) Rules
                     ngbDropdownItem,
                     *ngFor='let preset of presets; trackBy: trackPreset',
                     (click)='applyPresetToCurrent(preset)',
+                    [disabled]='presetInUseElsewhere(preset)',
+                    [title]='presetInUseElsewhere(preset) ? ("Already in your rules"|translate) : preset.description',
                 )
                     .preset-name {{preset.name}}
                     .preset-description {{preset.description}}
@@ -346,6 +350,40 @@ h4.mt-4.mb-2(translate) Rules
     .alert.alert-warning.py-2(*ngIf='patternError')
         i.fas.fa-fw.fa-triangle-exclamation.me-2
         span {{patternError}}
+
+    .form-line.rule-sample
+        .header
+            .title(translate) Try it against some text
+            .description(translate) Run the rule the way the terminal will. The part it finds is highlighted, and any named captures an integration would read back are listed underneath
+        input.form-control(
+            type='text',
+            placeholder='PROJ-1234',
+            [(ngModel)]='sampleText',
+            (ngModelChange)='runProbe()',
+        )
+
+    //- One `*ngFor` over one element, which is what keeps the rendered text
+    //- exactly the user's sample: pug's `pretty: true` only injects whitespace
+    //- between *literal* siblings, and Angular puts nothing between repeated
+    //- instances. Asserted in ruleEditor.cdp.js, because only a rendered DOM
+    //- can say.
+    .sample-result(*ngIf='sampleText && probe')
+        .sample-render
+            span.seg(
+                *ngFor='let segment of probeSegments; trackBy: trackSegment',
+                [class.seg-hit]='segment.hit',
+            ) {{segment.text}}
+
+        .sample-verdict.text-muted(*ngIf='!probe.spans.length && !probe.error', translate) The pattern does not match this text
+        .sample-verdict.text-muted(*ngIf='probe.rejectedBy === "scheme"', translate) The pattern matches, but this link's scheme is not in the rule's scheme list
+        .sample-verdict.text-muted(*ngIf='probe.rejectedBy === "fileType"', translate) The pattern matches, but this path is not in the rule's file type group
+        .sample-verdict.text-muted(*ngIf='probe.truncated', translate) Only the first part is shown — the terminal never offers a rule more of a line than this
+
+        .sample-captures(*ngIf='probeCaptures.length')
+            .capture(*ngFor='let capture of probeCaptures; trackBy: trackCapture')
+                span.capture-name {{capture.name}}
+                span.capture-eq  = 
+                span.capture-value {{capture.value}}
 
     .form-line(*ngIf='currentRule.match === "link"')
         .header

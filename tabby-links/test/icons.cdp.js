@@ -23,13 +23,40 @@ function ok (message) { console.log(`ok    ${message}`) }
 function fail (message) { console.error(`FAIL  ${message}`); process.exitCode = 1 }
 
 const OPEN = `
-    const root = window.ng.getComponent(document.querySelector('app-root'))
+    // CDP answers as soon as the debugger is up, which is well before Angular
+    // has an app with tabs — so wait for the app itself rather than trusting a
+    // timeout.
+    let root = null
+    for (let i = 0; i < 80 && !root; i++) {
+        const el = document.querySelector('app-root')
+        const cmp = el && window.ng.getComponent(el)
+        if (cmp && cmp.app && cmp.app.tabs) { root = cmp; break }
+        await new Promise(r => setTimeout(r, 250))
+    }
+    if (!root) { throw new Error('the app never finished starting') }
+
     const settings = window['nodeRequire']('tabby-settings')
     root.app.openNewTabRaw({ type: settings.SettingsTabComponent, inputs: { activeTab: 'integrations' } })
+
+    // And select it. A tab that is not the active one is never rendered, so on
+    // a cold window its content — and the nav this used to hunt for — simply
+    // never appears. Warm runs hid it: a settings tab left selected by an
+    // earlier run made the new one look like it had rendered.
+    {
+        const opened = root.app.tabs.find(t => t instanceof settings.SettingsTabComponent)
+        if (opened) { root.app.selectTab(opened) }
+    }
+    // The first settings tab on a cold window takes appreciably longer to
+    // render than a later one, and the open can land before the app will act on
+    // it. A much longer wait, plus one re-issue if no settings nav appeared at
+    // all, rather than spending the whole budget on a call that was dropped.
     let link = null
-    for (let i = 0; i < 40 && !link; i++) {
+    for (let i = 0; i < 120 && !link; i++) {
         await new Promise(r => setTimeout(r, 250))
         link = [...document.querySelectorAll('.nav-link')].find(e => e.textContent.trim() === 'Integrations')
+        if (!link && i === 40 && !document.querySelector('.nav-link')) {
+            root.app.openNewTabRaw({ type: settings.SettingsTabComponent, inputs: { activeTab: 'integrations' } })
+        }
     }
     if (!link) { throw new Error('no Integrations item in the settings nav') }
     link.click()
@@ -42,7 +69,14 @@ const OPEN = `
     if (!c) { throw new Error('the Integrations page did not render') }
     await c.select(null)
     window.ng.applyChanges(c)
-    await new Promise(r => setTimeout(r, 400))
+    // Polled, not slept: on a cold window the list renders well after the nav
+    // item it was found by, and every row must be on screen before the images
+    // in them can be asked whether they decoded.
+    for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 200))
+        window.ng.applyChanges(c)
+        if (window.__HOST.querySelectorAll('.integration-row').length >= c.integrations.length) { break }
+    }
     return c.integrations.map(x => ({ id: x.id, name: x.name, iconUri: (x.iconUri || '').slice(0, 24) }))
 `
 
