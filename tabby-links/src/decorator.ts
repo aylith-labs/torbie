@@ -4,6 +4,7 @@ import { LinkHandler } from 'tabby-linkifier'
 import { BaseTerminalTabComponent, TerminalDecorator, XTermFrontend } from 'tabby-terminal'
 
 import { EffectiveTooltipSettings, LinkMatchKind, LinkPreview, LinkTooltipAction, LinkTooltipRule } from './api'
+import { ruleAttribution } from './attribution'
 import { ChordName, ClickableKind, NO_ACTION } from './clickChords'
 import { CardModel, CardHandlers, LinkHoverCardComponent, emptyModel } from './components/linkHoverCard.component'
 import { LinkPreviewRequest } from './components/linkPreviewTab.component'
@@ -15,6 +16,7 @@ import { LinkActionsService } from './services/linkActions.service'
 import { LinkClicksService } from './services/linkClicks.service'
 import { LinkPanesService } from './services/linkPanes.service'
 import { LinkRulesService } from './services/linkRules.service'
+import { LinkSettingsNavService } from './services/linkSettingsNav.service'
 import { LinkTargetService, punycodeHost } from './services/linkTarget.service'
 
 /** Gap kept between the card and every edge of the pane it belongs to. */
@@ -102,6 +104,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         private clicks: LinkClicksService,
         private runtime: IntegrationRuntimeService,
         private panes: LinkPanesService,
+        private nav: LinkSettingsNavService,
         @Optional() @Inject(LinkHandler) private handlers: LinkHandler[] | null,
     ) {
         super()
@@ -529,6 +532,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         model.showCopyPath = settings.showCopyPath && !!target.filePath
         model.showReveal = settings.showReveal && !!target.filePath
         model.actions = settings.actions
+        this.attribute(model, settings)
 
         const wantsPreview = settings.showPreview
             && settings.integration !== 'none'
@@ -578,8 +582,61 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             instance.handlers = this.cardHandlers(state, link, filePath, integration, model)
             state.host.style.display = ''
             instance.refresh()
-            this.position(state, link.range)
+            this.place(state, model, link.range)
         })
+    }
+
+    /**
+     * Say which rule produced this card, when the setting asks for it.
+     *
+     * The rule is found by identity, which is exact: `hydrateRule` completes a
+     * stored rule *in place* and `rules()` memoises that array, so the object
+     * the matcher handed back is the same object the settings page edits.
+     */
+    private attribute (model: CardModel, settings: EffectiveTooltipSettings): void {
+        if (!this.config.store.linkTooltip.showRuleAttribution) {
+            model.attribution = ''
+            model.attributionRuleIndex = -1
+            model.attributionRuleName = ''
+            return
+        }
+        const rule = settings.rule
+        const stored = this.rules.rules()
+        const synthetic = this.rules.isSynthetic(rule)
+        const index = rule && !synthetic ? stored.indexOf(rule) : -1
+        const name = synthetic && rule
+            ? this.runtime.integrationName(rule.integration)
+            : ''
+        const attribution = ruleAttribution(rule, index, synthetic, name)
+        model.attribution = attribution.text
+        model.attributionRuleIndex = attribution.index
+        model.attributionRuleName = attribution.name
+    }
+
+    /**
+     * Place the card, then resolve which edge its button row and attribution
+     * line sit on.
+     *
+     * In this order because the placement setting names an edge relative to the
+     * *link*, and which card edge that is depends on whether the card flipped
+     * above the line. Safe after measuring: the reorder is CSS `order` over the
+     * same children, so it cannot change the height the flip was decided from.
+     */
+    private place (state: TabState, model: CardModel, range: BufferRange): void {
+        const above = this.position(state, range)
+        const near = this.config.store.linkTooltip.actionsPlacement !== 'far'
+        // The near edge of the card is the one the link is on: its bottom when
+        // the card sits above the line, its top when it sits below.
+        const actionsFirst = above ? !near : near
+        // The attribution always takes the far edge, so it is never between the
+        // pointer and the buttons.
+        const attributionFirst = above
+        if (model.actionsFirst !== actionsFirst || model.attributionFirst !== attributionFirst) {
+            model.actionsFirst = actionsFirst
+            model.attributionFirst = attributionFirst
+            // Two class bindings; nothing else in the card changed.
+            state.componentRef.instance.refresh()
+        }
     }
 
     private hide (state: TabState): void {
@@ -603,8 +660,14 @@ export class LinkTooltipDecorator extends TerminalDecorator {
      * maximized split pane sets `backdrop-filter`, either of which makes *it*
      * the containing block. Measuring the element's own origin at translate(0,0)
      * sidesteps the question of which ancestor won.
+     *
+     * Returns whether the card ended up *above* the hovered line. The placement
+     * of the button row is named relative to the link, so it cannot be decided
+     * until that is known — and it is safe to decide afterwards because moving
+     * the same content from one end of the card to the other cannot change the
+     * height this measured.
      */
-    private position (state: TabState, range: BufferRange): void {
+    private position (state: TabState, range: BufferRange): boolean {
         const host = state.host
         // Measured once, before anything writes a style: the cap below would
         // otherwise cost a second layout to read the same box back.
@@ -651,6 +714,10 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         y = Math.min(Math.max(y, minY), maxY)
 
         host.style.transform = `translate(${Math.round(x - origin.left)}px, ${Math.round(y - origin.top)}px)`
+        // Compared against the cell rather than against `flipped`: the clamps
+        // above can move the card after the flip decision, and what the caller
+        // needs is where it actually ended up.
+        return y < cellTop
     }
 
     private cellSize (state: TabState): { width: number, height: number } {
@@ -696,6 +763,19 @@ export class LinkTooltipDecorator extends TerminalDecorator {
     ): CardHandlers {
         const uri = () => link ? this.linkUri(link, integration) : ''
         return {
+            // The nav service runs this inside the zone: the card's buttons hang
+            // off xterm's DOM, which is outside it, and opening a tab from out
+            // there builds one nothing ever draws.
+            openRule: () => {
+                if (!model || model.attributionRuleIndex < 0) {
+                    return
+                }
+                this.hide(state)
+                this.nav.openRule({
+                    index: model.attributionRuleIndex,
+                    name: model.attributionRuleName,
+                })
+            },
             open: () => void this.actions.open(uri(), filePath),
             copyLink: () => this.actions.copy(uri()),
             copyPath: () => this.actions.copy(filePath),
@@ -728,7 +808,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
                 // The frame grew or shrank, so where the card fits has changed.
                 // Nothing else about it has, so this only re-places it.
                 if (state.hovered) {
-                    this.position(state, state.hovered.range)
+                    this.place(state, state.componentRef.instance.model, state.hovered.range)
                 }
             },
             // Down the same path the Open button takes, so the unsafe-scheme
@@ -812,7 +892,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             const instance = state.componentRef.instance
             instance.model.preview = preview
             instance.refresh()
-            this.position(state, link.range)
+            this.place(state, instance.model, link.range)
         })
     }
 

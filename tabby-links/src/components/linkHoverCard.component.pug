@@ -1,8 +1,14 @@
 //- The width is a placement concern, so the decorator owns it: it sets
 //- `--link-card-max-width` to the lesser of `linkTooltip.maxWidth` and what the
 //- hovered pane can actually show, immediately before it measures this card.
+//- `actions-top` / `attr-top` reorder by CSS rather than by moving elements:
+//- the DOM stays one shape whichever way the card flipped, so there is one
+//- template to keep sealed and the reorder cannot change the card's height —
+//- which is what makes it safe to decide after the flip has been measured.
 .link-card(
     #root,
+    [class.actions-top]='model.actionsFirst',
+    [class.attr-top]='model.attributionFirst',
     (mouseenter)='handlers?.pointerEnter()',
     (mouseleave)='handlers?.pointerLeave()',
 )
@@ -49,3 +55,14 @@
         )
             i.fas.fa-fw.me-1(*ngIf='action.icon', class='fa-{{action.icon}}')
             span {{action.name}}
+
+    //- Which rule produced this card. Right-aligned on the far edge so it is
+    //- never between the pointer and the buttons. A rule that can be opened is
+    //- a link; "No rule matched" and a synthetic integration pattern are not,
+    //- because there is no editor to open for either.
+    .attribution(*ngIf='model.attribution')
+        a.rule-link(
+            *ngIf='model.attributionRuleIndex >= 0',
+            (click)='handlers?.openRule()',
+        ) {{model.attribution}}
+        span(*ngIf='model.attributionRuleIndex < 0') {{model.attribution}}

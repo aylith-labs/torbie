@@ -23,6 +23,28 @@ export interface CardModel extends PreviewModel {
     showReveal: boolean
     showInPane: boolean
     actions: LinkTooltipAction[]
+    /**
+     * "Matched by <rule>", "No rule matched", or "Detected by the <X>
+     * integration". Empty when the attribution line is switched off.
+     */
+    attribution: string
+    /**
+     * Where the rule lives in `linkTooltip.rules`, so the line can open it, or
+     * -1 when there is nothing to open — no rule matched, or the rule is a
+     * synthetic one built from an integration's `detectPatterns`, which is in
+     * no array and has no editor to open.
+     */
+    attributionRuleIndex: number
+    /** Checked against the index before opening, since rules can be edited meanwhile. */
+    attributionRuleName: string
+    /**
+     * Whether the button row and the attribution line sit above the body rather
+     * than below it. Resolved by the decorator *after* it knows which way the
+     * card flipped, since the placement setting names an edge relative to the
+     * link rather than to the card.
+     */
+    actionsFirst: boolean
+    attributionFirst: boolean
 }
 
 export interface CardHandlers extends PreviewHandlers {
@@ -35,6 +57,8 @@ export interface CardHandlers extends PreviewHandlers {
     custom: (action: LinkTooltipAction) => void
     pointerEnter: () => void
     pointerLeave: () => void
+    /** Open the matched rule on the Link Tooltip settings page. */
+    openRule: () => void
 }
 
 export function emptyModel (): CardModel {
@@ -48,6 +72,11 @@ export function emptyModel (): CardModel {
         showReveal: false,
         showInPane: false,
         actions: [],
+        attribution: '',
+        attributionRuleIndex: -1,
+        attributionRuleName: '',
+        actionsFirst: false,
+        attributionFirst: false,
     }
 }
 

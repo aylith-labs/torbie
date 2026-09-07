@@ -368,6 +368,13 @@ export class IntegrationRuntimeService {
         })
     }
 
+    /** An integration's display name, falling back to its id when unknown. */
+    integrationName (id: string): string {
+        // An empty name falls back to the id, which `??` would not do.
+        const name = this.registry.byId(id)?.name
+        return name ? name : id
+    }
+
     /**
      * Whether a preview is even worth showing a spinner for. An integration that
      * is disabled or not configured is silent, not erroring.

@@ -62,6 +62,18 @@ export class LinkRulesService {
     }
 
     /**
+     * Rules this service manufactured from an integration's `detectPatterns`.
+     * Weak, so a rule stops being tracked when the pool that held it is
+     * rebuilt. Never persisted — these exist only in the matching pool.
+     */
+    private synthetic = new WeakSet<LinkTooltipRule>()
+
+    /** Whether a rule came from an integration rather than from the user. */
+    isSynthetic (rule: LinkTooltipRule | null): boolean {
+        return !!rule && this.synthetic.has(rule)
+    }
+
+    /**
      * All rules, completed and as stored. Re-read on every call; only the
      * hydration is memoised, and only until the array is replaced.
      */
@@ -101,6 +113,10 @@ export class LinkRulesService {
                 break
             }
             const rule = newRule()
+            // Recorded rather than inferred from the shape: a user rule could
+            // have the same name and integration, and the card must not offer
+            // to open an editor for a rule that is in no list.
+            this.synthetic.add(rule)
             rule.name = integrationId
             rule.match = 'text'
             rule.pattern = pattern
@@ -124,6 +140,7 @@ export class LinkRulesService {
     resolve (kind: LinkMatchKind, text: string, resolvedPath: string, matchedRule: LinkTooltipRule | null): EffectiveTooltipSettings {
         const store = this.config.store.linkTooltip
         const showButtons = store?.showButtons ?? true
+        const showCustomActions = store?.showCustomActions ?? true
         const settings: EffectiveTooltipSettings = {
             showDelay: store?.showDelay ?? 250,
             hideDelay: store?.hideDelay ?? 400,
@@ -169,7 +186,11 @@ export class LinkRulesService {
         settings.showInPane = settings.showInPane && !rule.suppressShowInPane
         settings.integration = rule.integration
         settings.showPreview = rule.preview
-        settings.actions = showButtons ? rule.actions : []
+        // Custom actions have their own switch. They used to ride on
+        // `showButtons`, so turning off the built-in row also deleted buttons
+        // the user had written — the same destructive click `applyPreset`
+        // deliberately refuses to make, and from further away.
+        settings.actions = showCustomActions ? rule.actions : []
         // An empty action id inherits the global chord action; `'none'` is a
         // deliberate "this rule has no such click" and is kept as-is, so the
         // dispatcher can tell it apart from inheriting. Unlike button

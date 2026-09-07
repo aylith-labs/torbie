@@ -32,7 +32,35 @@ export class LinksConfigProvider extends ConfigProvider {
             maxWidth: 640,
             showDelay: 250,
             hideDelay: 400,
+            /** The five built-in buttons: Open, Copy link, Copy path, Reveal, Show in pane. */
             showButtons: true,
+            /**
+             * Whether a rule's own custom actions are offered.
+             *
+             * Separate from `showButtons`, which used to govern both: a switch
+             * labelled "show buttons" silently deleting user-authored actions
+             * is the same destructive click `applyPreset` refuses to make.
+             */
+            showCustomActions: true,
+            /**
+             * Which edge of the card the button row sits on, named relative to
+             * the *link* rather than to the card: 'near' is the edge the link is
+             * on, 'far' the opposite one.
+             *
+             * The card flips above the hovered line when there is no room below,
+             * so "bottom" is the near edge half the time and the far edge the
+             * other half — which is why naming a card edge was never meaningful.
+             * 'far' is the default because it is what the old always-bottom
+             * behaviour produced in the common case.
+             */
+            actionsPlacement: 'far',
+            /**
+             * Whether the card says which rule produced it. Diagnostic, so off
+             * by default. "No rule matched" is the useful half — it is the
+             * answer to "why is this link not previewed the way I set it up",
+             * which the UI otherwise gives no way to ask.
+             */
+            showRuleAttribution: false,
             /**
              * Whether hover cards go quiet while a preview pane is open. Both
              * halves are required — the pane and this — so closing the last

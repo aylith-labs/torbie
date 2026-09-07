@@ -1,7 +1,9 @@
-import { Component } from '@angular/core'
+import { Component, OnDestroy, OnInit } from '@angular/core'
+import { Subscription } from 'rxjs'
 import { ConfigService, PlatformService } from 'tabby-core'
 
 import { Integration, LinkTooltipAction, LinkTooltipRule, hydrateRule, newRule } from '../api'
+import { resolveRuleTarget } from '../attribution'
 import {
     CLICKABLE_KINDS,
     CLICK_GESTURES,
@@ -16,6 +18,7 @@ import { RulePreset, applyPreset, rulePresets } from '../presets'
 import { checkPattern } from '../regexGuard'
 import { IntegrationRegistryService } from '../services/integrationRegistry.service'
 import { LinkClicksService } from '../services/linkClicks.service'
+import { LinkSettingsNavService, RuleTarget } from '../services/linkSettingsNav.service'
 
 /** A comma-separated field, cleaned up. Empty entries are dropped, not stored. */
 function splitList (value: string): string[] {
@@ -64,9 +67,10 @@ const KIND_LABELS: Record<ClickableKind, string> = {
     templateUrl: './linkTooltipSettingsTab.component.pug',
     styleUrls: ['./linkTooltipSettingsTab.component.scss'],
 })
-export class LinkTooltipSettingsTabComponent {
+export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
     fileTypeGroups = FILE_TYPE_GROUP_LABELS
     currentRule: LinkTooltipRule | null = null
+    private navSubscription: Subscription | null = null
     patternError = ''
     integrations: Integration[] = []
     /**
@@ -90,6 +94,7 @@ export class LinkTooltipSettingsTabComponent {
         public config: ConfigService,
         private platform: PlatformService,
         private clicks: LinkClicksService,
+        private nav: LinkSettingsNavService,
         registry: IntegrationRegistryService,
     ) {
         registry.integrations$.subscribe(list => {
@@ -98,6 +103,30 @@ export class LinkTooltipSettingsTabComponent {
             // only correct once these have arrived.
             this.presets = rulePresets(list)
         })
+    }
+
+    /**
+     * Two paths, because `ngbNav` destroys the content of a hidden tab: opening
+     * the page *builds* this component, so a request made before it existed is
+     * waiting to be collected — but a settings tab already sitting on this page
+     * is not rebuilt, and only hears about it through the subscription.
+     */
+    ngOnInit (): void {
+        const pending = this.nav.take()
+        if (pending) {
+            this.selectRuleTarget(pending)
+        }
+        this.navSubscription = this.nav.requests$.subscribe(target => this.selectRuleTarget(target))
+    }
+
+    ngOnDestroy (): void {
+        this.navSubscription?.unsubscribe()
+    }
+
+    /** Open the rule a hover card named, if it is still there. */
+    selectRuleTarget (target: RuleTarget): void {
+        this.currentRule = resolveRuleTarget(this.rules, target)
+        this.patternError = this.currentRule ? checkPresetPattern(this.currentRule.pattern) : ''
     }
 
     get rules (): LinkTooltipRule[] {

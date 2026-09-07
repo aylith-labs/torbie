@@ -89,6 +89,24 @@
     border-top: 1px solid rgba(127, 127, 127, .25);
 }
 
+// The same "near the link / far edge" choice the card offers. The pane never
+// flips, but it does have the link at its top, so the near edge is the top —
+// which is where the buttons already were, and stay by default.
+.link-pane.buttons-last {
+    .pane-buttons {
+        order: 1;
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid rgba(127, 127, 127, .25);
+    }
+
+    // The divider belongs to whichever element now leads the lower half.
+    .pane-body {
+        border-top: none;
+        padding-top: 0;
+    }
+}
+
 .pane-error {
     color: #d03c3c;
     overflow-wrap: anywhere;

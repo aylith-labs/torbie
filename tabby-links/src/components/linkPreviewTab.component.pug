@@ -1,4 +1,4 @@
-.link-pane
+.link-pane([class.buttons-last]='buttonsLast')
     .pane-head
         i.fas.fa-fw.fa-circle-notch.fa-spin.pane-spinner(*ngIf='busy')
         .pane-link(title='{{request.text}}') {{request.text}}

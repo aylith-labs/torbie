@@ -65,11 +65,43 @@ h4.mt-4.mb-2(translate) Defaults
 
 .form-line
     .header
-        .title(translate) Show buttons on the link tooltip
-        .description(translate) Open the link, copy it, show the preview in a pane, and — for links to files — copy the path it resolves to or show it in the file manager
+        .title(translate) Show the built-in buttons
+        .description(translate) Open the link, copy it, show the preview in a pane, and — for links to files — copy the path it resolves to or show it in the file manager. Applies to the preview pane as well as the hover card, and a rule can hide any of them individually
     reset-to-default([proxy]='config.store.linkTooltip', key='showButtons')
     toggle(
         [(ngModel)]='config.store.linkTooltip.showButtons',
+        (ngModelChange)='saveConfiguration()',
+    )
+
+.form-line
+    .header
+        .title(translate) Show buttons your rules add
+        .description(translate) The custom actions defined on a Link Tooltip rule. Separate from the built-in buttons above, so turning those off does not also take away buttons you wrote. Applies to the preview pane as well as the hover card
+    reset-to-default([proxy]='config.store.linkTooltip', key='showCustomActions')
+    toggle(
+        [(ngModel)]='config.store.linkTooltip.showCustomActions',
+        (ngModelChange)='saveConfiguration()',
+    )
+
+.form-line
+    .header
+        .title(translate) Where the buttons go
+        .description(translate) Named relative to the link, not to the card: the card appears below the link where there is room and above it where there is not, so "bottom" would mean the near edge half the time and the far edge the rest
+    reset-to-default([proxy]='config.store.linkTooltip', key='actionsPlacement')
+    select.form-control(
+        [(ngModel)]='config.store.linkTooltip.actionsPlacement',
+        (ngModelChange)='saveConfiguration()',
+    )
+        option(value='near') {{'Next to the link'|translate}}
+        option(value='far') {{'Far edge'|translate}}
+
+.form-line
+    .header
+        .title(translate) Say which rule matched
+        .description(translate) Adds a line naming the rule that produced the card, or saying that none did and the defaults were used. Click it to open that rule. Useful when a link is not previewed the way you set it up
+    reset-to-default([proxy]='config.store.linkTooltip', key='showRuleAttribution')
+    toggle(
+        [(ngModel)]='config.store.linkTooltip.showRuleAttribution',
         (ngModelChange)='saveConfiguration()',
     )
 

@@ -74,3 +74,47 @@
         padding: 2px 8px;
     }
 }
+
+// Which rule produced the card. Deliberately quiet — it is a diagnostic, and
+// it must not compete with the link itself for attention.
+.attribution {
+    margin-top: 6px;
+    text-align: right;
+    font-size: 11px;
+    opacity: .55;
+
+    .rule-link {
+        color: inherit;
+        text-decoration: underline dotted;
+        cursor: pointer;
+    }
+
+    &:hover .rule-link {
+        opacity: 1;
+        text-decoration: underline;
+    }
+}
+
+// Reordering, not restructuring. `.link-card` becomes a column flex container
+// only so `order` applies; every child keeps its place by default, and the two
+// modifier classes lift one element each to the top. Margins are swapped with
+// them so the gap stays on the side facing the body.
+.link-card {
+    display: flex;
+    flex-direction: column;
+
+    .actions { order: 1 }
+    .attribution { order: 2 }
+
+    &.actions-top .actions {
+        order: -1;
+        margin-top: 0;
+        margin-bottom: 8px;
+    }
+
+    &.attr-top .attribution {
+        order: -2;
+        margin-top: 0;
+        margin-bottom: 6px;
+    }
+}

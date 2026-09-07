@@ -1242,5 +1242,95 @@ check('an absent global falls back to the shipped default',
     })(),
     [chords.DEFAULT_CHORDS.primary.action, chords.DEFAULT_CHORDS.alternative.action])
 
+
+// ── rule attribution and button placement ───────────────────────────────────
+// The card has always known which rule produced it and used to throw that away.
+// These cover the three things it can now say, and the placement decision —
+// which is only meaningful once the card has flipped, so both inputs matter.
+console.log('\n── rule attribution and button placement ──')
+{
+    const attr = loadSource('tabby-links/src/attribution.ts')
+    const named = { ...api.newRule(), name: 'Jira keys' }
+    const unnamed = { ...api.newRule(), name: '' }
+    const detect = { ...api.newRule(), name: 'github', integration: 'github' }
+
+    check('no rule says so, and offers nothing to open',
+        attr.ruleAttribution(null, -1, false, ''),
+        { text: attr.NO_RULE, index: -1, name: '' })
+    check('a matched rule is named and can be opened',
+        attr.ruleAttribution(named, 3, false, ''),
+        { text: 'Matched by Jira keys', index: 3, name: 'Jira keys' })
+    check('an unnamed rule still reads as a rule',
+        attr.ruleAttribution(unnamed, 0, false, '').text, 'Matched by Unnamed rule')
+    // The case with no editor to open: it is in the matching pool but in
+    // nobody's rule list, so it must not claim an index.
+    check('an integration pattern is credited to the integration, not to a rule',
+        attr.ruleAttribution(detect, -1, true, 'GitHub'),
+        { text: 'Detected by the GitHub integration', index: -1, name: '' })
+    check('a synthetic rule falls back to the integration id when it is not installed',
+        attr.ruleAttribution(detect, -1, true, '').text,
+        'Detected by the github integration')
+    // Deleted while the card was up: worth naming, not worth offering to open.
+    check('a rule that has left the list is named but not openable',
+        attr.ruleAttribution(named, -1, false, ''),
+        { text: 'Matched by Jira keys', index: -1, name: 'Jira keys' })
+
+    // Resolving the click back to a rule.
+    const list = [
+        { ...api.newRule(), name: 'first' },
+        { ...api.newRule(), name: 'second' },
+        { ...api.newRule(), name: 'third' },
+    ]
+    check('the index is taken when the name still agrees',
+        attr.resolveRuleTarget(list, { index: 1, name: 'second' }), list[1])
+    check('a moved rule is found by name',
+        attr.resolveRuleTarget(list, { index: 0, name: 'third' }), list[2])
+    check('a deleted rule lands on the list rather than on its neighbour',
+        attr.resolveRuleTarget(list, { index: 1, name: 'gone' }), null)
+    check('an out-of-range index does not throw',
+        attr.resolveRuleTarget(list, { index: 99, name: 'first' }), list[0])
+    check('an unnamed target is never guessed at',
+        attr.resolveRuleTarget(list, { index: 99, name: '' }), null)
+
+    // Placement. `far` with the card below the link is what the old
+    // always-bottom code did, so that row is the compatibility claim.
+    const edge = (placement, above) => {
+        const near = placement !== 'far'
+        return above ? !near : near
+    }
+    check('far edge, card below the link: buttons stay at the bottom',
+        edge('far', false), false)
+    check('far edge, card above the link: buttons move to the top',
+        edge('far', true), true)
+    check('next to the link, card below: buttons move to the top',
+        edge('near', false), true)
+    check('next to the link, card above: buttons go to the bottom',
+        edge('near', true), false)
+}
+
+// ── the buttons switch no longer eats custom actions ────────────────────────
+// A switch labelled "show buttons" used to delete buttons the user wrote, which
+// is the same destructive click `applyPreset` deliberately refuses to make.
+console.log('\n── custom actions have their own switch ──')
+{
+    const action = { name: 'Blame', type: 'openUrl', value: 'https://x/%u' }
+    const rule = { ...api.newRule(), match: 'link', pattern: 'example', actions: [action] }
+    const resolveWith = store => new rules.LinkRulesService(
+        { store: { linkTooltip: { rules: [rule], ...store } }, changed$: { subscribe: () => undefined } },
+        { error: () => undefined }, { detectPatterns: () => [] },
+    ).resolve('link', 'https://example.com/x', '', rule)
+
+    check("built-in buttons off no longer removes a rule's own buttons",
+        resolveWith({ showButtons: false }).actions.length, 1)
+    check('and the built-in ones really are gone',
+        resolveWith({ showButtons: false }).showOpen, false)
+    check('custom actions off removes them',
+        resolveWith({ showCustomActions: false }).actions.length, 0)
+    check('while leaving the built-in buttons alone',
+        resolveWith({ showCustomActions: false }).showOpen, true)
+    check('both on is the default',
+        resolveWith({}).actions.length, 1)
+}
+
 console.log(`\n${passed} passed, ${failed} failed`)
 process.exit(failed ? 1 : 0)

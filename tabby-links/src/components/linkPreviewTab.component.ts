@@ -132,6 +132,20 @@ export class LinkPreviewTabComponent extends BaseTabComponent implements OnInit 
     }
 
     /**
+     * Whether the button row sits at the bottom of the pane rather than under
+     * the link.
+     *
+     * The setting names an edge relative to the *link*. A pane never flips, and
+     * its link is at the top, so 'near' is simply where the buttons already
+     * were. Read straight from the config on each pass rather than plumbed
+     * through `LinkPreviewRequest`: this is a live component, so it follows the
+     * setting without the pane having to be reopened.
+     */
+    get buttonsLast (): boolean {
+        return this.config.store.linkTooltip?.actionsPlacement === 'far'
+    }
+
+    /**
      * Whether hover cards are silenced while a preview pane is open.
      *
      * Kept in the config rather than on the pane, so the answer survives the
