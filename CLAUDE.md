@@ -9,48 +9,67 @@ upstream to merge PRs.
 
 - **Run locally from source**, with local changes applied. Never build the installer
   (`scripts/build-windows.mjs`, electron-builder) — it is not needed and is slow.
-- **Stay close to upstream** so pulling in new upstream work stays cheap.
+- **Take from upstream deliberately**, by cherry-pick, rather than staying rebased on it.
+- **Keep Tabby's plugin API working** — the plugin ecosystem is the reason this is a
+  Tabby fork and not a rewrite.
 - Land fixes here first; upstreaming them is optional and never a blocker.
 
 ## Branch strategy
 
-| Branch | Contents | Rule |
-|---|---|---|
-| `master` | Pure mirror of `upstream/master` | **Never commit here.** Only fast-forward. |
-| `local` | `master` + our patch series | All local work goes here. |
+**One branch: `main`.** It is the default branch and everything lands there.
+There is no mirror branch and no long-lived patch series to replay.
 
-`master` stays pristine so syncing is always a conflict-free fast-forward, and
-`git diff master..local` is exactly "our changes" at any moment.
+This replaced a two-branch scheme — a pristine `master` mirroring
+`upstream/master`, with the fork's work rebased on top as `local` — which is
+worth knowing about because a lot of the older notes below were written under
+it. That scheme buys conflict-free fast-forward syncs, and it costs a rebase of
+the entire series every time upstream moves, which rewrites every SHA and
+invalidates every commit link in `docs/`. The fork has diverged far enough that
+the trade stopped paying.
 
-To sync:
+**Upstream is now a source to take from, not a base to sit on.** `upstream`
+stays configured as a remote and is still fetched, but work is *cherry-picked*
+across when something there is wanted:
 
 ```bash
 git fetch upstream
-git checkout master && git merge --ff-only upstream/master && git push origin master
-git checkout local && git rebase master        # replay our patches on top
-git push --force-with-lease origin local
+git log --oneline main..upstream/master        # what they have that we don't
+git cherry-pick <sha>                          # take the ones worth taking
 ```
 
-Keep the patch series **small and one-concern-per-commit** — each commit is replayed
-individually on rebase, so a fat commit means a fat conflict. Prefer adding new files
-over editing upstream ones where there's a choice; add-only files never conflict.
+Nothing forces a periodic sync any more. Upstream's release cadence, measured
+(2026-08), is irregular anyway: gaps between the last 15 releases ranged 3–135
+days, and `master` averaged ~52 active days a year in bursts.
 
-**Prefer rebasing onto upstream over cherry-picking from it.** Cherry-picking upstream
-commits into a diverged base duplicates commits, and the duplicates collide the next
-time you rebase. Reserve cherry-picks for the case where a specific upstream fix is
-needed *before* the next sync — and drop it at the following rebase, since it arrives
-on its own.
+Two things that were true under the old scheme and stay true:
 
-Upstream release cadence, measured (2026-08): irregular. Gaps between the last 15
-releases ranged 3–135 days; `master` averaged ~52 active days/year in bursts (median
-3 days between active days, max gap 30). Syncing per upstream release tag is the
-natural rhythm — roughly 6–14 times a year.
+- **Prefer adding new files over editing upstream ones** where there is a
+  choice. It was about rebase conflicts; it is now about how much of a
+  cherry-pick lands cleanly, which is the same property.
+- **Keep commits one-concern-each.** A fat commit is a fat conflict whichever
+  direction the change travels.
+
+**What still needs `upstream/master`.** `scripts/dev/check-fork-marks.mjs`
+computes which settings are the fork's as
+`keys(working tree) − keys(upstream/master)`, so the remote has to be present
+and fetched for it to run — it says so and exits 1 rather than guessing.
+`TABBY_UPSTREAM_REF` names another ref. Settings → **Upstream** reads the same
+remote through `upstream.remote` / `upstream.branch`, which are config keys and
+were never tied to a local branch.
+
+### Where this is going
+
+The plan is to stop tracking upstream altogether: keep supporting Tabby's plugin
+API, take fixes across when they are worth taking, and otherwise develop
+independently — moving the repo under `aylith-labs` under its own name, with its
+own icon and identity, and working through performance and stability. None of
+that has happened yet; this section will say so when it does.
 
 ## The feature catalogue (`docs/`)
 
 `docs/` is a static showcase site listing everything this fork carries that
-upstream does not — 38 features over 89 of the 95 commits in the series, each
-with a detail page. Plain HTML/CSS/JS opened straight from disk: no build step,
+upstream does not — 43 features over 94 of the 102 commits the fork carries,
+each with a detail page. Plain HTML/CSS/JS opened straight from disk: no build step,
 no Jekyll (`.nojekyll`), no CDN, no network at all. `docs/features.js` is the
 one source the cards, the filters and the detail pages all read;
 `docs/feature-details.js` carries the long-form prose beside it. Both workflows
@@ -58,7 +77,7 @@ now carry `paths-ignore: docs/**` so a docs-only commit does not run a package
 build.
 
 **It has to be kept current — that is the whole point of it.** When a commit
-lands on `local` that a reader would call a feature, it belongs there, as a new
+lands on `main` that a reader would call a feature, it belongs there, as a new
 entry or on an existing one's `commits`.
 
 ```bash
@@ -69,11 +88,13 @@ recomputes every `ins`/`del`/`files`/`dateAdded` from git and fails on anything
 that disagrees, on a commit claimed twice, on a commit not on the branch, on a
 detail entry for a feature that no longer exists, on a dead link, and on a
 capture referenced but never committed. It also *warns* about commits in no
-feature — six today, all reverts, docs or build patches.
+feature — eight today, all reverts, docs or build patches.
 
-- **Run it after every rebase onto `master`.** Replaying the series rewrites
-  every SHA, so all 89 commit links go stale at once and every entry fails
-  until they are re-pointed. This is the one maintenance cost the site has.
+- **Commit SHAs are now stable.** Under the old rebase-onto-`master` scheme,
+  replaying the series rewrote every SHA, so all of the commit links went stale
+  at once and every entry failed until they were re-pointed — the site's one
+  real maintenance cost. A single `main` that is never rebased retires it: run
+  the checker after adding a feature, not after a sync.
 - **The candour is load-bearing.** Each page has a *What this does not claim*
   block, and the index has *Known limits*: emoji width is listed as broken, the
   stale-glyph artifacts are stated as **not reproduced** by `glyphs.cdp.js`, and
@@ -1805,9 +1826,12 @@ for. A row carries at most one; the stylesheet settles which wins.
 
 ### The checker, and why the sweep is only a review gate
 
-`check-fork-marks.mjs` recomputes the fork-added set from git and fails when the
-checked-in list disagrees **in either direction** — which is what fires the
-moment a rebase carries a key upstream. It also refuses a marked row editing no
+`check-fork-marks.mjs` recomputes the fork-added set as
+`keys(working tree) − keys(upstream/master)` and fails when the checked-in list
+disagrees **in either direction** — which is what fires the moment a cherry-pick
+brings across a key we had marked as ours. It needs the `upstream` remote
+fetched and says so rather than guessing when it is missing;
+`TABBY_UPSTREAM_REF` names another ref. It also refuses a marked row editing no
 fork-added key, a fork-added key with an unmarked row on a shared page, a row
 with both marks, a mark on a page already marked at its nav entry, a fork page
 that forgets `forkAdded`, and a stylesheet or import gone missing. `--write`

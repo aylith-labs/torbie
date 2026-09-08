@@ -10,8 +10,7 @@
 // and in the direction that makes the app *lie* rather than merely omit.
 //
 // So the fork-added list is recomputed here from git rather than trusted:
-// `keys(local) - keys(master)`, where `master` is the pristine upstream mirror
-// this fork keeps for exactly this purpose. Same shape as `check-docs.mjs`,
+// keys(working tree) - keys(upstream/master). Same shape as `check-docs.mjs`,
 // which recomputes its numbers from git for the same reason: collect every
 // failure, then exit 1.
 //
@@ -195,10 +194,29 @@ function rows () {
 
 const data = JSON.parse(fs.readFileSync(DATA, 'utf8'))
 
-// 1. The fork-added set, recomputed. This is the check that fires on a rebase.
+// 1. The fork-added set, recomputed. This is the check that fires when a
+//    cherry-pick from upstream brings a key we had marked as ours.
+//
+//    Compared against `upstream/master` itself rather than a local mirror
+//    branch. This fork used to keep `master` as a pristine copy for exactly
+//    this purpose; it has a single `main` now, so the remote-tracking ref is
+//    both the only answer available and the more honest one — it is upstream,
+//    not our record of it.
+const UPSTREAM_REF = process.env.TABBY_UPSTREAM_REF || 'upstream/master'
 const localKeys = declaredKeys(null)
-const masterKeys = declaredKeys('master')
-const derived = [...localKeys].filter(k => !masterKeys.has(k)).sort()
+let upstreamKeys
+try {
+    git(['rev-parse', '--verify', '--quiet', `${UPSTREAM_REF}^{commit}`])
+    upstreamKeys = declaredKeys(UPSTREAM_REF)
+} catch {
+    console.log(`FAIL  ${UPSTREAM_REF} is not reachable — the fork-added set cannot be computed.`)
+    console.log('      Add the remote and fetch it:')
+    console.log('        git remote add upstream https://github.com/Eugeny/tabby')
+    console.log('        git fetch upstream')
+    console.log('      Or name another ref with TABBY_UPSTREAM_REF.')
+    process.exit(1)
+}
+const derived = [...localKeys].filter(k => !upstreamKeys.has(k)).sort()
 const recorded = [...data.forkAdded].sort()
 const missing = derived.filter(k => !recorded.includes(k))
 const gaps = data.knownGaps.map(e => e.key)
@@ -320,7 +338,7 @@ const accountedPrefixes = [
 ]
 const accounted = key => accountedExact.has(key)
     || accountedPrefixes.some(prefix => key === prefix || key.startsWith(prefix + '.'))
-for (const key of [...masterKeys].sort()) {
+for (const key of [...upstreamKeys].sort()) {
     if (accounted(key)) { continue }
     if (excluded.some(p => key === p || key.startsWith(p + '.'))) { continue }
     if (!key.includes('.')) { continue }
