@@ -290,12 +290,20 @@ for (const row of allRows) {
 for (const file of tracked('*/src/providers.ts').concat(tracked('*/src/settings.ts'))) {
     const text = fs.readFileSync(path.join(REPO, file), 'utf8')
     if (!text.includes('extends SettingsTabProvider')) { continue }
-    const isFork = readAt('master', file) === null
-    const declares = text.includes('forkAdded = true')
-    if (isFork && !declares) {
-        fail(`${file} adds a settings page but does not set forkAdded = true`)
+    // Against upstream, not a local mirror branch — the fork has a single
+    // `main` now, and asking a branch that no longer exists answers "absent"
+    // for every file, which makes every upstream settings page look like ours.
+    const isFork = readAt(UPSTREAM_REF, file) === null
+    // Counted, not merely present: `tabby-links/src/providers.ts` declares two
+    // settings pages, and a substring test is satisfied by either of them — so
+    // dropping `forkAdded` from one left its nav entry unmarked and the check
+    // green. Measured, while verifying the check could fail at all.
+    const providers = (text.match(/extends SettingsTabProvider\b/g) ?? []).length
+    const declared = (text.match(/forkAdded = true/g) ?? []).length
+    if (isFork && declared < providers) {
+        fail(`${file} declares ${providers} settings page(s) but only ${declared} set forkAdded = true`)
     }
-    if (!isFork && declares) {
+    if (!isFork && declared) {
         fail(`${file} is upstream's but claims forkAdded`)
     }
 }
