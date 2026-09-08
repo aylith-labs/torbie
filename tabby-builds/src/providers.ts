@@ -8,6 +8,9 @@ export class BuildsSettingsTabProvider extends SettingsTabProvider {
     id = 'builds'
     icon = 'cubes'
     title = 'Builds'
+    // This whole page is the fork's, so the mark goes on the nav entry
+    // once rather than on each of its rows.
+    forkAdded = true
     /** A table of eleven columns including full paths; 600px would gut it. */
     wide = true
 

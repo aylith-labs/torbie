@@ -88,6 +88,31 @@ ng-container(*ngIf='!loading && status && !status.problem')
             span.author {{commit.author}}
             span.date {{shortDate(commit.date)}}
 
+h4.mt-4.mb-2(translate) Marks
+
+.text-muted.mb-2(translate) Nothing in the running program says which behaviour is this fork's and which is upstream Tabby's: every row in the settings window is drawn the same either way. These put that back, and each row below carries the mark it controls — so switching one on previews itself.
+
+.form-line
+    .header
+        //- The row wears its own mark, which is the whole demonstration.
+        .title.fork-mark(translate) Mark the settings this fork added
+        .description(translate) A filled diamond beside the name of every setting that does not exist in upstream Tabby. A page that is entirely ours is marked once, on its entry in the list to the left
+    reset-to-default([proxy]='config.store.upstream', key='showForkMarks')
+    toggle(
+        [ngModel]='config.store.upstream.showForkMarks',
+        (ngModelChange)='setForkMarks($event)',
+    )
+
+.form-line
+    .header
+        .title.config-only-mark(translate) Mark the settings upstream hides
+        .description(translate) A hollow diamond, the same size, for settings upstream Tabby has but gives no control for — you would otherwise have to hand-edit config.yaml. The quieter mark, because it is the lesser claim
+    reset-to-default([proxy]='config.store.upstream', key='showConfigOnlyMarks')
+    toggle(
+        [ngModel]='config.store.upstream.showConfigOnlyMarks',
+        (ngModelChange)='setConfigOnlyMarks($event)',
+    )
+
 h4.mt-4.mb-2(translate) Options
 
 .form-line

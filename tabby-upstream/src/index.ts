@@ -8,6 +8,12 @@ import { SettingsTabProvider } from 'tabby-settings'
 import { UpstreamSettingsTabComponent } from './components/upstreamSettingsTab.component'
 import { UpstreamConfigProvider } from './config'
 import { UpstreamSettingsTabProvider } from './providers'
+import { ForkMarksService } from './services/forkMarks.service'
+
+// Global, by way of not being named *component.scss — see the file itself. The
+// rows it styles are compiled into other packages' templates, which a
+// component-scoped sheet could never reach.
+import './forkMarks.scss'
 
 /** @hidden */
 @NgModule({
@@ -26,4 +32,11 @@ import { UpstreamSettingsTabProvider } from './providers'
     ],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-export default class UpstreamModule { }
+export default class UpstreamModule {
+    // Resolved here so the marks are applied at startup rather than only once
+    // somebody opens the Upstream page. The service is otherwise never
+    // injected by anything.
+    constructor (forkMarks: ForkMarksService) {
+        forkMarks.apply()
+    }
+}

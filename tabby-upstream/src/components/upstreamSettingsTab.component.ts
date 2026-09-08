@@ -1,6 +1,7 @@
 import { Component } from '@angular/core'
 import { ConfigService, NotificationsService, PlatformService } from 'tabby-core'
 
+import { ForkMarksService } from '../services/forkMarks.service'
 import { Commit, GitService, UpstreamStatus } from '../services/git.service'
 
 @Component({
@@ -20,6 +21,7 @@ export class UpstreamSettingsTabComponent {
         private git: GitService,
         private platform: PlatformService,
         private notifications: NotificationsService,
+        private forkMarks: ForkMarksService,
     ) {
         void this.refresh()
     }
@@ -57,6 +59,29 @@ export class UpstreamSettingsTabComponent {
         } finally {
             this.fetching = false
         }
+    }
+
+    /**
+     * Both switches apply the value from the event, and only then save.
+     *
+     * `config.save()` awaits the disk before `changed$` fires, so a handler
+     * that only saved would leave the mark a visible moment behind the switch
+     * controlling it — the same trap the accent-colour picker documents in
+     * `windowSettingsTab.component.ts`. Taking the value from `$event` rather
+     * than re-reading the store also sidesteps the reference fork's own bug
+     * here: its handler read the property before the two-way binding had
+     * written it back, so the mark never appeared at all.
+     */
+    setForkMarks (value: boolean): void {
+        this.config.store.upstream.showForkMarks = value
+        this.forkMarks.apply(value, undefined)
+        this.config.save()
+    }
+
+    setConfigOnlyMarks (value: boolean): void {
+        this.config.store.upstream.showConfigOnlyMarks = value
+        this.forkMarks.apply(undefined, value)
+        this.config.save()
     }
 
     saveConfiguration (): void {

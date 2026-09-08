@@ -1,0 +1,71 @@
+// Provenance marks on settings rows.
+//
+// Injected globally: this file is deliberately *not* named `*component.scss`,
+// so `webpack.plugin.config.mjs` sends it through `style-loader` rather than
+// `to-string-loader`, and importing it from `index.ts` puts it in the document.
+// It has to be global, because the rows it styles are compiled into a dozen
+// other packages' component templates and a component-scoped sheet cannot reach
+// them. `dropZone.directive.scss` in tabby-core already works this way.
+//
+// A class rather than a directive, for one reason: Angular matches directives in
+// the *declaring component's* module scope, so a directive would have to be
+// declared and exported from `tabby-core` — the most rebase-hostile file in the
+// tree — before `tabby-settings` or `tabby-terminal` could use it. A class needs
+// no registration anywhere, which makes marking a row a ten-character edit to a
+// line that already exists.
+
+// Both marks are drawn rather than typed. The reference fork took its glyph
+// from a resource file so it would not depend on the source charset; drawing it
+// goes one better — no font coverage to rely on, no encoding to preserve, and
+// the two marks are guaranteed the same size rather than the same size in
+// whatever font happened to render them. (The trade is that a translator cannot
+// drop it, which is not offered here.)
+//
+// Bootstrap's `box-sizing: border-box` is what makes the hollow one's 1px
+// border sit inside the same 7px box rather than beside it.
+body.show-fork-marks .fork-mark::after,
+body.show-config-only-marks .config-only-mark::after {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 6px;
+    vertical-align: 0.08em;
+    transform: rotate(45deg);
+    // Purely decorative: it says the same thing the switch's own description
+    // says, and a screen reader announcing "diamond" on every row would be
+    // noise. The meaning lives in that description.
+    speak: never;
+}
+
+// Filled: this setting does not exist in upstream Tabby at all.
+//
+// `--theme-accent` is already contrast-corrected against the window background
+// by `ThemesService`, so this stays legible on a light scheme without a second
+// rule here.
+body.show-fork-marks .fork-mark::after {
+    background: var(--theme-accent, var(--bs-primary));
+}
+
+// Hollow: upstream has this setting and gives no way to change it but editing
+// `config.yaml`. Same shape and size so the two read as one family, unfilled
+// because it is the lesser claim.
+body.show-config-only-marks .config-only-mark::after {
+    background: transparent;
+    border: 1px solid var(--theme-fg-more-2, currentColor);
+}
+
+// A row carries at most one. If both classes are ever on the same element the
+// filled one wins — "this does not exist upstream" is the stronger claim — and
+// the checker refuses the combination outright rather than leaving it to
+// whoever writes the row.
+body.show-fork-marks.show-config-only-marks .fork-mark.config-only-mark::after {
+    background: var(--theme-accent, var(--bs-primary));
+    border: none;
+}
+
+// The nav entry for a whole page this fork added. Marking all ~85 rows across
+// the six fork-added pages would be noise, so the mark is made once, here.
+body.show-fork-marks .nav-link .fork-mark::after {
+    margin-left: 5px;
+}

@@ -176,6 +176,19 @@ div.mt-4
 
     .form-line
         .header
+            //- Upstream's setting, read in `baseTerminalTab.component.ts`, with
+            //- no control anywhere — until now it could only be changed by hand
+            //- in config.yaml. Hence the hollow mark rather than the filled one.
+            .title.config-only-mark(translate) Show progress from terminal output
+            .description(translate) A percentage printed by whatever is running drives the tab's progress bar and the taskbar icon. Turn off if ordinary output is mistaken for progress
+        reset-to-default([proxy]='config.store.terminal', key='detectProgress')
+        toggle(
+            [(ngModel)]='config.store.terminal.detectProgress',
+            (ngModelChange)='config.save()',
+        )
+
+    .form-line
+        .header
             .title(translate) Terminal bell
         .btn-group
             input.btn-check(

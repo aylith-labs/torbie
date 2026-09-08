@@ -8,6 +8,9 @@ export class UpstreamSettingsTabProvider extends SettingsTabProvider {
     id = 'upstream'
     icon = 'code-branch'
     title = 'Upstream'
+    // This whole page is the fork's, so the mark goes on the nav entry
+    // once rather than on each of its rows.
+    forkAdded = true
 
     getComponentType (): any {
         return UpstreamSettingsTabComponent

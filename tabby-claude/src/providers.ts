@@ -50,6 +50,9 @@ export class ClaudeSettingsTabProvider extends SettingsTabProvider {
     id = 'claude'
     icon = 'robot'
     title = 'Claude'
+    // This whole page is the fork's, so the mark goes on the nav entry
+    // once rather than on each of its rows.
+    forkAdded = true
 
     getComponentType (): any {
         return ClaudeSettingsTabComponent

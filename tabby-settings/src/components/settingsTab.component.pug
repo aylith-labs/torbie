@@ -128,7 +128,7 @@
             li(*ngIf='provider.prioritized', [ngbNavItem]='provider.id')
                 a.d-flex.align-items-center(ngbNavLink, draggable='false')
                     i(class='fas fa-fw me-2 fa-{{provider.icon}}')
-                    span {{provider.title|translate}}
+                    span([class.fork-mark]='provider.forkAdded') {{provider.title|translate}}
                 ng-template(ngbNavContent)
                     settings-tab-body([provider]='provider')
 
@@ -138,7 +138,7 @@
             li(*ngIf='!provider.prioritized', [ngbNavItem]='provider.id')
                 a.d-flex.align-items-center(ngbNavLink, draggable='false')
                     i(class='fas fa-fw me-2 fa-{{provider.icon || "puzzle-piece"}}')
-                    span {{provider.title|translate}}
+                    span([class.fork-mark]='provider.forkAdded') {{provider.title|translate}}
                 ng-template(ngbNavContent)
                     settings-tab-body([provider]='provider')
 

@@ -11,7 +11,7 @@ h3.mb-3(translate) Window
 
 .form-line
     .header
-        .title(translate) Accent color
+        .title.fork-mark(translate) Accent color
         .description(translate) Colors code, paths and identifiers throughout the app
     .input-group.w-auto
         input.form-control.form-control-color(
@@ -349,7 +349,7 @@ h3.mt-4(translate) Tabs
 
 .form-line(*ngIf='config.store.appearance.tabsLocation == "left" || config.store.appearance.tabsLocation == "right"')
     .header
-        .title(translate) Multi-column tab bar
+        .title.fork-mark(translate) Multi-column tab bar
         .description(translate) Flow the vertical tab bar into more columns as you widen it
     toggle(
         [(ngModel)]='config.store.appearance.sideTabBarMultiColumn',
@@ -358,7 +358,7 @@ h3.mt-4(translate) Tabs
 
 .form-line(*ngIf='config.store.appearance.sideTabBarMultiColumn && (config.store.appearance.tabsLocation == "left" || config.store.appearance.tabsLocation == "right")')
     .header
-        .title(translate) Minimum column width
+        .title.fork-mark(translate) Minimum column width
         .description(translate) A new column appears only when there is room for a whole one at this width
     .input-group.w-25
         input.form-control(
@@ -447,6 +447,19 @@ h3.mt-4(translate) Tabs
 
     toggle(
         [(ngModel)]='config.store.appearance.lastTabClosesWindow',
+        (ngModelChange)='config.save();',
+    )
+
+.form-line
+    .header
+        //- Upstream's setting, read three times in `app.service.ts`, with no
+        //- control anywhere — so until now it could only be changed by hand in
+        //- config.yaml. Hence the hollow mark rather than the filled one.
+        .title.config-only-mark(translate) Wrap around at the last tab
+        .description(translate) "Next tab" on the last one goes back to the first, and "previous tab" on the first goes to the last
+    reset-to-default([proxy]='config.store.appearance', key='cycleTabs')
+    toggle(
+        [(ngModel)]='config.store.appearance.cycleTabs',
         (ngModelChange)='config.save();',
     )
 

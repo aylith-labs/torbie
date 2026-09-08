@@ -13,6 +13,14 @@ export abstract class SettingsTabProvider {
      * just throws the width away.
      */
     wide = false
+    /**
+     * Whether this whole page is one the fork added.
+     *
+     * The mark then goes on the nav entry once, rather than on every row of a
+     * page where every row is ours — six such pages carry about 85 rows between
+     * them, and marking all of them would be noise rather than information.
+     */
+    forkAdded = false
 
     getComponentType (): any {
         return null

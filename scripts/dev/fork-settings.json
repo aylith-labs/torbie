@@ -1,0 +1,246 @@
+{
+  "$comment": [
+    "What the provenance marks claim, and what may be left unmarked.",
+    "",
+    "`forkAdded` is DERIVED, not authored: it is keys(local) - keys(master),",
+    "and check-fork-marks.mjs recomputes it from git and fails when this file",
+    "disagrees in either direction. Edit it only to record what that check has",
+    "already told you. It is written down at all so a rebase that brings a key",
+    "upstream produces a visible diff rather than a silently changed answer.",
+    "",
+    "`configOnly` is the opposite: it CANNOT be computed. The sweep that looks",
+    "for keys with no control is wrong in both directions — see `excluded` —",
+    "so every entry here was confirmed by hand and carries its reason.",
+    "",
+    "The runtime never reads this file. The marks live in the templates; this",
+    "exists to be the thing they are held against."
+  ],
+  "forkAdded": [
+    "appearance.accentColor",
+    "appearance.sideTabBarMinColumnWidth",
+    "appearance.sideTabBarMultiColumn",
+    "appearance.sideTabBarWidth",
+    "builds",
+    "builds.activeExecutable",
+    "builds.autoDiagnose",
+    "builds.autoSize",
+    "builds.devProfileDirectory",
+    "builds.includeInstallers",
+    "builds.pauseWhenUnfocused",
+    "builds.pinToTaskbar",
+    "builds.processPollMs",
+    "builds.rescanMs",
+    "builds.searchDepth",
+    "builds.searchRoots",
+    "builds.view",
+    "builds.watchForNewBuilds",
+    "builds.watchIntervalMs",
+    "claude",
+    "claude.clickAction",
+    "claude.hover",
+    "claude.hover.enabled",
+    "claude.hover.showContext",
+    "claude.hover.showLastPrompt",
+    "claude.hover.showStats",
+    "claude.hover.showStatus",
+    "claude.panel",
+    "claude.panel.fontSize",
+    "claude.panel.showActiveSession",
+    "claude.panel.showBookmark",
+    "claude.panel.showContext",
+    "claude.panel.showLastPrompt",
+    "claude.panel.showQueued",
+    "claude.panel.showSessionList",
+    "claude.panel.showStats",
+    "claude.panel.showStatus",
+    "claude.panel.showUsage",
+    "claude.panel.showWaiting",
+    "claude.panel.usageView",
+    "claude.pollIntervalMs",
+    "claude.readTranscripts",
+    "claude.requestTimeoutMs",
+    "claude.resumeInputDelaySec",
+    "claude.stithURL",
+    "claude.usageIntervalMs",
+    "integrations",
+    "integrations.__nonStructural",
+    "linkTooltip",
+    "linkTooltip.actionsPlacement",
+    "linkTooltip.allowHtml",
+    "linkTooltip.alternativeAction",
+    "linkTooltip.alternativeClickGesture",
+    "linkTooltip.alternativeClickModifier",
+    "linkTooltip.clickable",
+    "linkTooltip.clickableKinds",
+    "linkTooltip.detectLinks",
+    "linkTooltip.enabled",
+    "linkTooltip.hideDelay",
+    "linkTooltip.hideTooltipsWithPane",
+    "linkTooltip.maxWidth",
+    "linkTooltip.primaryAction",
+    "linkTooltip.primaryClickGesture",
+    "linkTooltip.primaryClickModifier",
+    "linkTooltip.rules",
+    "linkTooltip.safeSchemes",
+    "linkTooltip.showButtons",
+    "linkTooltip.showCustomActions",
+    "linkTooltip.showDelay",
+    "linkTooltip.showRuleAttribution",
+    "resume",
+    "resume.agents",
+    "resume.excludedPrograms",
+    "resume.extraPrograms",
+    "resume.inputDelayMs",
+    "resume.multiplexers",
+    "resume.notification",
+    "resume.refreshIntervalSec",
+    "resume.wslProbeTimeoutMs",
+    "sidePanel",
+    "sidePanel.activePanel",
+    "sidePanel.enabled",
+    "sidePanel.side",
+    "sidePanel.size",
+    "terminal.fallbackFont",
+    "terminal.webSearchQueryURL",
+    "upstream",
+    "upstream.branch",
+    "upstream.remote",
+    "upstream.repositoryPath",
+    "upstream.showConfigOnlyMarks",
+    "upstream.showForkMarks"
+  ],
+  "forkAddedPages": [
+    "tabby-builds/src/components/buildsSettingsTab.component.pug",
+    "tabby-claude/src/components/claudeSettingsTab.component.pug",
+    "tabby-links/src/components/integrationsSettingsTab.component.pug",
+    "tabby-links/src/components/linkTooltipSettingsTab.component.pug",
+    "tabby-resume/src/components/resumeSettingsTab.component.pug",
+    "tabby-upstream/src/components/upstreamSettingsTab.component.pug"
+  ],
+  "switchRows": [
+    "Mark the settings this fork added",
+    "Mark the settings upstream hides"
+  ],
+  "configOnly": [
+    {
+      "key": "appearance.cycleTabs",
+      "why": "Read three times in tabby-core/src/services/app.service.ts to decide whether next/previous tab wraps around. Upstream ships it with no control anywhere; this fork gives it one on the Window page."
+    },
+    {
+      "key": "terminal.detectProgress",
+      "why": "Read in tabby-terminal/src/api/baseTerminalTab.component.ts, where a percentage in the output drives the tab's progress bar and the taskbar icon. Upstream ships it with no control; this fork gives it one on the Terminal page."
+    }
+  ],
+  "configOnlyUnexposed": [
+    {
+      "key": "hacks.globalHotkey",
+      "why": "A real upstream setting: app/lib/app.ts registers it with globalShortcut. No control anywhere, and not exposed here either - a hotkey spec string needs a picker, not a text box. Recorded so the sweep does not ask again, not because it is settled."
+    },
+    {
+      "key": "terminal.environment",
+      "why": "A real upstream setting: tabby-local/src/session.ts merges it into every session environment. No control anywhere, and not exposed here - a key/value editor is a bigger piece of UI than this change is about."
+    }
+  ],
+  "notSettings": [
+    {
+      "key": "terminal.searchOptions",
+      "why": "Not a setting. It is where the search panel persists the state of its own toggles (searchPanel.component.ts writes regex/caseSensitive back into it), so it correctly has no settings row."
+    },
+    {
+      "key": "terminal.searchRegexAlwaysEnabled",
+      "why": "Declared in upstream's defaults and referenced by no TypeScript in the tree. Dead upstream, so there is nothing to expose and nothing to mark."
+    },
+    {
+      "key": "appearance.electronFlags",
+      "why": "An unfinished upstream rename: configDefaults.yaml declares electronFlags while app/lib/app.ts reads configStore.flags. The default is dead either way."
+    },
+    {
+      "key": "enableExperimentalFeatures",
+      "why": "Declared in upstream's defaults and referenced nowhere in the tree."
+    }
+  ],
+  "knownGaps": [
+    {
+      "key": "terminal.fallbackFont",
+      "why": "Declared under platformDefaults (Windows), which the checker does not parse because its keys are computed - [Platform.Windows] would come out as a nonsense path. Fork-added, and has no settings row either way."
+    }
+  ],
+  "excluded": [
+    {
+      "prefix": "hotkeys",
+      "why": "Edited generically by the Hotkeys page from the HotkeyProviders, never by key, so no row ever names one."
+    },
+    {
+      "prefix": "profiles",
+      "why": "Edited through editProfileModal and the per-type profile settings components, which bind to profile.options.* rather than to config.store."
+    },
+    {
+      "prefix": "groups",
+      "why": "As profiles: edited through the profile tree, never as a config path."
+    },
+    {
+      "prefix": "profileDefaults",
+      "why": "As profiles."
+    },
+    {
+      "prefix": "vault",
+      "why": "Machinery, not a setting: the encrypted store's own contents."
+    },
+    {
+      "prefix": "encrypted",
+      "why": "Machinery, not a setting."
+    },
+    {
+      "prefix": "version",
+      "why": "The config schema version, migrated by upstream's own code."
+    },
+    {
+      "prefix": "configSync",
+      "why": "Edited by the Config sync page through its own service rather than by binding to the keys."
+    },
+    {
+      "prefix": "terminal.colorScheme",
+      "why": "Has a full editor, reached as config.store.terminal[this.configKey] with the key passed in as a template input (colorSchemeSettingsForMode.component.ts) — so its name appears as a literal nowhere. The trap this sweep cannot see through."
+    },
+    {
+      "prefix": "terminal.lightColorScheme",
+      "why": "As terminal.colorScheme."
+    },
+    {
+      "prefix": "terminal.customColorSchemes",
+      "why": "Edited by the Color scheme page through its own service."
+    },
+    {
+      "prefix": "pluginBlacklist",
+      "why": "Edited by the Plugins page through the plugin manager, not by a settings row."
+    },
+    {
+      "prefix": "providerBlacklist",
+      "why": "As pluginBlacklist."
+    },
+    {
+      "prefix": "commandBlacklist",
+      "why": "As pluginBlacklist."
+    },
+    {
+      "prefix": "terminal.recoverTabs",
+      "why": "Written by the app itself when saving the tab layout, not chosen by anyone."
+    },
+    {
+      "prefix": "web",
+      "why": "Only meaningful in the web build, which has its own settings surface."
+    },
+    {
+      "prefix": "ssh",
+      "why": "Edited through the SSH profile settings components against profile.options.*."
+    },
+    {
+      "prefix": "serial",
+      "why": "As ssh."
+    },
+    {
+      "prefix": "telnet",
+      "why": "As ssh."
+    }
+  ]
+}
