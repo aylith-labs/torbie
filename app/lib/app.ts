@@ -405,7 +405,7 @@ export class Application {
                     {
                         label: 'Website',
                         click () {
-                            shell.openExternal('https://eugeny.github.io/tabby')
+                            shell.openExternal('https://github.com/aylith-labs/torbie')
                         },
                     },
                 ],

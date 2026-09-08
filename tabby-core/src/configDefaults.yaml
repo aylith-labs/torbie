@@ -61,7 +61,6 @@ profileDefaults:
   ssh:
     disableDynamicTitle: true
 recoverTabs: true
-enableAnalytics: true
 enableWelcomeTab: true
 electronFlags:
   - ['force_discrete_gpu', '0']

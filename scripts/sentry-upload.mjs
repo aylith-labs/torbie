@@ -2,6 +2,15 @@
 import sh from 'shelljs'
 import * as vars from './vars.mjs'
 
+// Symbol upload is only meaningful once there is a Sentry project to upload
+// into. There is none yet (`app/lib/sentry.ts` ships no DSN), so the workflow
+// steps that call this are guarded here rather than three times in build.yml —
+// one place, and it works the same on all three platforms.
+if (!process.env.SENTRY_AUTH_TOKEN || !process.env.SENTRY_ORG || !process.env.SENTRY_PROJECT) {
+    console.log('No Sentry credentials configured — skipping symbol upload.')
+    process.exit(0)
+}
+
 const sentryCli = process.platform === 'win32' ? 'node_modules\\.bin\\sentry-cli.cmd' : 'sentry-cli'
 
 sh.exec(`${sentryCli} releases new ${vars.version}`)

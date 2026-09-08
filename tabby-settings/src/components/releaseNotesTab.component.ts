@@ -29,7 +29,7 @@ export class ReleaseNotesComponent extends BaseTabComponent {
 
     async loadReleases (page) {
         console.log('Loading releases page', page)
-        const response = await fetch(`https://api.github.com/repos/eugeny/tabby/releases?page=${page}`, {
+        const response = await fetch(`https://api.github.com/repos/aylith-labs/torbie/releases?page=${page}`, {
             headers: { Accept: 'application/vnd.github.v3+json' },
         })
         const releases = await response.json()
