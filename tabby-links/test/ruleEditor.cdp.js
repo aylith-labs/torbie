@@ -196,11 +196,119 @@ async function main () {
     // shipping a preset whose pattern changed, leaving an older rule unmatched.
     check('a hand-edited pattern does not make it offerable again', dedup.afterEdit, true)
 
+    // ── the settings groups ─────────────────────────────────────────────────
+    console.log('\n── the page is grouped, and remembers what was open ──')
+    const groups = await evaluate(`
+        const btns = [...window.__HOST.querySelectorAll('.accordion-button')]
+        return {
+            headers: btns.map(b => b.textContent.trim()),
+            // Nothing may disable an accordion item: that disables its own
+            // header, and the master switch lives inside the group.
+            headerDisabled: btns.map(b => b.disabled),
+            expanded: btns.map(b => b.getAttribute('aria-expanded')),
+            ungrouped: [...window.__HOST.querySelectorAll(':scope > .form-line .title')]
+                .map(t => t.textContent.trim()),
+        }
+    `)
+    check('the four groups are there',
+        groups.headers, ['Hover card', 'Buttons', 'Clicking', 'Integration previews'])
+    check('no group header is ever disabled', groups.headerDisabled, [false, false, false, false])
+    // `allowHtml` governs the preview pane too, which outlives the card — so it
+    // must not sit under the card's master switch, where it would be greyed out
+    // while still applying. Its own group is how that is expressed.
+    check('integration previews are their own group, not part of the card',
+        groups.headers.includes('Integration previews'), true)
+    // These two are governed by nothing on this page and stay out of every group.
+    check('detection and safe schemes stay ungrouped', groups.ungrouped,
+        ['Automatically detect URLs and make them clickable', 'URI schemes that open without a warning'])
+
+    const remembered = await evaluate(`
+        const p = window.__P
+        // Close the one that starts open, and open one that starts closed.
+        p.setCollapsed('card', true)
+        p.setCollapsed('buttons', false)
+        const stored = JSON.parse(window.localStorage.linkTooltipGroupCollapsed || '{}')
+        // A save fires config.changed$ under the page — the moment the old flat
+        // page would have had nothing to lose and this one does.
+        await window.__CFG.save()
+        await new Promise(r => setTimeout(r, 400))
+        return {
+            stored,
+            afterSave: [p.collapsed('card'), p.collapsed('buttons')],
+            // An id nobody has stored falls back to its author's default, not
+            // to "open", so a group added later starts where it was meant to.
+            unknownId: p.collapsed('a-group-added-later'),
+            previewsDefault: p.collapsed('previews'),
+        }
+    `)
+    check('the state is written to localStorage',
+        [remembered.stored.card, remembered.stored.buttons], [true, false])
+    check('and survives a config save', remembered.afterSave, [true, false])
+    check('an unrecorded group falls back to its own default', remembered.unknownId, false)
+    check('which is not the same as "open" for every group', remembered.previewsDefault, true)
+
+    // Rebuilt from scratch is the real test: `ngbNav` destroys hidden tab
+    // content, so navigating away and back constructs this page again.
+    const afterNav = await evaluate(`
+        const nav = [...document.querySelectorAll('.nav-link')]
+        nav.find(e => e.textContent.trim() === 'Window').click()
+        await new Promise(r => setTimeout(r, 600))
+        nav.find(e => e.textContent.trim() === 'Link Tooltip').click()
+        await new Promise(r => setTimeout(r, 900))
+        const host = [...document.querySelectorAll('link-tooltip-settings-tab')].pop()
+        window.__HOST = host
+        window.__P = window.ng.getComponent(host)
+        const btns = [...host.querySelectorAll('.accordion-button')]
+        return {
+            rebuilt: window.__P !== null,
+            expanded: btns.map(b => b.getAttribute('aria-expanded')),
+        }
+    `)
+    check('the page really was rebuilt', afterNav.rebuilt, true)
+    check('and the groups came back as they were left',
+        afterNav.expanded.slice(0, 2), ['false', 'true'])
+
+    // The other hard rule: gating goes on the rows, never on the group.
+    console.log('\n── a switched-off group greys its rows, not its header ──')
+    const gated = await evaluate(`
+        window.__CFG.store.linkTooltip.clickable = false
+        await window.__CFG.save()
+        const p = window.__P
+        p.setCollapsed('clicking', false)
+        window.ng.applyChanges(p)
+        await new Promise(r => setTimeout(r, 700))
+        const btns = [...window.__HOST.querySelectorAll('.accordion-button')]
+        const clicking = btns.find(b => b.textContent.trim() === 'Clicking')
+        const body = clicking.closest('.accordion-item')
+        // The master switch is the group's first row and must stay usable, or
+        // the group could never be switched back on. Everything after it is
+        // what the switch governs.
+        const rows = [...body.querySelectorAll('.form-line')]
+        const master = rows[0]
+        const dependent = rows.slice(1).flatMap(r => [...r.querySelectorAll('select, input')])
+        return {
+            headerStillClickable: !clicking.disabled,
+            expanded: clicking.getAttribute('aria-expanded'),
+            rows: rows.length,
+            dependentControls: dependent.length,
+            allDisabled: dependent.length > 0 && dependent.every(c => c.disabled),
+            masterEnabled: [...master.querySelectorAll('input, select')].every(c => !c.disabled),
+        }
+    `)
+    check('the Clicking header is still usable with clicking off',
+        gated.headerStillClickable, true)
+    check('and the group still opens', gated.expanded, 'true')
+    check('its dependent controls are greyed', gated.allDisabled, true)
+    check('while the master switch that turns it back on is not',
+        gated.masterEnabled, true)
+
     // Leave the profile as it was found.
     await evaluate(`
+        window.__CFG.store.linkTooltip.clickable = true
         window.__P.currentRule = null
         window.__CFG.store.linkTooltip.rules = []
         await window.__CFG.save()
+        delete window.localStorage.linkTooltipGroupCollapsed
         return true
     `)
 

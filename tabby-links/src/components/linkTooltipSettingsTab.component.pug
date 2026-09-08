@@ -1,7 +1,5 @@
 h3.mb-3(translate) Link Tooltip
 
-h4.mt-4.mb-2(translate) Defaults
-
 .form-line
     .header
         .title(translate) Automatically detect URLs and make them clickable
@@ -11,119 +9,270 @@ h4.mt-4.mb-2(translate) Defaults
         (ngModelChange)='saveConfiguration()',
     )
 
-.form-line
-    .header
-        .title(translate) Show a card when hovering a link
-        .description(translate) Turn off to keep links clickable without the hover card
-    reset-to-default([proxy]='config.store.linkTooltip', key='enabled')
-    toggle(
-        [(ngModel)]='config.store.linkTooltip.enabled',
-        (ngModelChange)='saveConfiguration()',
+//- Groups, not one flat scroll. Two rules hold throughout:
+//-
+//- A setting only goes under a master switch that really governs it.
+//- "Let integrations draw their own tooltip" is the one that catches people
+//- out: it sits with the card settings but also governs the preview *pane*,
+//- which outlives the card that opened it — so it gets a group of its own
+//- rather than being greyed out by a switch that does not apply to it.
+//-
+//- And nothing here sets `disabled` on an accordion item. That disables the
+//- item's own header, which would make the master switch inside it
+//- unreachable and the group impossible to open again. The gating is
+//- per-row, which is also why the master switch is the first row of its own
+//- group rather than living in the header.
+div(ngbAccordion, [destroyOnHide]='false', [animation]='config.store.accessibility.animations')
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("card")',
+        (shown)='setCollapsed("card", false)',
+        (hidden)='setCollapsed("card", true)',
     )
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Hover card
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) Show a card when hovering a link
+                            .description(translate) Turn off to keep links clickable without the hover card
+                        reset-to-default([proxy]='config.store.linkTooltip', key='enabled')
+                        toggle(
+                            [(ngModel)]='config.store.linkTooltip.enabled',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Maximum width of the link tooltip
-        .description(translate) How far a URI may run before it wraps, in pixels. Set to 0 for no maximum
-    reset-to-default([proxy]='config.store.linkTooltip', key='maxWidth')
-    input.form-control(
-        type='number',
-        min='0',
-        max='4000',
-        step='20',
-        [(ngModel)]='config.store.linkTooltip.maxWidth',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line
+                        .header
+                            .title(translate) Maximum width of the link tooltip
+                            .description(translate) How far a URI may run before it wraps, in pixels. Set to 0 for no maximum
+                        reset-to-default([proxy]='config.store.linkTooltip', key='maxWidth')
+                        input.form-control(
+                            [disabled]='!config.store.linkTooltip.enabled',
+                            type='number',
+                            min='0',
+                            max='4000',
+                            step='20',
+                            [(ngModel)]='config.store.linkTooltip.maxWidth',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Delay before the link tooltip appears
-        .description(translate) In milliseconds. Set to 0 to show it immediately
-    reset-to-default([proxy]='config.store.linkTooltip', key='showDelay')
-    input.form-control(
-        type='number',
-        min='0',
-        max='5000',
-        step='50',
-        [(ngModel)]='config.store.linkTooltip.showDelay',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line
+                        .header
+                            .title(translate) Delay before the link tooltip appears
+                            .description(translate) In milliseconds. Set to 0 to show it immediately
+                        reset-to-default([proxy]='config.store.linkTooltip', key='showDelay')
+                        input.form-control(
+                            [disabled]='!config.store.linkTooltip.enabled',
+                            type='number',
+                            min='0',
+                            max='5000',
+                            step='50',
+                            [(ngModel)]='config.store.linkTooltip.showDelay',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Delay before the link tooltip disappears
-        .description(translate) In milliseconds. This is the time you have to move the pointer onto the tooltip to use its buttons, so 0 puts them out of reach of the mouse
-    reset-to-default([proxy]='config.store.linkTooltip', key='hideDelay')
-    input.form-control(
-        type='number',
-        min='0',
-        max='5000',
-        step='50',
-        [(ngModel)]='config.store.linkTooltip.hideDelay',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line
+                        .header
+                            .title(translate) Delay before the link tooltip disappears
+                            .description(translate) In milliseconds. This is the time you have to move the pointer onto the tooltip to use its buttons, so 0 puts them out of reach of the mouse
+                        reset-to-default([proxy]='config.store.linkTooltip', key='hideDelay')
+                        input.form-control(
+                            [disabled]='!config.store.linkTooltip.enabled',
+                            type='number',
+                            min='0',
+                            max='5000',
+                            step='50',
+                            [(ngModel)]='config.store.linkTooltip.hideDelay',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Show the built-in buttons
-        .description(translate) Open the link, copy it, show the preview in a pane, and — for links to files — copy the path it resolves to or show it in the file manager. Applies to the preview pane as well as the hover card, and a rule can hide any of them individually
-    reset-to-default([proxy]='config.store.linkTooltip', key='showButtons')
-    toggle(
-        [(ngModel)]='config.store.linkTooltip.showButtons',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line
+                        .header
+                            .title(translate) Hide link tooltips while a preview pane is open
+                            .description(translate) "Show in pane" puts a preview somewhere it stays put. With this on, hovering a link while such a pane is open no longer also throws a card over the terminal. Links are still detected and still clickable, and closing the last pane brings the cards back
+                        reset-to-default([proxy]='config.store.linkTooltip', key='hideTooltipsWithPane')
+                        toggle(
+                            [disabled]='!config.store.linkTooltip.enabled',
+                            [(ngModel)]='config.store.linkTooltip.hideTooltipsWithPane',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Show buttons your rules add
-        .description(translate) The custom actions defined on a Link Tooltip rule. Separate from the built-in buttons above, so turning those off does not also take away buttons you wrote. Applies to the preview pane as well as the hover card
-    reset-to-default([proxy]='config.store.linkTooltip', key='showCustomActions')
-    toggle(
-        [(ngModel)]='config.store.linkTooltip.showCustomActions',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line
+                        .header
+                            .title(translate) Say which rule matched
+                            .description(translate) Adds a line naming the rule that produced the card, or saying that none did and the defaults were used. Click it to open that rule. Useful when a link is not previewed the way you set it up
+                        reset-to-default([proxy]='config.store.linkTooltip', key='showRuleAttribution')
+                        toggle(
+                            [disabled]='!config.store.linkTooltip.enabled',
+                            [(ngModel)]='config.store.linkTooltip.showRuleAttribution',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Where the buttons go
-        .description(translate) Named relative to the link, not to the card: the card appears below the link where there is room and above it where there is not, so "bottom" would mean the near edge half the time and the far edge the rest
-    reset-to-default([proxy]='config.store.linkTooltip', key='actionsPlacement')
-    select.form-control(
-        [(ngModel)]='config.store.linkTooltip.actionsPlacement',
-        (ngModelChange)='saveConfiguration()',
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("buttons")',
+        (shown)='setCollapsed("buttons", false)',
+        (hidden)='setCollapsed("buttons", true)',
     )
-        option(value='near') {{'Next to the link'|translate}}
-        option(value='far') {{'Far edge'|translate}}
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Buttons
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) Show the built-in buttons
+                            .description(translate) Open the link, copy it, show the preview in a pane, and — for links to files — copy the path it resolves to or show it in the file manager. Applies to the preview pane as well as the hover card, and a rule can hide any of them individually
+                        reset-to-default([proxy]='config.store.linkTooltip', key='showButtons')
+                        toggle(
+                            [(ngModel)]='config.store.linkTooltip.showButtons',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Say which rule matched
-        .description(translate) Adds a line naming the rule that produced the card, or saying that none did and the defaults were used. Click it to open that rule. Useful when a link is not previewed the way you set it up
-    reset-to-default([proxy]='config.store.linkTooltip', key='showRuleAttribution')
-    toggle(
-        [(ngModel)]='config.store.linkTooltip.showRuleAttribution',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line
+                        .header
+                            .title(translate) Show buttons your rules add
+                            .description(translate) The custom actions defined on a Link Tooltip rule. Separate from the built-in buttons above, so turning those off does not also take away buttons you wrote. Applies to the preview pane as well as the hover card
+                        reset-to-default([proxy]='config.store.linkTooltip', key='showCustomActions')
+                        toggle(
+                            [(ngModel)]='config.store.linkTooltip.showCustomActions',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Hide link tooltips while a preview pane is open
-        .description(translate) "Show in pane" puts a preview somewhere it stays put. With this on, hovering a link while such a pane is open no longer also throws a card over the terminal. Links are still detected and still clickable, and closing the last pane brings the cards back
-    reset-to-default([proxy]='config.store.linkTooltip', key='hideTooltipsWithPane')
-    toggle(
-        [(ngModel)]='config.store.linkTooltip.hideTooltipsWithPane',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line
+                        .header
+                            .title(translate) Where the buttons go
+                            .description(translate) Named relative to the link, not to the card: the card appears below the link where there is room and above it where there is not, so "bottom" would mean the near edge half the time and the far edge the rest
+                        reset-to-default([proxy]='config.store.linkTooltip', key='actionsPlacement')
+                        select.form-control(
+                            [(ngModel)]='config.store.linkTooltip.actionsPlacement',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+                            option(value='near') {{'Next to the link'|translate}}
+                            option(value='far') {{'Far edge'|translate}}
 
-.form-line
-    .header
-        .title(translate) Let integrations draw their own tooltip
-        .description(translate) Some integrations ship a small page of their own to show a result in, instead of a list of fields. It runs sealed off from Tabby and from the network, but it is still the integration's own code — turn this off to always use the plain field list
-    reset-to-default([proxy]='config.store.linkTooltip', key='allowHtml')
-    toggle(
-        [(ngModel)]='config.store.linkTooltip.allowHtml',
-        (ngModelChange)='saveConfiguration()',
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("clicking")',
+        (shown)='setCollapsed("clicking", false)',
+        (hidden)='setCollapsed("clicking", true)',
     )
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Clicking
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) Clicking a link activates it
+                            .description(translate) Off, links are still detected, highlighted and previewed — the hover card's buttons are then how you act on one
+                        reset-to-default([proxy]='config.store.linkTooltip', key='clickable')
+                        toggle(
+                            [(ngModel)]='config.store.linkTooltip.clickable',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line
+                        .header
+                            .title(translate) Which links a click reaches
+                            .description(translate) The kinds left unticked stay hoverable and previewable — they just do not respond to a click
+                        .click-kinds
+                            .form-check.form-check-inline(*ngFor='let kind of clickKinds')
+                                input.form-check-input(
+                                    [disabled]='!config.store.linkTooltip.clickable',
+                                    type='checkbox',
+                                    [id]='"click-kind-" + kind.value',
+                                    [checked]='hasKind(kind.value)',
+                                    (change)='toggleKind(kind.value)',
+                                )
+                                label.form-check-label(
+                                    [for]='"click-kind-" + kind.value',
+                                ) {{kind.label|translate}}
+
+                    .form-line
+                        .header
+                            .title(translate) Primary click
+                            .description {{chordDescription('primary')}}
+                        .chord-row
+                            select.form-control(
+                                [disabled]='!config.store.linkTooltip.clickable',
+                                [(ngModel)]='config.store.linkTooltip.primaryClickModifier',
+                                (ngModelChange)='saveConfiguration()',
+                            )
+                                option(*ngFor='let modifier of clickModifiers', [value]='modifier.value') {{modifier.label|translate}}
+                            select.form-control(
+                                [disabled]='!config.store.linkTooltip.clickable',
+                                [(ngModel)]='config.store.linkTooltip.primaryClickGesture',
+                                (ngModelChange)='saveConfiguration()',
+                            )
+                                option(*ngFor='let gesture of clickGestures', [value]='gesture.value') {{gesture.label|translate}}
+                            select.form-control(
+                                [disabled]='!config.store.linkTooltip.clickable',
+                                [(ngModel)]='config.store.linkTooltip.primaryAction',
+                                (ngModelChange)='saveConfiguration()',
+                            )
+                                option(value='none') {{'Do nothing'|translate}}
+                                option(value='open') {{'Open'|translate}}
+                                option(value='copyLink') {{'Copy link'|translate}}
+                                option(value='copyPath') {{'Copy path'|translate}}
+                                option(value='reveal') {{'Show in folder'|translate}}
+
+                    .form-line
+                        .header
+                            .title(translate) Alternative click
+                            .description {{chordDescription('alternative')}}
+                        .chord-row
+                            select.form-control(
+                                [disabled]='!config.store.linkTooltip.clickable',
+                                [(ngModel)]='config.store.linkTooltip.alternativeClickModifier',
+                                (ngModelChange)='saveConfiguration()',
+                            )
+                                option(*ngFor='let modifier of clickModifiers', [value]='modifier.value') {{modifier.label|translate}}
+                            select.form-control(
+                                [disabled]='!config.store.linkTooltip.clickable',
+                                [(ngModel)]='config.store.linkTooltip.alternativeClickGesture',
+                                (ngModelChange)='saveConfiguration()',
+                            )
+                                option(*ngFor='let gesture of clickGestures', [value]='gesture.value') {{gesture.label|translate}}
+                            select.form-control(
+                                [disabled]='!config.store.linkTooltip.clickable',
+                                [(ngModel)]='config.store.linkTooltip.alternativeAction',
+                                (ngModelChange)='saveConfiguration()',
+                            )
+                                option(value='none') {{'Do nothing'|translate}}
+                                option(value='open') {{'Open'|translate}}
+                                option(value='copyLink') {{'Copy link'|translate}}
+                                option(value='copyPath') {{'Copy path'|translate}}
+                                option(value='reveal') {{'Show in folder'|translate}}
+
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("previews")',
+        (shown)='setCollapsed("previews", false)',
+        (hidden)='setCollapsed("previews", true)',
+    )
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Integration previews
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) Let integrations draw their own tooltip
+                            .description(translate) Some integrations ship a small page of their own to show a result in, instead of a list of fields. It runs sealed off from Tabby and from the network, but it is still the integration's own code — turn this off to always use the plain field list
+                        reset-to-default([proxy]='config.store.linkTooltip', key='allowHtml')
+                        toggle(
+                            [(ngModel)]='config.store.linkTooltip.allowHtml',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
 
 .form-line
     .header
@@ -134,89 +283,6 @@ h4.mt-4.mb-2(translate) Defaults
         placeholder='vscode, stith',
         [(ngModel)]='safeSchemes',
     )
-
-h4.mt-4.mb-2(translate) Clicking
-
-.form-line
-    .header
-        .title(translate) Clicking a link activates it
-        .description(translate) Off, links are still detected, highlighted and previewed — the hover card's buttons are then how you act on one
-    reset-to-default([proxy]='config.store.linkTooltip', key='clickable')
-    toggle(
-        [(ngModel)]='config.store.linkTooltip.clickable',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-div(*ngIf='config.store.linkTooltip.clickable')
-    .form-line
-        .header
-            .title(translate) Which links a click reaches
-            .description(translate) The kinds left unticked stay hoverable and previewable — they just do not respond to a click
-        .click-kinds
-            .form-check.form-check-inline(*ngFor='let kind of clickKinds')
-                input.form-check-input(
-                    type='checkbox',
-                    [id]='"click-kind-" + kind.value',
-                    [checked]='hasKind(kind.value)',
-                    (change)='toggleKind(kind.value)',
-                )
-                label.form-check-label(
-                    [for]='"click-kind-" + kind.value',
-                ) {{kind.label|translate}}
-
-    //- Two chords, each a modifier plus a gesture plus what it runs. Modifiers
-    //- are matched exactly, so a Ctrl chord does not fire while Ctrl+Shift is
-    //- held. A left-click chord resolves on release and only if the click did
-    //- not become a selection; middle and double resolve on the press.
-    .form-line
-        .header
-            .title(translate) Primary click
-            .description {{chordDescription('primary')}}
-        .chord-row
-            select.form-control(
-                [(ngModel)]='config.store.linkTooltip.primaryClickModifier',
-                (ngModelChange)='saveConfiguration()',
-            )
-                option(*ngFor='let modifier of clickModifiers', [value]='modifier.value') {{modifier.label|translate}}
-            select.form-control(
-                [(ngModel)]='config.store.linkTooltip.primaryClickGesture',
-                (ngModelChange)='saveConfiguration()',
-            )
-                option(*ngFor='let gesture of clickGestures', [value]='gesture.value') {{gesture.label|translate}}
-            select.form-control(
-                [(ngModel)]='config.store.linkTooltip.primaryAction',
-                (ngModelChange)='saveConfiguration()',
-            )
-                option(value='none') {{'Do nothing'|translate}}
-                option(value='open') {{'Open'|translate}}
-                option(value='copyLink') {{'Copy link'|translate}}
-                option(value='copyPath') {{'Copy path'|translate}}
-                option(value='reveal') {{'Show in folder'|translate}}
-
-    .form-line
-        .header
-            .title(translate) Alternative click
-            .description {{chordDescription('alternative')}}
-        .chord-row
-            select.form-control(
-                [(ngModel)]='config.store.linkTooltip.alternativeClickModifier',
-                (ngModelChange)='saveConfiguration()',
-            )
-                option(*ngFor='let modifier of clickModifiers', [value]='modifier.value') {{modifier.label|translate}}
-            select.form-control(
-                [(ngModel)]='config.store.linkTooltip.alternativeClickGesture',
-                (ngModelChange)='saveConfiguration()',
-            )
-                option(*ngFor='let gesture of clickGestures', [value]='gesture.value') {{gesture.label|translate}}
-            select.form-control(
-                [(ngModel)]='config.store.linkTooltip.alternativeAction',
-                (ngModelChange)='saveConfiguration()',
-            )
-                option(value='none') {{'Do nothing'|translate}}
-                option(value='open') {{'Open'|translate}}
-                option(value='copyLink') {{'Copy link'|translate}}
-                option(value='copyPath') {{'Copy path'|translate}}
-                option(value='reveal') {{'Show in folder'|translate}}
 
 h4.mt-4.mb-2(translate) Rules
 

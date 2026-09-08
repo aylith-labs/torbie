@@ -567,7 +567,20 @@ async function main () {
         if (!page) { return { skipped: 'the Link Tooltip page did not render' } }
         const component = window.ng.getComponent(page)
 
+        // The click settings live in an accordion group that starts collapsed,
+        // and a collapsed group's body is an ng-template that has never been
+        // instantiated — so its controls are not merely hidden, they are not in
+        // the DOM. Open it the way a person would before reading anything off
+        // it.
+        component.setCollapsed('clicking', false)
+        window.ng.applyChanges(component)
+        for (let i = 0; i < 40 && !page.querySelector('.chord-row'); i++) {
+            await new Promise(r => setTimeout(r, 100))
+            window.ng.applyChanges(component)
+        }
+
         const chordRows = [...page.querySelectorAll('.chord-row')]
+        if (!chordRows.length) { return { skipped: 'the Clicking group did not open' } }
         const kindBoxes = [...page.querySelectorAll('.click-kinds input[type=checkbox]')]
         const before = T.config.store.linkTooltip.primaryClickGesture
 

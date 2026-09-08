@@ -1458,5 +1458,62 @@ console.log('\n── the rule probe ──')
         probeMod.probeRule(textRule(''), 'anything').error, '')
 }
 
+
+// ── the settings groups ─────────────────────────────────────────────────────
+// Two rules govern the accordion, and both are the kind that get broken by
+// someone tidying the template later — so they are asserted over its source
+// rather than left as a comment.
+console.log('\n── settings group rules ──')
+{
+    const pug = require('fs').readFileSync(
+        path.join(REPO, 'tabby-links/src/components/linkTooltipSettingsTab.component.pug'), 'utf8')
+    const lines = pug.split('\n')
+
+    // Rule one: never disable an accordion item. That disables its own header,
+    // and every master switch lives inside the group it governs — so a disabled
+    // item is a group that can never be opened to switch it back on.
+    const itemBlocks = []
+    for (let i = 0; i < lines.length; i++) {
+        if (!lines[i].includes('ngbAccordionItem')) { continue }
+        // The item's attribute list, up to its closing paren.
+        let j = i
+        while (j < lines.length && !lines[j].trim().startsWith(')')) { j++ }
+        itemBlocks.push(lines.slice(Math.max(0, i - 1), j + 1).join('\n'))
+    }
+    check('there are accordion groups to check at all', itemBlocks.length, 4)
+    check('no accordion item is ever disabled',
+        itemBlocks.filter(b => b.includes('disabled')).length, 0)
+
+    // Rule two: a setting only goes under a switch that governs it. `allowHtml`
+    // also governs the preview *pane*, which outlives the card, so it must not
+    // sit under the card's master switch — it has its own group.
+    const cardStart = lines.findIndex(l => l.includes("collapsed('card')") || l.includes('collapsed("card")'))
+    const nextGroupAfterCard = lines.findIndex((l, i) => i > cardStart && l.includes('ngbAccordionItem'))
+    const cardBody = lines.slice(cardStart, nextGroupAfterCard).join('\n')
+    check('the html switch is not inside the hover-card group',
+        cardBody.includes('allowHtml'), false)
+    check('and it has a group of its own',
+        pug.includes("collapsed('previews')") || pug.includes('collapsed("previews")'), true)
+
+    // The old wrapper hid the click settings entirely when clicking was off; a
+    // group-level *ngIf would leave an expandable that opens onto nothing.
+    check('the click settings are no longer hidden wholesale',
+        pug.includes("*ngIf='config.store.linkTooltip.clickable'"), false)
+    check('they are greyed per row instead',
+        (pug.match(/\[disabled\]='!config\.store\.linkTooltip\.clickable'/g) ?? []).length > 0, true)
+    check('and so are the card settings',
+        (pug.match(/\[disabled\]='!config\.store\.linkTooltip\.enabled'/g) ?? []).length > 0, true)
+
+    // Detection and safe schemes are governed by nothing on this page, so they
+    // stay out of every group.
+    const firstGroupAt = lines.findIndex(l => l.includes('ngbAccordion,'))
+    const beforeGroups = lines.slice(0, firstGroupAt).join('\n')
+    check('link detection stays outside the groups',
+        beforeGroups.includes("key='detectLinks'"), true)
+    check('and safe schemes are not in a group either',
+        lines.slice(lines.findIndex(l => l.includes('safeSchemes')))
+            .join('\n').includes('ngbAccordion'), false)
+}
+
 console.log(`\n${passed} passed, ${failed} failed`)
 process.exit(failed ? 1 : 0)

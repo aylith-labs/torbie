@@ -39,6 +39,20 @@ function checkPresetPattern (pattern: string): string {
     return pattern ? checkPattern(pattern).error : ''
 }
 
+/** Where the collapse state of the settings groups is kept. */
+const GROUP_STATE_KEY = 'linkTooltipGroupCollapsed'
+
+/**
+ * Which groups start closed. The hover card is what most people opened the page
+ * for, so it starts open; the rest are there when they are wanted.
+ */
+const DEFAULT_COLLAPSED: Record<string, boolean | undefined> = {
+    card: false,
+    buttons: true,
+    clicking: true,
+    previews: true,
+}
+
 const MODIFIER_LABELS: Record<ClickModifier, string> = {
     none: 'No modifier',
     ctrl: 'Ctrl',
@@ -280,6 +294,50 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
      */
     presetInUseElsewhere (preset: RulePreset): boolean {
         return presetInUse(preset, this.rules.filter(rule => rule !== this.currentRule))
+    }
+
+    // ── group state ──────────────────────────────────────────────────────────
+
+    /**
+     * Whether a settings group is closed.
+     *
+     * View state, so it has no business in `config.yaml` — but it does have to
+     * outlive this component, which is rebuilt far more often than it looks:
+     * `ngbNav` destroys the content of a hidden settings tab, so navigating away
+     * and back constructs the page from scratch, and every `saveConfiguration()`
+     * fires `config.changed$` underneath it. localStorage, in the same shape
+     * `profileGroupCollapsed` already uses for the profile tree.
+     */
+    collapsed (id: string): boolean {
+        const stored = this.groupState()[id]
+        // Absent means "whatever this group's author intended", not "open": a
+        // group added later should start where it was meant to rather than
+        // wherever an older stored map happens not to mention it.
+        return typeof stored === 'boolean' ? stored : DEFAULT_COLLAPSED[id] ?? false
+    }
+
+    /**
+     * Only ever called from the accordion's own `(shown)`/`(hidden)`, and it
+     * never assigns `collapsed` back — so restoring a group cannot re-enter and
+     * start a second lap.
+     */
+    setCollapsed (id: string, value: boolean): void {
+        const state = this.groupState()
+        state[id] = value
+        try {
+            window.localStorage[GROUP_STATE_KEY] = JSON.stringify(state)
+        } catch {
+            // Storage can be unavailable or full. Forgetting which panel was
+            // open is not worth failing the page over.
+        }
+    }
+
+    private groupState (): Record<string, boolean> {
+        try {
+            return JSON.parse(window.localStorage[GROUP_STATE_KEY] ?? '{}')
+        } catch {
+            return {}
+        }
     }
 
     trackPreset (index: number): number {
