@@ -731,6 +731,103 @@ button is a split button whose caret offers eleven ready-made rules, and an
   but **keeps custom actions**: they are the one part of a rule that is
   unambiguously the user's own work.
 
+### The card says which rule made it, and the buttons pick a real edge
+
+`EffectiveTooltipSettings.rule` has carried the answer since rules existed and
+the card threw it away, so "why is this link not previewed the way I set it up"
+had no answer anywhere in the UI. Behind `linkTooltip.showRuleAttribution`
+(off), the card carries a line on its far edge, and clicking it opens that rule.
+
+- **Three states, not two.** `null` → *No rule matched*, which is the useful
+  half. A stored rule → *Matched by X*, openable. An integration's own
+  `detectPatterns` → *Detected by the X integration*, with nothing to open:
+  those are real rules in the matching pool but live in no array, so calling one
+  "no rule matched" would be untrue and linking it would link index `-1`. They
+  are tracked in a `WeakSet` as `textRules()` mints them rather than recognised
+  by their shape, since a user rule can carry the same name and integration.
+- **Identity is exact, not a guess.** `hydrateRule` completes a stored rule *in
+  place* — "because the settings page edits these same objects" — and `rules()`
+  memoises that array, so the object the matcher returned *is* the object the
+  page edits and `indexOf` is exact. The name rides along as a check, because
+  the settings can be edited while a card is up: opening resolves
+  index-then-name, and failing both lands on the rules list rather than on
+  whatever has since moved into that slot.
+- **`linkTooltip.actionsPlacement` names the edge relative to the *link*.** The
+  card flips above the hovered line when there is no room below, so "bottom" was
+  the near edge half the time and the far edge the rest, decided by where in the
+  pane you happened to be pointing. `position()` now reports which way it went
+  and `place()` resolves near/far afterwards — safe in that order for one
+  reason: it is CSS `order` over the same children, so it cannot change the
+  height the flip was computed from. Asserted: the card is exactly as tall
+  either way. All three call sites go through `place()`, so the second half
+  cannot be forgotten at one of them.
+- **`showButtons` no longer eats custom actions.** It gated `rule.actions` too,
+  so a switch labelled "show buttons on the link tooltip" silently deleted
+  buttons the user had written — the same destructive click `applyPreset`
+  deliberately refuses, from further away. `linkTooltip.showCustomActions` (on)
+  is its own switch, and both descriptions now say they apply to the pane too.
+
+### A rule shows what it finds
+
+`ruleProbe.ts` runs the open rule against a line of sample text and highlights
+what it finds, lists the named captures an integration would read back, and says
+when the pattern will not compile.
+
+- **Fidelity is the whole of it**, so it reproduces the live decision rather
+  than approximating it: the same `GuardedRegex` (whose constructor runs
+  `checkPattern`, so the ReDoS guard is not opt-in), the same flags and match
+  caps as `LinkRulesService`, the same `MAX_TEXT_INPUT` truncation, and **the
+  same criteria beyond the pattern** — a `link` rule also ANDs `schemes` and the
+  file-type group, so the box reports *which* one refused. A preview showing
+  only the pattern would claim matches the terminal refuses, which is the exact
+  failure it exists to prevent.
+- **Its own regex, never the service's.** That one memoises into a shared cache
+  and is wired to disable the rule and raise a notification on a slow pattern;
+  driven from a box someone is typing in, that would kill their rule for the
+  session and toast on every keystroke.
+- **The whitespace hazard does not arise here, and guarding against it made
+  things worse.** `pretty: true` means pug inserts whitespace between two
+  *literal* siblings — the reference fork hit exactly that with three
+  side-by-side text blocks — but these segments come from one `*ngFor` over one
+  element and Angular inserts nothing between instances. Measured: `textContent`
+  is the sample character for character. A flex container added as belt and
+  braces renders identically (every segment on one line) but makes flex items
+  block-level, so `innerText` — the model a selection and a copy go through —
+  gained a line break between every segment. Dropped.
+- **Preset identity is name first, pattern as the fallback.** Three presets take
+  their pattern from a manifest and those manifests move, so a rule added before
+  a preset's pattern changed is still that preset to the person reading the
+  list; the pattern fallback still recognises a renamed rule. Both menus grey
+  out a preset already present — the editor's own still offers the one the open
+  rule *is*, because there it means "re-sync me". `addAsRule()` on the
+  Integrations page had **no check at all** and reported success twice.
+
+### The Link Tooltip page is grouped
+
+Four collapsible groups over what was a 519-line flat scroll, remembering what
+was open. ng-bootstrap's directive accordion was already imported and Bootstrap
+5's `.accordion` already themed, so this needed no new dependency or styling.
+
+- **A setting only goes under a switch that governs it.** `allowHtml` sits with
+  the card settings and belongs with none of them: it governs the preview
+  *pane*, which outlives the card. Under the card's master it would be greyed
+  out while still applying — the one thing an accordion must not do — so it has
+  a group of its own. `detectLinks` and `safeSchemes` stay ungrouped for the
+  same reason in reverse: nothing on the page governs them.
+- **Never set `disabled` on an accordion item.** It disables the item's own
+  header, and every master switch lives *inside* the group it governs, so a
+  disabled group can never be opened to switch it back on. The old
+  `*ngIf='…clickable'` wrapper is gone with it — a group-level `*ngIf` would
+  leave an expandable that opens onto nothing — and is per-row `[disabled]` now.
+- State is view state: `localStorage.linkTooltipGroupCollapsed`, in the shape
+  `profileGroupCollapsed` already uses. An **absent** id falls back to *that
+  group's* intended default rather than to "open".
+- **A collapsed group's body has never been instantiated**, so its controls are
+  absent from the DOM rather than hidden — `clicks.cdp.js` read `.chord-row`
+  straight out of the document and had to learn to open the group first. Tabby
+  has no settings search, so the reference's concern about a search index
+  reaching into a collapsed expander has no analogue here.
+
 ### WSL paths: the translation was right and unreachable
 
 The `\\wsl.localhost\<distro>\…` translation was correct in isolation and never
@@ -1656,6 +1753,104 @@ question, answered without leaving the app.
 - Verified against `git rev-list` on this checkout: behind and ahead counts,
   branch, the newest local subject, and the resolved GitHub URL all match, and
   the Fetch button moves `FETCH_HEAD` in ~1.5s.
+
+## Which settings are this fork's (`tabby-upstream`)
+
+Nothing in the running program said which behaviour is ours and which is
+upstream Tabby's — every row in the settings window is drawn identically either
+way, which makes the divergence invisible at exactly the moment you are deciding
+whether to change something. Two switches on Settings → **Upstream**, both off:
+`upstream.showForkMarks` draws a **filled** diamond beside every setting
+upstream does not have, and `upstream.showConfigOnlyMarks` a **hollow** one,
+same shape and size, for a setting upstream *does* have and gives no control
+for. A row carries at most one; the stylesheet settles which wins.
+
+- **A CSS class, not a directive.** Angular matches directives in the
+  *declaring component's* module scope, so a directive would have to be declared
+  and exported from `tabby-core` — the most rebase-hostile file in the tree —
+  before `tabby-settings` or `tabby-terminal` could use it. A class needs no
+  registration, so marking a row is `.title` → `.title.fork-mark`: ten
+  characters in a line that already exists. `forkMarks.scss` is injected
+  globally by *not* being named `*component.scss`, which is how
+  `webpack.plugin.config.mjs` chooses `style-loader` over `to-string-loader`;
+  `dropZone.directive.scss` already relies on this, and the `<body>` class
+  follows `ThemesService`'s own `no-animations`.
+- **Drawn, not typed.** A rotated 7px square rather than U+25C6: no font
+  coverage to rely on, no encoding to preserve, and the two marks are guaranteed
+  the same size rather than the same size *in whatever font rendered them*. The
+  cost is that a translator cannot drop it, which the reference's resource-file
+  approach allows — stated rather than implied.
+- **The list is derived.** `keys(working tree) − keys(master)`, recomputed by
+  `scripts/dev/check-fork-marks.mjs`. 91 keys, almost all on the six pages that
+  are entirely ours — **those are marked once, on the nav entry**, because
+  marking their ~85 rows would be noise. On shared pages that leaves exactly
+  three: Accent color, Multi-column tab bar, Minimum column width.
+- **Changed *defaults* are deliberately not marked** — `tabsLocation`,
+  `colorSchemeMode`, `minimumContrastRatio`, Windows `terminal.font`. They exist
+  upstream, so they are not ours; the rule is a difference of keys, and the docs
+  catalogue already covers them.
+- **The hollow mark needed something to mark.** The reference shipped its
+  equivalent and marked zero rows with it. Upstream Tabby hides very little; the
+  audit found two real cases — `appearance.cycleTabs` (read three times in
+  `app.service.ts`) and `terminal.detectProgress` (drives the tab's progress bar
+  and the taskbar icon) — both with no control anywhere. Both now have one, which
+  is more useful than the claim: the row stops saying "upstream hides this" and
+  becomes where you change it.
+- **`config.save()` awaits the disk**, so both switches apply the value from the
+  event and only then save, or the mark lags the switch controlling it — the
+  trap the accent swatch already documents. Reading `$event` rather than
+  re-reading the store is also what avoids the reference's own bug, where the
+  handler read the property before the two-way binding wrote it back and the
+  mark never appeared.
+
+### The checker, and why the sweep is only a review gate
+
+`check-fork-marks.mjs` recomputes the fork-added set from git and fails when the
+checked-in list disagrees **in either direction** — which is what fires the
+moment a rebase carries a key upstream. It also refuses a marked row editing no
+fork-added key, a fork-added key with an unmarked row on a shared page, a row
+with both marks, a mark on a page already marked at its nav entry, a fork page
+that forgets `forkAdded`, and a stylesheet or import gone missing. `--write`
+regenerates the derived half, since that is git's answer rather than an opinion.
+All four drift shapes were confirmed to fail it.
+
+The *config-only* list cannot be computed, and the sweep that looks for keys
+with no control is wrong in both directions. Two of its mistakes were found
+while writing it:
+
+- **`.ms-5.form-line`** is how the docking sub-settings are indented, so
+  matching only a leading `.form-line` made six rows that plainly have controls
+  look as though they had none.
+- **A control is not always inside its row** — "Custom CSS" puts its textarea
+  after the `.form-line` as a sibling.
+
+What it still cannot see through is named in `fork-settings.json` with a reason
+rather than left looking like a missing mark: `terminal.colorScheme` has a full
+editor reached as `config.store.terminal[this.configKey]`, so its name appears
+as a literal nowhere; `platformDefaults` is not parsed because its keys are
+computed (`[Platform.Windows]`); and `hacks.globalHotkey` and
+`terminal.environment` are real, unexposed, and deliberately still unexposed.
+
+**And `builtin-plugins/` and every `dist/` are gitignored bundles of every
+default and every compiled template**, so a filesystem walk finds each key a
+dozen times and concludes everything has a UI. The scanner iterates
+`git ls-files` for that reason alone.
+
+`tabby-upstream/test/forkMarks.cdp.js` (25 checks) verifies it live. **The marks
+are `::after` pseudo-elements** — in no `textContent`, no `innerText`, no
+accessibility tree, and unreachable by `querySelector` — so a test that greps
+the DOM for a diamond passes on zero marks; every check reads
+`getComputedStyle(el, '::after')`. It asserts the *count* on the Window page so
+an over-broad selector fails rather than looking like success, that the hollow
+mark is the same size as the filled one (the whole "one family" claim), that
+switching off takes effect **without navigating**, and that the 222px nav column
+gains no horizontal scrollbar. Computed style only proves the rule matched, so
+the mark was also captured on screen in both colour schemes and looked at.
+
+Two things only a running window found: assigning `activeTab` from outside
+Angular's zone changes nothing until `applyChanges`, and **more than one
+settings page stays in the DOM at once**, so a document-wide query reads rows
+from a page nobody is looking at.
 
 ## The renderer and xterm 6
 

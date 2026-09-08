@@ -82,6 +82,101 @@ window.FEATURE_DETAILS = {
     ],
   },
 
+  "integration-logos": {
+    problem:
+      "Jira, Slack and stith all shipped <code>\"icon\": \"\"</code>, and GitHub shipped a Segoe MDL2 code point — a glyph an <code>&lt;img&gt;</code> cannot load. The template guards the image with <code>*ngIf</code>, so every integration card and every row of the Integrations list simply had no logo at all.",
+    how:
+      "The four built-in manifests now carry the Windows Terminal fork's icon strings <strong>verbatim</strong>: <code>ms-appx:///IntegrationIcons/&lt;file&gt;.png</code>. Nothing here resolves that scheme, so the <em>host</em> does — there it goes to WinUI's <code>IconPathConverter</code>, here <code>integrationIcons.ts</code> looks the file name up in a map of PNGs webpack inlines into the plugin bundle as data URIs. The JSON is byte-identical on both sides again, which is what the manifest format exists for.",
+    notes: [
+      "Because the key converges, <code>github.icon</code> <em>leaves</em> the documented divergence table rather than being joined by three more entries — it shrinks from four to three.",
+      "An icon this host cannot resolve yields an empty string and one log line naming the manifest, so a card draws no icon rather than a broken one. The old code put <code>manifest.icon</code> straight into <code>src</code>.",
+      "The asset rule is <code>asset/inline</code>, not <code>asset</code>: this bundle is <code>target: 'node'</code>, so <code>asset/resource</code> emits a filesystem path, and a path in an <code>&lt;img src&gt;</code> is a broken image with no error anywhere. Bare <code>asset</code> switches between the two at 8 KB, so a larger fifth icon would silently fall off that cliff.",
+      "stith's mark is <code>aylith.png</code> — the dashboard is stith, the brand is aylith's — so the asset map is keyed on file names rather than integration ids.",
+    ],
+    caveats: [
+      "Every failure mode here builds green and shows no icon, so none of it is caught by the compiler. The checks are what stand in for that, and each was confirmed to fail before being relied on.",
+      "<code>ms-appx:</code> is a scheme only MSIX resolves. A manifest of your own should give an <code>https:</code>, <code>data:</code> or <code>file:</code> URI instead; only the built-in names are bundled.",
+    ],
+  },
+
+  "rule-attribution": {
+    problem:
+      "The card has always known which rule produced it — <code>EffectiveTooltipSettings</code> has carried the rule since rules existed — and threw it away. So \"why is this link not previewed the way I set it up\" had no answer anywhere in the interface. Separately, the button row was pinned to the card's bottom edge, and the card flips <em>above</em> the hovered line when there is no room below — so \"bottom\" was the edge next to the link half the time and the edge furthest from it the rest, depending on where in the pane you happened to be pointing.",
+    how:
+      "With <code>linkTooltip.showRuleAttribution</code> on, the card carries a line on its far edge naming the rule, and clicking it opens that rule in the settings. <code>linkTooltip.actionsPlacement</code> names the button edge relative to the <em>link</em> — 'Next to the link' or 'Far edge' — resolved after the card has been measured and flipped.",
+    settings: [
+      { key: "linkTooltip.showRuleAttribution", def: "false", note: "Diagnostic, so off by default." },
+      { key: "linkTooltip.actionsPlacement", def: "'far'", note: "What the old always-bottom behaviour produced in the common case." },
+      { key: "linkTooltip.showCustomActions", def: "true", note: "Split out of showButtons, which used to delete rule-authored buttons too." },
+    ],
+    notes: [
+      "Three states, not two. A synthetic rule built from an integration's <code>detectPatterns</code> is a real rule in the matching pool but is in nobody's rule list, so it reads <em>Detected by the X integration</em> with nothing to open — calling it \"no rule matched\" would be untrue.",
+      "The rule is found by identity, which is exact: <code>hydrateRule</code> completes a stored rule in place and the list is memoised, so the object the matcher returned is the object the settings page edits.",
+      "Opening resolves index first with the name as a check, and failing both lands on the rules list rather than on whatever rule has since moved into that slot.",
+      "Resolving placement after measuring is safe because it is CSS <code>order</code> over the same children — the card is exactly as tall either way, which the test asserts.",
+    ],
+    caveats: [
+      "\"No rule matched\" is the useful half and the one worth switching this on for; naming a rule you already know about is the lesser half.",
+      "The <code>showButtons</code> split is a real behaviour change: someone who had it off <em>and</em> custom actions on a rule will see those actions again.",
+    ],
+  },
+
+  "rule-preview": {
+    problem:
+      "The rule editor restated the regular expression you had just typed and nothing else. The only way to find out whether a rule actually worked was to make the terminal print something it should match. And both preset menus offered every preset every time, so \"Add rule\" twice produced two identical rules — the Integrations page's \"add as rule\" had no duplicate check at all and reported success both times.",
+    how:
+      "A sample box in the rule editor runs the rule the way the terminal will and shows what it finds: the matched run highlighted where it sits, the named captures an integration would read back, and whether the pattern compiles. Presets already in your list are greyed out.",
+    notes: [
+      "Fidelity is the whole point, so the probe reproduces the live decision rather than approximating it: the same guarded regular expression, the same flags and match caps, the same input-length limit, and the same criteria beyond the pattern — a link rule also ANDs its scheme list and file-type group, and the box says <em>which</em> one refused.",
+      "It builds its own regular expression rather than using the service's cached one. That one is wired to disable the rule and raise a notification when a pattern runs long, which — driven from a box someone is typing in — would kill their rule for the session and toast on every keystroke.",
+      "Preset identity is name first, pattern as the fallback. Three presets take their pattern from a manifest and those manifests move, so a rule added before a pattern changed is still that preset to the person reading the list.",
+      "The editor's own menu still offers the preset the open rule already is: there it means \"re-sync me\", not \"duplicate me\".",
+    ],
+    caveats: [
+      "The sample text is a scratch pad. It is not stored on the rule and does not persist — the rule format is deliberately identical to the Windows Terminal fork's so rules can be pasted between them, and a field for a text box is not worth spending that on.",
+      "A rule that came from a preset starts with that preset's own example in the box; one that did not starts empty.",
+    ],
+  },
+
+  "settings-groups": {
+    problem:
+      "The Link Tooltip page had grown to a five-hundred-line flat scroll under four static headings, with everything visible at once whether it applied or not.",
+    how:
+      "Four collapsible groups — Hover card, Buttons, Clicking, Integration previews — that remember what was open across saving and navigating away. Two rows stay outside every group.",
+    notes: [
+      "A setting only goes under a master switch that really governs it. \"Let integrations draw their own tooltip\" sits with the card settings and looks like it belongs there, but it governs the preview <em>pane</em> too, which outlives the card — under the card's switch it would be greyed out while still applying. It gets a group of its own.",
+      "Link detection and the safe-scheme list stay ungrouped: detection continues when the card is off, and safe schemes apply to every path that opens a link, not just to the card.",
+      "Nothing sets <code>disabled</code> on a group. That disables the group's own header, and every master switch lives inside the group it governs — so a disabled group could never be opened to switch it back on. The gating is per-row.",
+      "Group state is view state, so it lives in <code>localStorage</code> rather than <code>config.yaml</code>, in the same shape the profile tree already uses.",
+    ],
+    caveats: [
+      "A collapsed group's body has never been instantiated, so its controls are not merely hidden — they are absent from the page. Tabby has no settings search, so nothing needs to reach into them; a build that grew one would need to open the group first.",
+      "An id the stored map does not mention falls back to that group's intended default rather than to \"open\", so a group added later starts where it was meant to.",
+    ],
+  },
+
+  "fork-marks": {
+    problem:
+      "Nothing in the running program said which behaviour is this fork's and which is upstream Tabby's. Every row in the settings window is drawn identically whether Tabby shipped it or this fork added it, which makes the divergence invisible at exactly the moment you are deciding whether to change something.",
+    how:
+      "Two switches on Settings → Upstream, both off by default. One marks every setting upstream does not have with a filled diamond; the other marks, with a hollow one of the same size, a setting upstream <em>does</em> have and gives no control for. Each switch's own row carries the mark it controls, so turning it on previews itself.",
+    settings: [
+      { key: "upstream.showForkMarks", def: "false", note: "The filled mark: this setting does not exist upstream." },
+      { key: "upstream.showConfigOnlyMarks", def: "false", note: "The hollow mark: upstream has it and hides it in config.yaml." },
+    ],
+    notes: [
+      "The list is derived, not judged: the keys this build declares minus the keys <code>master</code> declares, recomputed from git by <code>scripts/dev/check-docs.mjs</code>'s sibling, <code>check-fork-marks.mjs</code>, which fails when the checked-in list disagrees in either direction.",
+      "A page that is entirely ours is marked once on its entry in the list, not on each of its rows — six such pages carry about eighty-five rows between them, and marking all of them would be noise. On shared pages that leaves exactly three marked rows.",
+      "The hollow mark was given something to mark: <code>appearance.cycleTabs</code> and <code>terminal.detectProgress</code> are real upstream settings with no control anywhere, and now have one.",
+      "The marks are drawn in CSS rather than typed as a character, so they do not depend on font coverage or on this file's encoding, and the two are guaranteed the same size.",
+    ],
+    caveats: [
+      "Settings where this fork only changed the <em>default</em> — vertical tabs, the colour-scheme mode, the contrast floor, the Windows font — are deliberately not marked. They exist upstream, so they are not ours; the rule is a difference of keys.",
+      "The marks are CSS pseudo-elements, which means they are not in the accessibility tree. The meaning lives in each switch's description instead, and a translator cannot drop the glyph the way the Windows Terminal fork's resource-file approach allows.",
+      "The sweep that finds settings with no control is a review gate, not an oracle. It is wrong in both directions — a setting reached by a computed key looks unexposed, and a read in an <code>*ngIf</code> looks like a control — so every entry was confirmed by hand, and the cases it cannot reason about are named with their reasons rather than left to look like missing marks.",
+    ],
+  },
+
   "integration-html": {
     problem:
       "A field list is the right shape for a ticket and the wrong shape for anything that wants a layout of its own — a chart, a table, a run of coloured badges. The manifest format has an <code>html</code> key for exactly that, and both repositories documented it as \"reserved, not implemented in either fork\", which was wrong and cost a rediscovery.",
