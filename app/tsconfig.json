@@ -1,5 +1,13 @@
 {
     "compilerOptions": {
+        // TypeScript 6 defaults `strict` on and turns two long-standing
+        // deprecations into errors. This project predates all three: it opts out
+        // of `noImplicitAny` explicitly and never asked for strict null checks,
+        // so inheriting the new default lights up the main process with
+        // null-assignability and property-initialisation errors. Stated here so
+        // the posture is a choice rather than a version artefact.
+        "strict": false,
+        "ignoreDeprecations": "6.0",
         "baseUrl": "./src",
         "module": "commonjs",
         "target": "es2015",

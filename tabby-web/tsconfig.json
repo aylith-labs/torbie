@@ -2,6 +2,9 @@
   "extends": "../tsconfig.json",
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
+    // TypeScript 6 makes the `baseUrl` deprecation an error. It is kept
+    // because the `paths` below are written relative to it.
+    "ignoreDeprecations": "6.0",
     "baseUrl": "src"
   }
 }

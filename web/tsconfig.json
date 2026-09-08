@@ -1,5 +1,12 @@
 {
     "compilerOptions": {
+        // TypeScript 6 makes the `baseUrl` deprecation an error. It is kept
+        // because the `paths` below are written relative to it.
+        // As with app/: TypeScript 6 defaults `strict` on, which this
+        // standalone config never asked for, and no longer infers @types/node.
+        "strict": false,
+        "types": ["node"],
+        "ignoreDeprecations": "6.0",
         "baseUrl": "./src",
         "module": "commonjs",
         "target": "es2015",

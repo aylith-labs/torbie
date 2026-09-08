@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Observable, OperatorFunction, debounceTime, map, distinctUntilChanged } from 'rxjs'
-import { Component, Input, ViewChild, ViewContainerRef, ComponentFactoryResolver, Injector } from '@angular/core'
+import { Component, Input, ViewChild, ViewContainerRef, EnvironmentInjector, createComponent } from '@angular/core'
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
 import { PartialProfileGroup, Profile, ProfileProvider, ProfileSettingsComponent, ProfilesService, TAB_COLORS, ProfileGroup, ConnectableProfileProvider, FullyDefined, ConfigProxy } from 'tabby-core'
 
@@ -28,8 +28,7 @@ export class EditProfileModalComponent<P extends Profile, PP extends ProfileProv
     private settingsComponentInstance?: ProfileSettingsComponent<P, PP>
 
     constructor (
-        private injector: Injector,
-        private componentFactoryResolver: ComponentFactoryResolver,
+        private injector: EnvironmentInjector,
         private profilesService: ProfilesService,
         private modalInstance: NgbActiveModal,
     ) {
@@ -63,8 +62,8 @@ export class EditProfileModalComponent<P extends Profile, PP extends ProfileProv
         const componentType = this.profileProvider.settingsComponent
         if (componentType) {
             setTimeout(() => {
-                const componentFactory = this.componentFactoryResolver.resolveComponentFactory(componentType)
-                const componentRef = componentFactory.create(this.injector)
+                // `ComponentFactoryResolver` was removed in Angular 22.
+                const componentRef = createComponent(componentType, { environmentInjector: this.injector })
                 this.settingsComponentInstance = componentRef.instance
                 this.settingsComponentInstance.profile = this.profile
                 this.placeholder.insert(componentRef.hostView)

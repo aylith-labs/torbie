@@ -1,5 +1,5 @@
 import deepClone from 'clone-deep'
-import { Injectable, ComponentFactoryResolver, Injector } from '@angular/core'
+import { Injectable, EnvironmentInjector, createComponent } from '@angular/core'
 import { BaseTabComponent } from '../components/baseTab.component'
 import { TabRecoveryService } from './tabRecovery.service'
 
@@ -24,8 +24,7 @@ export interface NewTabParameters<T extends BaseTabComponent> {
 export class TabsService {
     /** @hidden */
     private constructor (
-        private componentFactoryResolver: ComponentFactoryResolver,
-        private injector: Injector,
+        private injector: EnvironmentInjector,
         private tabRecovery: TabRecoveryService,
     ) { }
 
@@ -33,8 +32,10 @@ export class TabsService {
      * Instantiates a tab component and assigns given inputs
      */
     create <T extends BaseTabComponent> (params: NewTabParameters<T>): T {
-        const componentFactory = this.componentFactoryResolver.resolveComponentFactory(params.type)
-        const componentRef = componentFactory.create(this.injector)
+        // `ComponentFactoryResolver` was removed in Angular 22. The standalone
+        // `createComponent` replaces it and wants an `EnvironmentInjector`, which
+        // is what a root-provided service's own injector already is.
+        const componentRef = createComponent(params.type, { environmentInjector: this.injector })
         const tab = componentRef.instance
         tab.hostView = componentRef.hostView
         tab.destroyed$.subscribe(() => componentRef.destroy())

@@ -1,3 +1,4 @@
+/// <reference path="./styles.d.ts" />
 require('module').enableCompileCache?.()
 
 import '../lib/lru'

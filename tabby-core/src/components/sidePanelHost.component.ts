@@ -1,4 +1,4 @@
-import { Component, Inject, Optional, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, HostBinding, HostListener, NgZone } from '@angular/core'
+import { Component, Inject, Optional, ViewChild, ViewContainerRef, ComponentRef, HostBinding, HostListener, NgZone } from '@angular/core'
 
 import { SidePanelProvider } from '../api/sidePanelProvider'
 import { ConfigService } from '../services/config.service'
@@ -37,7 +37,6 @@ export class SidePanelHostComponent extends BaseComponent {
 
     constructor (
         public config: ConfigService,
-        private componentFactoryResolver: ComponentFactoryResolver,
         private zone: NgZone,
         @Optional() @Inject(SidePanelProvider) providers: SidePanelProvider[]|null,
     ) {
@@ -184,11 +183,7 @@ export class SidePanelHostComponent extends BaseComponent {
         if (!this.activeProvider) {
             return
         }
-        this.component = this.placeholder.createComponent(
-            this.componentFactoryResolver.resolveComponentFactory(
-                this.activeProvider.getComponentType(),
-            ),
-        )
+        this.component = this.placeholder.createComponent(this.activeProvider.getComponentType())
         this.renderedProviderId = this.activeProvider.id
     }
 

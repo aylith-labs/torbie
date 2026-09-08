@@ -2,7 +2,15 @@
   "extends": "../tsconfig.json",
   "exclude": ["node_modules", "dist", "typings"],
   "compilerOptions": {
+    // TypeScript 6 turns two long-standing deprecations into errors here.
+    // `baseUrl` is kept rather than removed: every `paths` entry below is
+    // written relative to it, and dropping it silently re-bases them on this
+    // file instead of on src/ — which resolves one directory too high and
+    // loses @ngx-translate, @types/node and every other shared dependency.
+    // `rootDir` simply has to be stated now rather than inferred.
+    "ignoreDeprecations": "6.0",
     "baseUrl": "src",
+    "rootDir": "src",
     "emitDeclarationOnly": true,
     "declaration": true,
     "declarationDir": "./typings",

@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef } from '@angular/core'
+import { Component, Input, ViewChild, ViewContainerRef, ComponentRef } from '@angular/core'
 
 import { TabHoverProvider } from '../api/tabHoverProvider'
 import { BaseTabComponent } from './baseTab.component'
@@ -24,18 +24,13 @@ export class TabHoverHostComponent {
 
     private component: ComponentRef<any> | null = null
 
-    constructor (private componentFactoryResolver: ComponentFactoryResolver) { }
 
     ngAfterViewInit (): void {
         setImmediate(() => {
             if (!this.placeholder || !this.provider) {
                 return
             }
-            this.component = this.placeholder.createComponent(
-                this.componentFactoryResolver.resolveComponentFactory(
-                    this.provider.getComponentType(),
-                ),
-            )
+            this.component = this.placeholder.createComponent(this.provider.getComponentType())
             this.component.instance.tab = this.tab
             this.component.changeDetectorRef.markForCheck()
         })

@@ -1,3 +1,4 @@
+/// <reference path="./styles.d.ts" />
 import { NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { ConfigProvider, HostAppService, HostWindowService, LogService, PlatformService, UpdaterService } from 'tabby-core'

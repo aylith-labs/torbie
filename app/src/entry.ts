@@ -1,3 +1,4 @@
+/// <reference path="./styles.d.ts" />
 // Before everything: captures native timers and wraps synchronous I/O while
 // there is still nothing else in the process to miss.
 import './diagnosticsBoot'

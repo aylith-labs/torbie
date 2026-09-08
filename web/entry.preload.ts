@@ -1,3 +1,4 @@
+/// <reference path="./styles.d.ts" />
 import 'source-sans-pro/source-sans-pro.css'
 import 'source-code-pro/source-code-pro.css'
 import '@fortawesome/fontawesome-free/css/solid.css'

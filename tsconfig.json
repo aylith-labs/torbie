@@ -1,5 +1,14 @@
 {
   "compilerOptions": {
+    // TypeScript 6 turns `strict` on by default. This project never wanted it —
+    // it sets `noImplicitAny: false` and opts into `strictNullChecks` on its
+    // own — and inheriting the new default lights up ~60 property-initialisation
+    // errors across the API classes, which are DI-populated by design. Stated
+    // explicitly so the posture is a choice rather than a version artefact.
+    "strict": false,
+    // Likewise no longer inferred: without this, `Buffer` and the rest of the
+    // node globals are unresolved in every package.
+    "types": ["node"],
     "module": "es2015",
     "target": "es2016",
     "moduleResolution": "node",

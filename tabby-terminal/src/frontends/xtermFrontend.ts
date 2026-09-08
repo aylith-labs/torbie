@@ -1,3 +1,4 @@
+/// <reference path="../styles.d.ts" />
 import deepEqual from 'deep-equal'
 import { BehaviorSubject, filter, firstValueFrom, fromEvent, takeUntil } from 'rxjs'
 import { Injector } from '@angular/core'

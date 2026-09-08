@@ -1,4 +1,4 @@
-import { Component, HostBinding, Input, ViewContainerRef, ViewChild, ComponentFactoryResolver, ComponentRef } from '@angular/core'
+import { Component, HostBinding, Input, ViewContainerRef, ViewChild, ComponentRef } from '@angular/core'
 import { SettingsTabProvider } from '../api'
 
 /** @hidden */
@@ -27,16 +27,11 @@ export class SettingsTabBodyComponent {
         return this.provider.wide
     }
 
-    constructor (private componentFactoryResolver: ComponentFactoryResolver) { }
 
     ngAfterViewInit (): void {
         // run after the change detection finishes
         setImmediate(() => {
-            this.component = this.placeholder.createComponent(
-                this.componentFactoryResolver.resolveComponentFactory(
-                    this.provider.getComponentType(),
-                ),
-            )
+            this.component = this.placeholder.createComponent(this.provider.getComponentType())
         })
     }
 }

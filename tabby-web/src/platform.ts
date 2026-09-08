@@ -1,3 +1,4 @@
+/// <reference path="./styles.d.ts" />
 import '@vaadin/vaadin-context-menu'
 import copyToClipboard from 'copy-text-to-clipboard'
 import { Injectable, Inject } from '@angular/core'

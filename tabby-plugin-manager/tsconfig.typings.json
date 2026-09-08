@@ -2,7 +2,16 @@
   "extends": "../tsconfig.json",
   "exclude": ["node_modules", "dist", "typings"],
   "compilerOptions": {
+    // TypeScript 6 turns two long-standing deprecations into errors here.
+    // `baseUrl` is kept rather than removed: every `paths` entry below is
+    // written relative to it, and dropping it silently re-bases them on this
+    // file instead of on src/ — which resolves one directory too high and loses
+    // every shared dependency. `rootDir` simply has to be stated now.
+    "ignoreDeprecations": "6.0",
     "baseUrl": "src",
+    // Not "src": this package imports the blacklist from app/src, so its common
+    // source directory is the repo root — the value TypeScript used to infer.
+    "rootDir": "..",
     "emitDeclarationOnly": true,
     "declaration": true,
     "declarationDir": "./typings",
