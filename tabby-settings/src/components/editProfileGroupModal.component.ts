@@ -13,6 +13,7 @@ const iconsClassList = Object.keys(iconsData).flatMap(
 
 /** @hidden */
 @Component({
+    standalone: false,
     templateUrl: './editProfileGroupModal.component.pug',
 })
 export class EditProfileGroupModalComponent<G extends ProfileGroup> {

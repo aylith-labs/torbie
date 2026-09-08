@@ -27,6 +27,7 @@ interface CredentialRow {
 }
 
 @Component({
+    standalone: false,
     selector: 'integrations-settings-tab',
     templateUrl: './integrationsSettingsTab.component.pug',
     styleUrls: ['./integrationsSettingsTab.component.scss'],

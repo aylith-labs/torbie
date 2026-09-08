@@ -17,6 +17,7 @@ const RELATIVE_TIME_REFRESH_MS = 20000
  * other running sessions, which of them are blocked on you, and plan usage.
  */
 @Component({
+    standalone: false,
     selector: 'claude-panel',
     templateUrl: './claudePanel.component.pug',
     styleUrls: ['./claudePanel.component.scss'],

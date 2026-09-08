@@ -24,6 +24,7 @@ function hexLuminance (value: string): number|null {
 
 /** @hidden */
 @Component({
+    standalone: false,
     selector: 'color-picker',
     templateUrl: './colorPicker.component.pug',
     styleUrls: ['./colorPicker.component.scss'],

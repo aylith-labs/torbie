@@ -8,6 +8,7 @@ import { WSLDirectoryPickerService } from '../services/wslDirectoryPicker.servic
 
 /** @hidden */
 @Component({
+    standalone: false,
     templateUrl: './localProfileSettings.component.pug',
 })
 export class LocalProfileSettingsComponent implements ProfileSettingsComponent<LocalProfile, LocalProfilesService> {

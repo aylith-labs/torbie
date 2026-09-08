@@ -18,6 +18,7 @@ const MAX_SIZE = 900
  * component — a panel that is polling or holding scroll state keeps it.
  */
 @Component({
+    standalone: false,
     selector: 'side-panel-host',
     templateUrl: './sidePanelHost.component.pug',
     styleUrls: ['./sidePanelHost.component.scss'],

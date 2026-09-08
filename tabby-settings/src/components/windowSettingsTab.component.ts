@@ -20,6 +20,7 @@ const ACCENT_FALLBACK = '#0275d8'
 
 /** @hidden */
 @Component({
+    standalone: false,
     selector: 'window-settings-tab',
     templateUrl: './windowSettingsTab.component.pug',
 })

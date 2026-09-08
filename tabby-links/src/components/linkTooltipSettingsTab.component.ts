@@ -78,6 +78,7 @@ const KIND_LABELS: Record<ClickableKind, string> = {
 }
 
 @Component({
+    standalone: false,
     selector: 'link-tooltip-settings-tab',
     templateUrl: './linkTooltipSettingsTab.component.pug',
     styleUrls: ['./linkTooltipSettingsTab.component.scss'],

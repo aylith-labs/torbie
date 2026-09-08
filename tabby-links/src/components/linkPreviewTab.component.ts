@@ -66,6 +66,7 @@ export function emptyRequest (): LinkPreviewRequest {
  * thing this passes it that the card does not is more room.
  */
 @Component({
+    standalone: false,
     selector: 'link-preview-tab',
     templateUrl: './linkPreviewTab.component.pug',
     styleUrls: ['./linkPreviewTab.component.scss'],

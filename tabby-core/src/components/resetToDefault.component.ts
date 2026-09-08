@@ -12,6 +12,7 @@ import { ConfigService } from '../services/config.service'
  * @hidden
  */
 @Component({
+    standalone: false,
     selector: 'reset-to-default',
     template: `
         <button

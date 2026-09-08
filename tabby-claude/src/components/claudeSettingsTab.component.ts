@@ -6,6 +6,7 @@ import { StithService } from '../services/stith.service'
 
 /** @hidden */
 @Component({
+    standalone: false,
     selector: 'claude-settings-tab',
     templateUrl: './claudeSettingsTab.component.pug',
 })

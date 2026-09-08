@@ -13,6 +13,7 @@ import { ClaudeSessionsService } from '../services/claudeSessions.service'
  * polled registry rather than fetching, so opening it costs nothing.
  */
 @Component({
+    standalone: false,
     selector: 'claude-hover-card',
     templateUrl: './claudeHoverCard.component.pug',
     styleUrls: ['./claudeHoverCard.component.scss'],

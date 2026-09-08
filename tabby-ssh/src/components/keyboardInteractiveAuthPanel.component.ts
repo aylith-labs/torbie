@@ -13,6 +13,7 @@ interface PromptPart {
 }
 
 @Component({
+    standalone: false,
     selector: 'keyboard-interactive-auth-panel',
     templateUrl: './keyboardInteractiveAuthPanel.component.pug',
     styleUrls: ['./keyboardInteractiveAuthPanel.component.scss'],

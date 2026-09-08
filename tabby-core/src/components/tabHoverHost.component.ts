@@ -11,6 +11,7 @@ import { BaseTabComponent } from './baseTab.component'
  * `settings-tab-body` uses for settings pages.
  */
 @Component({
+    standalone: false,
     selector: 'tab-hover-host',
     template: '<ng-template #placeholder></ng-template>',
 })

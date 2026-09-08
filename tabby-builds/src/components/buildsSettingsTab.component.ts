@@ -58,6 +58,7 @@ export interface BuildGroup {
  * walks are not, because they are far more expensive and change far less often.
  */
 @Component({
+    standalone: false,
     selector: 'builds-settings-tab',
     templateUrl: './buildsSettingsTab.component.pug',
     styleUrls: ['./buildsSettingsTab.component.scss'],

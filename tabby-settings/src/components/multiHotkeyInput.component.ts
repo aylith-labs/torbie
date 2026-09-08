@@ -5,6 +5,7 @@ import { Hotkey } from 'tabby-core'
 
 /** @hidden */
 @Component({
+    standalone: false,
     selector: 'multi-hotkey-input',
     templateUrl: './multiHotkeyInput.component.pug',
     styleUrls: ['./multiHotkeyInput.component.scss'],

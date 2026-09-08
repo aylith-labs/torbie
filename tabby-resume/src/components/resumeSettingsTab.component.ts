@@ -5,6 +5,7 @@ import { AGENT_TABLE, MULTIPLEXERS } from '../recognize'
 
 /** @hidden */
 @Component({
+    standalone: false,
     selector: 'resume-settings-tab',
     templateUrl: './resumeSettingsTab.component.pug',
 })

@@ -92,6 +92,7 @@ export function emptyModel (): CardModel {
  * preview pane renders too.
  */
 @Component({
+    standalone: false,
     selector: 'link-hover-card',
     templateUrl: './linkHoverCard.component.pug',
     styleUrls: ['./linkHoverCard.component.scss'],

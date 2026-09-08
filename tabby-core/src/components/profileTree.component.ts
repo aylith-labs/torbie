@@ -19,6 +19,7 @@ interface CollapsableProfileGroup extends ProfileGroup {
 
 /** @hidden */
 @Component({
+    standalone: false,
     selector: 'profile-tree',
     styleUrls: ['./profileTree.component.scss'],
     templateUrl: './profileTree.component.pug',

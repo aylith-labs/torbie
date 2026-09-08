@@ -5,6 +5,7 @@ import { ForkMarksService } from '../services/forkMarks.service'
 import { Commit, GitService, UpstreamStatus } from '../services/git.service'
 
 @Component({
+    standalone: false,
     selector: 'upstream-settings-tab',
     templateUrl: './upstreamSettingsTab.component.pug',
     styleUrls: ['./upstreamSettingsTab.component.scss'],

@@ -69,6 +69,7 @@ export function emptyPreviewModel (): PreviewModel {
  * therefore stated once and holds in both.
  */
 @Component({
+    standalone: false,
     selector: 'link-preview-view',
     templateUrl: './linkPreviewView.component.pug',
     styleUrls: ['./linkPreviewView.component.scss'],
