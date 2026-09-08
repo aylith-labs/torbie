@@ -1,12 +1,33 @@
 // Credential round-trip through safeStorage, and proof it never reaches config.yaml.
 const fs = require('fs')
 const path = require('path')
-const { connect } = require('./cdp')
+const { connect, liveInstances } = require('./cdp')
 
-// Ask the running instance where its profile is, rather than assuming. The dev
-// build is launched with an isolated `TABBY_CONFIG_DIRECTORY` that lives outside
-// the repo, so guessing a path here silently tests nothing.
-const PROFILE = process.env.TABBY_CONFIG_DIRECTORY || path.join(__dirname, 'tabby-profile')
+/**
+ * Ask the *launcher's registration* where the profile is.
+ *
+ * This used to read `TABBY_CONFIG_DIRECTORY` from its own environment, which is
+ * exactly wrong: a shell started inside Tabby inherits that variable from the
+ * **installed** app, so the test read `%APPDATA%\tabby` — the real config
+ * directory, not the throwaway one the dev build was launched with. It failed
+ * for that reason, and would have been asserting about the user's own
+ * credentials sidecar rather than the one under test.
+ *
+ * `launch-hidden.mjs` records the profile it created, so that is the only
+ * answer worth trusting. No fallback: guessing here tests nothing, and the
+ * environment is the one guess already known to be wrong.
+ */
+function profileDirectory () {
+    const running = liveInstances()
+    if (running.length === 1 && running[0].profile) {
+        return running[0].profile
+    }
+    if (running.length > 1) {
+        throw new Error(`${running.length} dev builds are registered — say which with CDP_PORT`)
+    }
+    throw new Error('no registered dev build; start one with scripts/dev/launch-hidden.mjs')
+}
+const PROFILE = profileDirectory()
 
 let passed = 0
 let failed = 0

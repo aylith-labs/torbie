@@ -29,6 +29,24 @@ const SETUP = `
     await new Promise(r => setTimeout(r, 700))
     window.ng.applyChanges(cmp)
     window.__T = { root: cmp, tab: term, xterm: term.frontend.xterm, core: term.frontend.xterm._core }
+
+    // A text rule for Jira keys, because the detection case below asserts one
+    // fires. Jira's manifest carries the pattern as a *suggested* matcher, not
+    // as a detectPattern — "Add as rule" on the Integrations page is what turns
+    // it into a live rule — so a fresh profile detects nothing, and the
+    // assertion was never true here without this.
+    window.__T.config = cmp.config
+    window.__T.savedRules = [...(cmp.config.store.linkTooltip.rules || [])]
+    cmp.config.store.linkTooltip.rules = [{
+        name: 'Jira keys',
+        enabled: true,
+        match: 'text',
+        pattern: '\\\\b(?<key>[A-Z][A-Z0-9]{1,9}-\\\\d{1,7})\\\\b',
+        integration: 'jira',
+        preview: false,
+    }]
+    await cmp.config.save()
+    await new Promise(r => setTimeout(r, 500))
 `
 
 async function main () {
@@ -308,9 +326,12 @@ async function main () {
         }
     }
 
-    // Put the tab back the way it was found: this profile is reused.
+    // Put the tab and the rules back the way they were found: this profile is
+    // reused by every other suite.
     await evaluate(`
         for (const t of window.__T.spawned || []) { t.destroy() }
+        window.__T.config.store.linkTooltip.rules = window.__T.savedRules
+        await window.__T.config.save()
         await new Promise(r => setTimeout(r, 500))
         window.ng.applyChanges(window.__T.root)
     `)
