@@ -53,7 +53,12 @@ async function bootstrap (bootstrapData: BootstrapData, plugins: PluginInfo[], s
     const module = getRootModule(pluginModules)
     const moduleRef = await platformBrowserDynamic([
         { provide: BOOTSTRAP_DATA, useValue: bootstrapData },
-    ]).bootstrapModule(module)
+    ]).bootstrapModule(module, {
+        // Angular 22 no longer infers this. Without it the app bootstraps and
+        // renders once, and then nothing schedules another change-detection
+        // pass — measured: one forced pass took the DOM from 1 element to 78.
+        ngZone: 'zone.js',
+    })
     if (process.env.TABBY_DEV) {
         const applicationRef = moduleRef.injector.get(ApplicationRef)
         const componentRef = applicationRef.components[0]
