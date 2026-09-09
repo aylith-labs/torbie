@@ -1,17 +1,26 @@
 name: Package-Build
-# Fork-local: docs/ is a static showcase site and *.md is prose, neither of
-# which compiles into anything. paths-ignore skips a run only when every
-# changed file matches, so a commit touching both code and docs still builds.
-# GitHub Actions does not support YAML anchors, hence the repetition.
+# Produces the installers and portable bundles. This is a *packaging* run, not
+# a gate — `ci.yml` is the gate, and it runs on every push and pull request.
+#
+# It used to run on every push too: three platforms, six architectures, native
+# module compilation and a crossbuild sysroot, for a commit that changed a
+# comment. Nothing consumed the artifacts unless a release was being cut, so
+# what it mostly produced was queue. It now runs where the output is actually
+# wanted — a tag, the default branch, or on demand — and the gate covers
+# everything else.
+#
+# `paths-ignore`: docs/ is a static showcase site and *.md is prose, neither of
+# which compiles into anything. It skips a run only when *every* changed file
+# matches, so a commit touching both code and docs still builds. GitHub Actions
+# does not support YAML anchors, hence the repetition.
 on:
   push:
+    branches: [main]
+    tags: ['v*']
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+  workflow_dispatch:
 jobs:
   # The gate lives in ci.yml and is called rather than restated, so there is
   # one definition of "verified" and it runs on the ref being packaged. This
