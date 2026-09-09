@@ -10,6 +10,7 @@ const bundleAnalyzer = new BundleAnalyzerPlugin({
 
 import { execSync } from 'child_process'
 import { createEs2015LinkerPlugin } from '@angular/compiler-cli/linker/babel'
+import { version } from './scripts/vars.mjs'
 
 // Build provenance, baked into the bundle so a running instance can report
 // exactly which source it came from. tabby-core renders this in the tab bar;
@@ -194,6 +195,7 @@ export default options => {
         ],
         plugins: [
             new wp.DefinePlugin({
+                'process.env.TABBY_BUILD_VERSION': JSON.stringify(version),
                 'process.env.TABBY_BUILD_SHA': JSON.stringify(BUILD_SHA),
                 'process.env.TABBY_BUILD_BRANCH': JSON.stringify(BUILD_BRANCH),
                 'process.env.TABBY_BUILD_DATE': JSON.stringify(BUILD_DATE),

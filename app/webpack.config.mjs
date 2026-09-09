@@ -142,6 +142,7 @@ export default () => ({
         // new wp.optimize.ModuleConcatenationPlugin(),
         new wp.DefinePlugin({
             'process.type': '"renderer"',
+            'process.env.TABBY_BUILD_VERSION': JSON.stringify(version),
             'process.env.TABBY_BUILD_SHA': JSON.stringify(BUILD_SHA),
             'process.env.TABBY_BUILD_BRANCH': JSON.stringify(BUILD_BRANCH),
             'process.env.TABBY_BUILD_DATE': JSON.stringify(BUILD_DATE),

@@ -173,16 +173,87 @@ read. `tabby://` stays registered beside `torbie://` for the same reason.
 it is a pane identity that `tabby-resume`'s WSL probe greps for, and a pane
 started before the rename is still carrying it.
 
-**Still outstanding.** The icon is still Tabby's — the mark belongs to
-`aylith-com`'s `aylith-brand-mark` skill, which owns the locked geometry and the
-asset-sync graph, and the handbook says plainly not to hand-edit mark assets. The
-UI has not been moved onto the lab's warm-stone palette either. The macOS
+**The mark is `>T`** — a prompt closing on the crossbar of a T, whose stem is a
+git-branch trunk with a commit at its foot and one at the end of the bar. Every
+asset is generated from one definition of it by `scripts/dev/make-icons.mjs`:
+the three SVGs, the six Linux PNGs, `build/windows/icon.ico`,
+`build/mac/icon.icns`, the five tray images and `docs/favicon.svg`. Nothing is
+hand-exported, so nothing can drift.
+
+- **Two treatments over one geometry**, per the studio's brand-mark skill.
+  *Theme-aware* flips ink to cream through `prefers-color-scheme` and is what the
+  SVGs ship; *bronze duotone* is what every raster bakes, because a PNG cannot
+  flip and the Windows taskbar takes its colour from `SystemUsesLightTheme`
+  rather than from the app.
+- **Rasterized by Chromium, never ImageMagick**, which mis-renders SVG strokes —
+  the same reason `jumpListIcons.service.ts` draws through a canvas.
+  `rasterize-icons.cjs` refuses any size that comes back fully transparent,
+  which is the one failure a set of icons produces silently.
+- **`.ico` and `.icns` are written by hand**; nothing in this stack encodes
+  either. The ICO is a directory plus one PNG per size (16/32/48/64/128/256).
+  The ICNS uses only PNG-capable type codes — `ic04`/`ic05` are ARGB, so the
+  16pt and 32pt slots are filled by their @2x forms and macOS scales down.
+  Both verified by walking the container back: every offset in range, every
+  declared length matching a real PNG of that size, and the ICNS walking to its
+  declared end exactly.
+- **A theme-aware SVG does flip when used as a CSS `background-image`** — that
+  is how the splash consumes it, and it is the context where an SVG gets no
+  stylesheet from its parent. Measured rather than assumed: the body tone reads
+  `rgb(28, 26, 22)` in light and `rgb(243, 239, 231)` in dark, which are the
+  palette's ink and cream exactly.
+- The macOS tray images are **templates — black plus alpha only**, which the OS
+  recolours for the menu bar. A coloured template renders as a solid blob.
+- `app/assets/activity.png` is deliberately untouched: it is the Touch Bar's
+  "this tab has activity" indicator, not a brand asset.
+
+**macOS is verified structurally and not visually, deliberately.** There is no
+Mac here, and that was accepted rather than worked around: `icon.icns` is walked
+back byte for byte and the tray images are correctly black-plus-alpha, but
+nobody has seen them in Finder, the Dock or the menu bar. Do not re-open it on
+this machine — the next thing that would tell us anything is a real Mac, or a
+`build-macos.mjs` run on a runner. The same holds for the Automator workflows
+below. Treat both as *unchecked*, never as *checked and fine*.
+
+**Still outstanding.** The UI has not been moved onto the lab's warm-stone
+palette beyond the splash and the accent. The macOS
 Automator workflows were renamed and their code signatures dropped, which is
 **unverified on macOS** — they previously launched `Tabby.app/Contents/MacOS/tabby`,
 so leaving them alone was a certain failure rather than an unverified one.
 Thirteen translated strings changed msgid and now fall back to English in all 23
 locales; `yarn i18n:extract` regenerates `app.pot` but needs gettext's `msgcat`,
 which is not on this machine.
+
+## What version this is, and where that number comes from
+
+**The root `package.json` owns it.** `scripts/vars.mjs` reads `version` there —
+`0.1.0` — and appends `-nightly.${REV}` unless `git tag --points-at HEAD`
+carries exactly `v0.1.0`. Nothing consults a tag it did not put there, so a
+clone that still has upstream's imported tags cannot relabel the same commit.
+Torbie has released nothing yet; every build is a nightly.
+
+**`app/package.json`'s version is not that number, and used to disagree with
+it loudly.** It said `1.0.0-alpha.1` — upstream Tabby's placeholder, which
+upstream also never bumps (their real version is a git tag; `v1.0.235` at the
+time of writing, while their `app/package.json` still reads `1.0.0-alpha.1`).
+That field is what `app.getVersion()` returns, and it is rewritten at package
+time by electron-builder's `extraMetadata` in `scripts/build-windows.mjs` — so
+a **packaged** build reported `0.1.0-nightly.0` and a **source** build of the
+identical commit reported `1.0.0-alpha.1`. It is `0.1.0` now, so the two agree
+on the base, but the two paths still differ by the nightly suffix.
+
+**So what the UI shows is compiled in, not read back.**
+`process.env.TABBY_BUILD_VERSION` is a DefinePlugin constant in *both* webpack
+configs (the app bundle and every plugin bundle — `appRoot.component.ts` lives
+in `tabby-core`, so the app config alone would not reach it), set from
+`vars.mjs`. The build tooltip and `HomeBaseService.appVersion` — the settings
+header, the start page, and the first line of a bug report — read the constant
+and fall back to `app.getVersion()`. Measured in a live source build:
+`0.1.0-nightly.0`, sha `e44e74d9`, branch `main`, built "2 minutes ago".
+
+`app.getVersion()` is deliberately left alone at its two remaining call sites:
+`updater.service.ts` compares it against a GitHub release tag, and
+`configSync.service.ts` records `last_used_with_version`. Both want the
+identity a release has, not the one a working tree has.
 
 ## Toolchain: why TypeScript is pinned, and why that is not neglect
 
@@ -201,11 +272,22 @@ is that reason.
 | `upgrade/angular-21` | `@angular/compiler-cli` 22.1.5 | `>=6.0 <6.1` |
 | org standard | `typescript@latest` | **7.0.2** |
 
-So TS 7 is unreachable from either branch, and will stay unreachable until
-Angular ships a major that peers it. This is not a pin we chose and it is not
-one we can lift by editing a range: `@ngtools/webpack` and the AOT compiler
-both hard-fail outside the peer window. The lever is the Angular upgrade, not
-the TypeScript one.
+So TS 7.0 is unreachable from either branch. This is not a pin we chose and it
+is not one we can lift by editing a range: `@ngtools/webpack` and the AOT
+compiler both hard-fail outside the peer window.
+
+**The unblocking release is TypeScript 7.1, not an Angular major.** TS 7.0's
+Go rewrite dropped the API surface that Angular's compiler, Vue's `vue-tsc`
+and typescript-eslint all build on; 7.1 restores enough of it for them to move.
+So the sequence is: TS 7.1 stable → Angular widens its peer range → this repo
+follows. Measured 2026-09-09: `typescript@latest` is **7.0.2** and 7.1 exists
+only as nightlies on `next` (`7.1.0-dev.20260909.1`), which the org toolchain
+rules out explicitly — *"Do not pin `typescript@next` or a `x.y.z-dev.*` build
+anywhere."*
+
+Re-check by asking, not remembering: `npm view typescript dist-tags` for a
+stable 7.1, and `npm view @angular/compiler-cli@latest peerDependencies.typescript`
+for whether Angular has widened. Both have to have moved.
 
 **Report it upward rather than sitting on it** — the handbook asks for that
 explicitly, and a repo quietly two majors behind the org standard looks like

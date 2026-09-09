@@ -16,7 +16,11 @@ export class HomeBaseService {
         private hostApp: HostAppService,
         @Inject(BOOTSTRAP_DATA) private bootstrapData: BootstrapData,
     ) {
-        this.appVersion = platform.getAppVersion()
+        // The compiled-in version, for the same reason as the build tooltip:
+        // this string is what the settings header shows and what a bug report
+        // leads with, and `app.getVersion()` answers differently in a source
+        // build than in a packaged one built from the identical commit.
+        this.appVersion = process.env.TABBY_BUILD_VERSION ?? platform.getAppVersion()
     }
 
     openGitHub (): void {

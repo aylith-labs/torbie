@@ -49,7 +49,11 @@
       "ES2017",
       "ES2019",
       "ES2021",
-      // Object.hasOwn, used in profiles.service.ts.
+      // Object.hasOwn, used in three places in profiles.service.ts. It is an
+      // ES2022 library global and this list said ES2021, so it only ever
+      // compiled because some transitive @types package happened to declare
+      // it — removing ESLint took that package out of the tree and the build
+      // went red on code nobody had touched. Stated properly now.
       "ES2022"
     ],
     "paths": {
