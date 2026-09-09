@@ -125,6 +125,19 @@ keywords, the `require` monkey-patches, and the colour scheme names
 `apiVersion`, no engine gate — so the prefix and the keyword *are* the entire
 contract. Renaming either would unload everybody's plugins with no error.
 
+**Measured, not asserted.** The three third-party plugins installed on this
+machine — `tabby-mcp-server`, `tabby-claude-status`, `tabby-backslash-newline`,
+each with `require("tabby-core")` and friends compiled into its `dist` bundle —
+were copied into a scratch profile and the build launched against it. All three
+load, every builtin they ask for resolves (`core`, `settings`, `terminal`,
+`local`, `ssh`), `diagnostics.log` records no `require-failed` beyond the
+`macos-native-processlist` that is expected on Windows, and their config keys
+(`mcp`, `claudeStatus`, `backslashNewline`) are present in the store — which
+means their `ConfigProvider`s actually ran rather than the modules merely being
+found. 21 plugins in total. Redo this after anything that touches
+`app/src/plugins.ts` or a builtin's package name; it is the one claim that
+makes this a Tabby derivative rather than another terminal.
+
 **Four pairs that break in silence, now reading one list.** A build used to be
 recognised by the literal `'tabby'` in four unrelated places: the well-known
 install roots, the executable beside `resources`, a checkout's `package.json`,
