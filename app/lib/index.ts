@@ -172,6 +172,6 @@ app.on('ready', async () => {
         // is there without blocking the loop, and leaves the quitting to the
         // watchdog armed above. The blocking box that used to stand here is
         // what stopped that watchdog from ever firing.
-        fatalStartupError('window-open-failed', 'Tabby failed to start', err)
+        fatalStartupError('window-open-failed', 'Torbie failed to start', err)
     }
 })

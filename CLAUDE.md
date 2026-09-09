@@ -170,6 +170,33 @@ Thirteen translated strings changed msgid and now fall back to English in all 23
 locales; `yarn i18n:extract` regenerates `app.pot` but needs gettext's `msgcat`,
 which is not on this machine.
 
+## Toolchain: why TypeScript is pinned, and why that is not neglect
+
+The org toolchain says `typescript` at its `latest` dist-tag — TS 7, the Go
+compiler — and that *"if a repo's toolchain genuinely cannot take TS 7, that is
+a finding to report, not a reason to pin quietly"*. It also says an older pin
+needs a reason written at it. `package.json` cannot carry a comment, so this
+is that reason.
+
+**Angular decides this, and Angular is two majors behind TS.** Measured
+2026-09-09:
+
+| | version | `typescript` peer |
+|---|---|---|
+| `main` | `@angular/compiler-cli` 15.2.x | `>=4.8.2 <5.0` — hence `typescript@^4.9.5` |
+| `upgrade/angular-21` | `@angular/compiler-cli` 22.1.5 | `>=6.0 <6.1` |
+| org standard | `typescript@latest` | **7.0.2** |
+
+So TS 7 is unreachable from either branch, and will stay unreachable until
+Angular ships a major that peers it. This is not a pin we chose and it is not
+one we can lift by editing a range: `@ngtools/webpack` and the AOT compiler
+both hard-fail outside the peer window. The lever is the Angular upgrade, not
+the TypeScript one.
+
+**Report it upward rather than sitting on it** — the handbook asks for that
+explicitly, and a repo quietly two majors behind the org standard looks like
+neglect from outside.
+
 ## Where this repo is registered, and where it deliberately is not
 
 The catalog fills itself; five cross-repo registries do not, and nothing fails

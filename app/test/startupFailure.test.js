@@ -36,6 +36,22 @@ const { spawn, execFileSync } = require('child_process')
 const root = path.resolve(__dirname, '..', '..')
 const electron = path.join(root, 'node_modules', 'electron', 'dist', 'electron.exe')
 
+/**
+ * The message `index.ts` hands `fatalStartupError`, which the dialog uses as
+ * its window title. Read out of the source rather than repeated, so a reworded
+ * message cannot leave this asserting a title no box will ever carry — the
+ * failure would be an attended-only test looking for a window that is on the
+ * screen under a different name.
+ */
+const FATAL_DIALOG_TITLE = (() => {
+    const src = fs.readFileSync(path.join(root, 'app', 'lib', 'index.ts'), 'utf8')
+    const match = /fatalStartupError\('window-open-failed',\s*'([^']+)'/.exec(src)
+    if (!match) {
+        throw new Error('could not find the window-open-failed message in app/lib/index.ts')
+    }
+    return match[1]
+})()
+
 const attended = process.argv.includes('--attended')
 
 /** The watchdog's grace period for a window that never appeared. Short enough
@@ -304,7 +320,11 @@ async function main () {
     live.push(shown)
     const told = await waitForRecord(shown, 'startup-failed', 20000)
     check(!!told && told.dialog === 'shown', `an ordinary launch is told: ${told ? told.dialog : 'nothing'}`)
-    check(mainWindowTitle(shown.pid) === 'Tabby failed to start',
+    // The other half of a pair: `index.ts` passes this exact string to
+    // `fatalStartupError`, and the dialog takes its title from it. Nothing
+    // links the two, so a rename on one side leaves this asserting a title no
+    // box will ever carry.
+    check(mainWindowTitle(shown.pid) === FATAL_DIALOG_TITLE,
         `and the box is on screen: "${mainWindowTitle(shown.pid)}"`)
     const capped = await waitForExit(shown, DIALOG_MS + SLACK_MS)
     check(!!capped && capped.afterMs > DIALOG_MS,
