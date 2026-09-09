@@ -25,4 +25,5 @@ export const INTEGRATION_ICONS: Record<string, string> = {
     'jira.png': asset(require('./integrations/icons/jira.png')),
     'slack.png': asset(require('./integrations/icons/slack.png')),
     'aylith.png': asset(require('./integrations/icons/aylith.png')),
+    'shefrd.png': asset(require('./integrations/icons/shefrd.png')),
 }

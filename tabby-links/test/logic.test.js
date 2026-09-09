@@ -274,11 +274,18 @@ const ADDITIVE = new Set(['normalize', 'suffix', 'description', 'placeholder'])
 // reconciling the new state needs, including the table below.
 const TERMINAL_REPO = process.env.TERMINAL_REPO || 'C:/Users/steve/projects/terminal'
 const TERMINAL_MANIFESTS = 'src/cascadia/TerminalSettingsModel/integrations'
-// "Give Slack its logo too" — the newest commit there that touches a manifest,
-// so it is the reference state itself and not a HEAD that happens to sit above
-// it. (Verified when re-pointed: `git log b9a41937a1..HEAD -- <manifests>` in
-// that checkout is empty, which is what "newest" has to mean here.)
-const TERMINAL_REF = process.env.TERMINAL_REF || 'b9a41937a18a2705a19c6152e3ce4ebfcc26269e'
+// "Give shefrd an icon, and even out the link tooltip's buttons" — the newest
+// commit there that touches a manifest, so it is the reference state itself and
+// not a HEAD that happens to sit above it. (Verified when re-pointed:
+// `git log da8e5c5b53..HEAD -- <manifests>` in that checkout is empty, which is
+// what "newest" has to mean here.)
+//
+// Re-pointed from `b9a41937a1` when the manifests moved: both forks now take
+// `stith.json` and `shefrd.json` as canonical copies from the `lintel` repo,
+// which is where the format lives. All six parity assertions that had gone red
+// come back green against this commit, which is what says the two forks really
+// did take the same thing rather than drifting in the same direction.
+const TERMINAL_REF = process.env.TERMINAL_REF || 'da8e5c5b5374fc7897bb22e6758bd39dc83882f1'
 
 function git (args) {
     return require('child_process').execFileSync('git', args,
@@ -344,7 +351,10 @@ if (reference === 'no-checkout') {
 }
 check('the pinned reference commit is reachable', reference !== 'no-commit', true)
 
-for (const id of reference === 'ok' ? ['github', 'jira', 'slack', 'stith'] : []) {
+// `shefrd` joins the four: it is shipped by both forks, from the same lintel
+// copy, so leaving it out of the comparison would be the one manifest free to
+// drift — which is exactly how `icon` drifted before anyone was comparing it.
+for (const id of reference === 'ok' ? ['github', 'jira', 'shefrd', 'slack', 'stith'] : []) {
     const ours = require(path.join(REPO, `tabby-links/src/integrations/${id}.json`))
     const theirs = referenceManifest(id)
     const excused = []
@@ -777,7 +787,10 @@ check('jira declares a choice action',
     (jira.actions || []).some(a => a.kind === 'choice'), true)
 check('jira has an optional step', (jira.fetch || []).some(s => s.optional), true)
 check('github is a built-in now', github.id, 'github')
-check('stith declares a detect pattern', (stith2.detectPatterns || []).length, 1)
+// Three since the lintel copy landed: each `stith://` verb is matched
+// separately, so a focus link is never read as a session one, plus the bare
+// pane address and the rule reference.
+check('stith declares its detect patterns', (stith2.detectPatterns || []).length, 3)
 
 console.log('\n── the html representation ──')
 const hh = loadSource('tabby-links/src/htmlHost.ts')
@@ -914,7 +927,10 @@ check('every preset is offered, in order', allPresets.map(p => p.id), [
     'jira-issue-keys', 'jira-issue-links',
     'github-pull-requests', 'github-issues', 'github-commits',
     'slack-messages',
-    'stith-session-uris', 'stith-web-links',
+    // `stith-session-ids` arrived with the lintel manifest: a bare 8-4-4-4-12
+    // session id, printed with no scheme around it, which previously matched
+    // and then failed at the click.
+    'stith-session-uris', 'stith-web-links', 'stith-session-ids',
     'git-commit-hashes', 'media-files', 'source-code-files',
 ])
 check('with no integrations, only the standalone presets remain',
