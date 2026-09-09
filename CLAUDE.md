@@ -255,6 +255,83 @@ and fall back to `app.getVersion()`. Measured in a live source build:
 `configSync.service.ts` records `last_used_with_version`. Both want the
 identity a release has, not the one a working tree has.
 
+## Angular 22, and the two defaults that changed under the plugins
+
+The tree is on **Angular 22.1.5 + TypeScript 6.0.3**, up from 15.2 + 4.9. Six
+things were in the way; the last two are the ones worth remembering, because
+both fail *silently* and one of them threatens the plugin contract directly.
+
+- **Module resolution, not an API change.** A wall of "`@ng-bootstrap` has no
+  exported member `NgbModal`" and "cannot find `@angular/cdk/drag-drop`" was
+  `moduleResolution: node`, which predates the `exports` field that Angular 22,
+  the CDK and ng-bootstrap 21 all publish their subpaths through. `bundler`
+  plus `target: es2022` cleared every one.
+- **`useDefineForClassFields` is off**, and has to be. `target: es2022` turns it
+  on, which changes what a class field *is* — defined before the constructor
+  body rather than assigned inside it. A field initializer calling
+  `this.translate.instant(...)`, where `translate` is a constructor parameter
+  property, was 64 of the 65 errors that produced. Angular's own generated
+  tsconfig sets it false.
+- **`BootstrapOptions.ngZone` is gone**, so `bootstrapModule(m, { ngZone:
+  'zone.js' })` was *silently ignored* rather than rejected, and
+  `ZONELESS_ENABLED` now defaults to true. `provideZoneChangeDetection()` in the
+  root module asks for a real zone explicitly. Going zoneless for real is a
+  migration this codebase has not had — no signals, no `markForCheck`
+  discipline, state mutated from xterm and IPC callbacks throughout.
+- **`ModuleConcatenationPlugin` is off.** Scope-hoisting Angular 22's chunked
+  ESM (`@angular/common`'s `_*-chunk.mjs`) produces a reference to a module with
+  a **null id**, which fails as `Cannot read properties of undefined (reading
+  'call')` from inside webpack's own require — naming nothing and pointing at
+  the runtime. Found by patching the built bundle to print the id it could not
+  find. It is an optimisation; re-enable it only with a boot to prove it.
+
+**`OnPush` is the default change-detection strategy now**, and that is the whole
+of "Angular 22 boots but does not render". `ChangeDetectionStrategy` gained
+`Eager = 1` for the old `CheckAlways` and demoted `Default` to a deprecated
+alias of it; the compiler reads `changeDetection ?? OnPush`. `AppRootComponent`
+declares no strategy and compiled to `onPush: true`.
+
+The diagnosis that *looked* right and was not: "nothing schedules the first
+pass". Measured against that, the zone was real, its inner zone was `angular`,
+`NgZoneChangeDetectionScheduler` was subscribed to that exact instance, and it
+emitted. The DOM stayed at one element regardless, and a full
+`ApplicationRef.tick()` changed nothing while `ng.applyChanges()` took it to 78
+— the difference being that `applyChanges` marks the view dirty first, which is
+the signature of a view Angular no longer treats as `CheckAlways`.
+
+**`standalone` defaults to `true` now too** — the same change in a second place,
+and it fails louder. A plugin declares its components in its own NgModule and
+Angular refuses them (*"is marked as standalone and can't be declared in any
+NgModule"*), the module throws, and the plugin does not load: 18 plugins instead
+of 21, with **nothing in `diagnostics.log`**, because nothing failed to resolve.
+
+**Both are restored in `app/src/plugins.ts`, on the shared module map, and that
+placement is the point.** Third-party plugins are why this fork exists; they are
+JIT — measured, none of the three installed here ships a static `ɵcmp`, they
+call `Component()` at runtime — and `webpack.plugin.config.mjs` marks
+`/^@angular/` external, so every builtin *and* every plugin reaches the
+decorator through that one object. Annotating our own 87 files would have fixed
+our UI and silently frozen theirs, which is exactly what the `tabby-` prefix and
+the absent version check exist to prevent. Only *absent* keys are filled in, so
+the five components that ask for `OnPush` deliberately still get it, and
+`@ng-bootstrap` and `@angular/cdk` are untouched either way — they are
+partial-compiled and go through the linker, which picks its defaults from the
+Angular version each was built against.
+
+It is a `Proxy`, not a copy, so every other export keeps its identity — they
+include the DI tokens and classes the whole app compares against. Assigning onto
+the namespace is not available: webpack defines harmony exports as
+non-configurable getters, the same reason `xtermFrontend.ts` spreads
+`_core.browser` rather than writing into it.
+
+**Verified after, not asserted:** the window renders 91 elements unaided — the
+same count as the Angular 15 build — and a forced pass then changes nothing. 21
+plugins load, all three third-party ones among them, every builtin they require
+resolves, and their `ConfigProvider`s ran.
+
+**Node.** Angular 22 wants `^22.22.3 || ^24.15.0 || >=26.0.0`; this machine has
+25.2.1, so installs need `--ignore-engines`. CI is on 22.
+
 ## Toolchain: why TypeScript is pinned, and why that is not neglect
 
 The org toolchain says `typescript` at its `latest` dist-tag — TS 7, the Go
@@ -263,18 +340,18 @@ a finding to report, not a reason to pin quietly"*. It also says an older pin
 needs a reason written at it. `package.json` cannot carry a comment, so this
 is that reason.
 
-**Angular decides this, and Angular is two majors behind TS.** Measured
+**Angular decides this, and Angular is one major behind TS.** Measured
 2026-09-09:
 
 | | version | `typescript` peer |
 |---|---|---|
-| `main` | `@angular/compiler-cli` 15.2.x | `>=4.8.2 <5.0` — hence `typescript@^4.9.5` |
-| `upgrade/angular-21` | `@angular/compiler-cli` 22.1.5 | `>=6.0 <6.1` |
+| `main` | `@angular/compiler-cli` 22.1.5 | `>=6.0 <6.1` — hence `typescript@~6.0.3` |
 | org standard | `typescript@latest` | **7.0.2** |
 
-So TS 7.0 is unreachable from either branch. This is not a pin we chose and it
-is not one we can lift by editing a range: `@ngtools/webpack` and the AOT
-compiler both hard-fail outside the peer window.
+So TS 7.0 is unreachable. This is not a pin we chose and it is not one we can
+lift by editing a range: `@ngtools/webpack` and the AOT compiler both hard-fail
+outside the peer window. Angular 15 used to make this two majors rather than
+one; that half is closed.
 
 **The unblocking release is TypeScript 7.1, not an Angular major.** TS 7.0's
 Go rewrite dropped the API surface that Angular's compiler, Vue's `vue-tsc`
