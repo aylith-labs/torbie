@@ -1,7 +1,7 @@
 {
   "name": "tabby-links",
   "version": "1.0.231-nightly.0",
-  "description": "Link hover cards, per-link tooltip rules, and declarative integration plugins for Tabby",
+  "description": "Link hover cards, per-link tooltip rules, and declarative integration plugins for Torbie",
   "keywords": [
     "tabby-builtin-plugin"
   ],

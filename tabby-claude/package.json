@@ -1,7 +1,7 @@
 {
   "name": "tabby-claude",
   "version": "1.0.231-nightly.0",
-  "description": "First-class Claude Code session awareness for Tabby: dockable session panel and tab hover cards",
+  "description": "First-class Claude Code session awareness for Torbie: dockable session panel and tab hover cards",
   "keywords": [
     "tabby-builtin-plugin"
   ],

@@ -1,7 +1,7 @@
 {
   "name": "tabby-terminal",
   "version": "1.0.231-nightly.0",
-  "description": "Tabby's terminal emulation core",
+  "description": "Torbie's terminal emulation core",
   "keywords": [
     "tabby-builtin-plugin"
   ],
@@ -16,7 +16,7 @@
     "dist",
     "typings"
   ],
-  "author": "Tabby Developers",
+  "author": "Aylith Labs",
   "license": "MIT",
   "devDependencies": {
     "@xterm/addon-fit": "^0.11.0",

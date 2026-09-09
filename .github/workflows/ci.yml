@@ -1,0 +1,72 @@
+name: CI
+
+# The gate. Everything that can fail a bad change without needing a window, a
+# GPU or a WSL distro runs here, on every push and every pull request.
+#
+# Until this existed there was no `test` script in any package.json and no
+# workflow ran any of the forty test files in this repo — they were all run by
+# hand. `run-tests.mjs --list` shows the tiers this deliberately leaves out and
+# why; they need a compiled bundle and a hidden dev build, which is a different
+# kind of job from a gate.
+#
+# `workflow_call` is here so a release workflow can run the gate on the ref it
+# is actually shipping, rather than trusting that main was green at some point.
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_call:
+
+jobs:
+  checks:
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        # `check-docs.mjs` recomputes every catalogue entry from git history,
+        # so a shallow clone would make it fail on facts it cannot see.
+        fetch-depth: 0
+
+    - name: Install Node
+      uses: actions/setup-node@v7
+      with:
+        node-version: 22
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libsecret-1-dev
+        npm i -g yarn
+        cd app
+        yarn
+        cd ..
+        rm app/node_modules/.yarn-integrity
+        yarn
+
+    - name: Typecheck
+      run: yarn run typecheck
+
+    - name: Lint
+      run: yarn run lint
+
+    - name: Test
+      run: yarn run test
+
+    - name: Consistency checks
+      # `check-fork-marks.mjs` computes the fork-added settings as
+      # keys(tree) − keys(upstream/master), so it needs the remote it names.
+      # It exits 1 rather than guessing when the remote is absent, which is
+      # what makes it worth fetching here.
+      run: |
+        git remote add upstream https://github.com/Eugeny/tabby.git
+        git fetch --no-tags --depth=1 upstream master
+        yarn run test:checks
+
+    - name: Build
+      run: yarn run build

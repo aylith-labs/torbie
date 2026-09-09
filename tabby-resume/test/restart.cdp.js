@@ -45,7 +45,7 @@ let meta = null
 
 function tabbyCount () {
     return parseInt(execFileSync('powershell', ['-NoProfile', '-Command',
-        '@(Get-Process Tabby -ErrorAction SilentlyContinue).Count'], { encoding: 'utf8' }).trim(), 10)
+        '@(Get-Process Torbie,Tabby -ErrorAction SilentlyContinue).Count'], { encoding: 'utf8' }).trim(), 10)
 }
 
 /** Start the dev build through the repo's own launcher, and wait for its port. */

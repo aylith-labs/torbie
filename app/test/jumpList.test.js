@@ -112,12 +112,18 @@ function listing () {
     }
 }
 
+/** Packaged binaries whose jump lists this run must leave byte-identical. */
+const PACKAGED_EXES = ['torbie.exe', 'tabby.exe']
+
 /**
- * Every jump list on this desktop that belongs to a packaged Tabby.
+ * Every jump list on this desktop that belongs to a packaged build.
  *
  * The file is a stream of shell links; the paths inside are UTF-16, so naming
- * a `Tabby.exe` is enough to tell a packaged build's list from this
- * electron.exe's. Hashed, because a mtime says less than the bytes do.
+ * a packaged executable is enough to tell such a list from this electron.exe's.
+ * Both names, because after the rename there are two kinds of packaged build on
+ * this machine and this guard exists to prove neither was disturbed — one that
+ * checked a single name would prove half as much while reading the same.
+ * Hashed, because a mtime says less than the bytes do.
  */
 function packagedJumpLists () {
     const out = new Map()
@@ -129,7 +135,8 @@ function packagedJumpLists () {
         } catch {
             continue
         }
-        if (!contents.toString('utf16le').toLowerCase().includes('tabby.exe')) {
+        const text = contents.toString('utf16le').toLowerCase()
+        if (!PACKAGED_EXES.some(exe => text.includes(exe))) {
             continue
         }
         out.set(name, crypto.createHash('sha256').update(contents).digest('hex'))
@@ -276,7 +283,7 @@ function tabbyCount () {
     try {
         return parseInt(execFileSync('powershell', [
             '-NoProfile', '-Command',
-            '@(Get-Process Tabby -ErrorAction SilentlyContinue).Count',
+            '@(Get-Process Torbie,Tabby -ErrorAction SilentlyContinue).Count',
         ], { encoding: 'utf8' }).trim(), 10)
     } catch {
         return -1

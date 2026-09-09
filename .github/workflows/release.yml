@@ -7,9 +7,17 @@ on:
       - "v*"
 
 jobs:
+  # A green `ci.yml` on main says nothing about the tag being released: they
+  # are separate triggers with separate run histories, and GitHub will happily
+  # cut a release from a ref the gate never ran on. So the gate is called here,
+  # on the ref actually being shipped, and the release waits for it.
+  verify:
+    uses: ./.github/workflows/ci.yml
+
   tagged-release:
     name: "Tagged Release"
-    runs-on: "ubuntu-latest"
+    needs: verify
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     steps:
       - uses: "marvinpinto/action-automatic-releases@latest"

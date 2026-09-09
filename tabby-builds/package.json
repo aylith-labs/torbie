@@ -1,7 +1,7 @@
 {
   "name": "tabby-builds",
   "version": "1.0.231-nightly.0",
-  "description": "Find, inspect and manage every Tabby build on this machine",
+  "description": "Find, inspect and manage every Torbie or Tabby build on this machine",
   "keywords": [
     "tabby-builtin-plugin"
   ],

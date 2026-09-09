@@ -13,39 +13,15 @@ on:
       - 'docs/**'
       - '**/*.md'
 jobs:
-  Lint:
-    runs-on: ubuntu-24.04
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Installing Node
-      uses: actions/setup-node@v4.4.0
-      with:
-        node-version: 22
-
-    - name: Install deps
-      run: |
-        sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libsecret-1-dev
-        npm i -g yarn
-        cd app
-        yarn
-        cd ..
-        rm app/node_modules/.yarn-integrity
-        yarn
-
-    - name: Build typings
-      run: yarn run build:typings
-
-    - name: Lint
-      run: yarn run lint
+  # The gate lives in ci.yml and is called rather than restated, so there is
+  # one definition of "verified" and it runs on the ref being packaged. This
+  # job used to be a Lint that installed everything and then ran no tests.
+  Verify:
+    uses: ./.github/workflows/ci.yml
 
   macOS-Build:
     runs-on: macos-15
-    needs: Lint
+    needs: Verify
     strategy:
       matrix:
         include:
@@ -142,7 +118,7 @@ jobs:
 
   Linux-Build:
     runs-on: ${{matrix.os}}
-    needs: Lint
+    needs: Verify
     strategy:
       matrix:
         include:
@@ -302,7 +278,7 @@ jobs:
 
   Windows-Build:
     runs-on: windows-2022
-    needs: Lint
+    needs: Verify
     strategy:
       matrix:
         include:

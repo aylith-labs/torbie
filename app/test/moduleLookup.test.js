@@ -23,19 +23,37 @@ const Module = require('module')
 const { execFileSync } = require('child_process')
 
 const APPDATA = process.env.APPDATA ?? path.join(os.homedir(), 'AppData', 'Roaming')
-const USER_PLUGINS = path.join(APPDATA, 'tabby', 'plugins', 'node_modules')
-const INSTALLED = path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Tabby', 'resources')
+
+// Both names throughout. This test poisons NODE_PATH with the plugin
+// directories of *other* installs and asserts the build still resolves its own
+// builtins — so the more real foreign installs it can point at, the more it
+// proves. A machine mid-rename has both, which is the worst case and therefore
+// the one worth aiming at.
+const PROFILE_DIRS = ['torbie', 'tabby']
+const PRODUCT_DIRS = ['Torbie', 'Tabby']
+
+const USER_PLUGINS = PROFILE_DIRS
+    .map(name => path.join(APPDATA, name, 'plugins', 'node_modules'))
+    .find(p => fs.existsSync(p)) ?? path.join(APPDATA, PROFILE_DIRS[0], 'plugins', 'node_modules')
+
+const INSTALLED = PRODUCT_DIRS
+    .map(name => path.join(os.homedir(), 'AppData', 'Local', 'Programs', name, 'resources'))
+    .find(p => fs.existsSync(p)) ?? path.join(
+        os.homedir(), 'AppData', 'Local', 'Programs', PRODUCT_DIRS[0], 'resources')
 
 function newestSlot () {
-    const root = path.join(os.homedir(), 'Tabby', 'builds')
-    try {
-        return fs.readdirSync(root)
-            .map(name => path.join(root, name))
-            .filter(dir => fs.existsSync(path.join(dir, 'resources', 'builtin-plugins')))
-            .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0] ?? null
-    } catch {
-        return null
+    const slots = []
+    for (const product of PRODUCT_DIRS) {
+        const root = path.join(os.homedir(), product, 'builds')
+        try {
+            slots.push(...fs.readdirSync(root).map(name => path.join(root, name)))
+        } catch {
+            // No slots under that name; the other may still have some.
+        }
     }
+    return slots
+        .filter(dir => fs.existsSync(path.join(dir, 'resources', 'builtin-plugins')))
+        .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0] ?? null
 }
 
 const build = process.argv[2] ?? newestSlot()

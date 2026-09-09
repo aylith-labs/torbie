@@ -1,9 +1,62 @@
-# Tabby fork — working notes
+# Torbie — Claude Code guidance
 
-This is **steven-pribilinskiy/tabby**, a personal fork of [Eugeny/tabby](https://github.com/Eugeny/tabby)
-that is **run from source locally**. It is not built into an installer and is not
-distributed. The point of the fork is to carry local fixes without waiting for
-upstream to merge PRs.
+<!-- aylith-handbook:start -->
+> **📖 Aylith handbook (authoritative).** This repo is part of the `aylith-labs` lab. Before any
+> cross-repo, catalog, design-system, CI/runner, or data-flow work you **must** consult the org
+> handbook — the single source of truth for these conventions:
+> https://github.com/aylith-labs/aylith-handbook (locally `../aylith-handbook/`, skill `aylith-labs`).
+<!-- aylith-handbook:end -->
+
+
+## Project Overview
+
+**Torbie** (`aylith-labs/torbie`) is a desktop terminal for Windows, macOS and Linux —
+Electron + Angular + TypeScript, built with Webpack, xterm.js for the terminal
+itself. It is derived from [Eugeny/tabby](https://github.com/Eugeny/tabby) and has
+diverged from it; upstream is now a source to cherry-pick from, not a base to sit on.
+
+**The one hard constraint: plugins written for Tabby must keep loading.** That
+ecosystem is why this is a derivative rather than a rewrite. The `tabby-` package
+prefix, the `tabby-plugin` npm keyword and the module names plugins `require` are
+therefore *not* renamed and never will be — see *What the rename did not touch*.
+
+Run from source; not yet distributed as an installer.
+
+## Commands
+
+```bash
+yarn --network-timeout 1000000     # postinstall: patch-package, install-deps, build-native
+yarn run build                     # typings + webpack for app and all tabby-* packages
+node scripts/prepackage-plugins.mjs
+yarn run test                      # the fast tier — pure logic, ~5s, what CI gates on
+yarn run test:checks               # check-docs + check-fork-marks (needs `upstream` fetched)
+yarn run test:cdp                  # the slow tier — each launches a hidden dev build
+yarn run test:list                 # every suite, by tier
+yarn run lint
+yarn run typecheck
+```
+
+Launching is not `yarn start` — see *Building and running locally* below, which has two
+gotchas that cost real time.
+
+## Architecture
+
+`app/` is the Electron shell (main process in `app/lib/`, renderer entry in `app/src/`).
+Everything else is a plugin package, builtin or not, listed in `scripts/vars.mjs`:
+`tabby-core` (UI, tabs, config, extension points), `tabby-terminal` (emulation),
+`tabby-local` / `tabby-ssh` / `tabby-serial` / `tabby-telnet` (session kinds),
+`tabby-settings`, `tabby-electron`, `tabby-web`. The fork's own builtins are
+`tabby-claude`, `tabby-links`, `tabby-resume`, `tabby-builds`, `tabby-upstream` and
+`tabby-render-timing`; each has a section below.
+
+## Conventions
+
+- **Prefer adding new files over editing upstream ones** where there is a choice — it
+  decides how much of a cherry-pick lands cleanly, in either direction.
+- **Keep commits one-concern-each.** A fat commit is a fat conflict.
+- **Never kill the running app.** See the section of that name; it is not a style rule.
+- Everything else worth knowing is below, roughly one section per subsystem, and each
+  one records what it cost to find out.
 
 ## Goals
 
@@ -11,7 +64,7 @@ upstream to merge PRs.
   (`scripts/build-windows.mjs`, electron-builder) — it is not needed and is slow.
 - **Take from upstream deliberately**, by cherry-pick, rather than staying rebased on it.
 - **Keep Tabby's plugin API working** — the plugin ecosystem is the reason this is a
-  Tabby fork and not a rewrite.
+  Tabby derivative and not a rewrite.
 - Land fixes here first; upstreaming them is optional and never a blocker.
 
 ## Branch strategy
@@ -57,13 +110,65 @@ and fetched for it to run — it says so and exits 1 rather than guessing.
 remote through `upstream.remote` / `upstream.branch`, which are config keys and
 were never tied to a local branch.
 
-### Where this is going
+## The rename, and what it deliberately did not touch
 
-The plan is to stop tracking upstream altogether: keep supporting Tabby's plugin
-API, take fixes across when they are worth taking, and otherwise develop
-independently — moving the repo under `aylith-labs` under its own name, with its
-own icon and identity, and working through performance and stability. None of
-that has happened yet; this section will say so when it does.
+The fork is **Torbie** — a tortoiseshell tabby, so the lineage is in the name —
+living at `aylith-labs/torbie`. What a user or the operating system reads is
+renamed. What a *plugin* reads is not, and that asymmetry is the whole design.
+
+**The compatibility contract, which must never move.** `tabby-core` and its five
+sibling packages, the `tabby-` package prefix (`app/src/plugins.ts`,
+`webpack.plugin.config.mjs:192`), the `tabby-plugin` / `tabby-builtin-plugin` npm
+keywords, the `require` monkey-patches, and the colour scheme names
+`Tabby Default` / `Tabby Default Light`, which live **by name** in every user's
+`config.yaml`. There is **no version check anywhere in the loader** — no
+`apiVersion`, no engine gate — so the prefix and the keyword *are* the entire
+contract. Renaming either would unload everybody's plugins with no error.
+
+**Four pairs that break in silence, now reading one list.** A build used to be
+recognised by the literal `'tabby'` in four unrelated places: the well-known
+install roots, the executable beside `resources`, a checkout's `package.json`,
+and the window title that means a renderer never booted. Rename half of any pair
+and nothing throws — the scan simply finds nothing, or the doctor calls every
+stuck build healthy. They all read `tabby-builds/src/productNames.ts` now, and
+that list keeps **both** products: this machine has an installed Tabby as well,
+and a page whose job is "every build here" must still see it. Process
+attribution was the same shape (`Get-Process -Name Tabby`) and is fixed the same
+way.
+
+**The profile is copied forward, not abandoned.** `app/package.json`'s `name`
+decides `app.getPath('userData')`, so it moved from `%APPDATA%\tabby` to
+`%APPDATA%\torbie`. `app/lib/migrateUserData.ts` copies the old profile in
+before anything reads the config directory — config, window geometry,
+credentials, jump-list icons, plugins and `Local Storage`, which holds the saved
+tab layout and is the one whose loss is destructive rather than merely rude.
+**Copy, never move**: the old directory belongs to an app that may still be
+running, and on this machine it is. Precedent is in the tree: `app/lib/config.ts`
+has migrated `../terminus/config.yaml` forward since the *last* time this
+codebase was renamed, and `app/src/plugins.ts` still aliases `tabby-*` →
+`terminus-*`. That rename is the working template — **add names alongside, never
+replace**.
+
+**Both environment prefixes, and neither retired.** `TABBY_*` is documented in
+HACKING.md, used by every test here, and already sitting in shell profiles and
+Windows shortcuts, where an unset variable is not an error but a default.
+`app/lib/env.ts` mirrors every variable to the other spelling once at startup, so
+a caller may use either and forty read sites go on reading the name they already
+read. `tabby://` stays registered beside `torbie://` for the same reason.
+`TABBY_SESSION` is deliberately **not** aliased in `tabby-local/src/session.ts`:
+it is a pane identity that `tabby-resume`'s WSL probe greps for, and a pane
+started before the rename is still carrying it.
+
+**Still outstanding.** The icon is still Tabby's — the mark belongs to
+`aylith-com`'s `aylith-brand-mark` skill, which owns the locked geometry and the
+asset-sync graph, and the handbook says plainly not to hand-edit mark assets. The
+UI has not been moved onto the lab's warm-stone palette either. The macOS
+Automator workflows were renamed and their code signatures dropped, which is
+**unverified on macOS** — they previously launched `Tabby.app/Contents/MacOS/tabby`,
+so leaving them alone was a certain failure rather than an unverified one.
+Thirteen translated strings changed msgid and now fall back to English in all 23
+locales; `yarn i18n:extract` regenerates `app.pot` but needs gettext's `msgcat`,
+which is not on this machine.
 
 ## The feature catalogue (`docs/`)
 
@@ -141,7 +246,8 @@ launch on its own.
 
 1. **`--user-data-dir` must come BEFORE the app path.** After it, Electron hands the
    switch to the app instead of Chromium and it is silently ignored — the dev build
-   then shares `%APPDATA%\tabby` with the installed Tabby.
+   then shares `%APPDATA%\torbie` with every other build running under that name,
+   and Electron's single-instance lock is keyed on exactly that directory.
 2. **Scrub the inherited `NODE_PATH`.** A shell started *inside* Tabby inherits
    `NODE_PATH` pointing at the **installed** app's `resources\builtin-plugins`,
    `app.asar\node_modules` and `%APPDATA%\tabby\plugins\node_modules`, plus
@@ -193,12 +299,43 @@ code ends `.finally(closeAll)`, and the shared driver settles every pending requ
 both when the target goes away and when it simply never replies (20s), because a
 promise that does neither is the same hang one level down.
 
-## NEVER kill the running Tabby
+## Tests, and the tier they belong in
 
-The installed Tabby runs live Claude Code agent sessions. **Never close, restart or kill
-it.** The dev build runs as **`electron.exe`**; the installed app is **`Tabby.exe`** — so
-`Get-Process electron | Stop-Process` is safe and `Get-Process Tabby` is off-limits.
-Always verify after killing anything: `(Get-Process Tabby).Count` must be unchanged.
+Until the rename there was **no `test` script in any `package.json` and no
+workflow ran any of the forty test files here** — every one was run by hand,
+which is the real gap behind "improve stability": there was no safety net at
+all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
+`.github/workflows/ci.yml` gates on the fast tier.
+
+| Tier | Command | What it needs |
+|---|---|---|
+| **fast** | `yarn test` | Nothing. Pure logic, ~5s, 818 checks. **This is the gate.** |
+| **checks** | `yarn test:checks` | `check-docs` needs full history; `check-fork-marks` needs `upstream` fetched. |
+| **cdp** | `yarn test:cdp` | A compiled bundle *and* a hidden dev build per suite, 40–60s each. |
+| **electron** | `--tier electron` | Electron's native ABI, via `ELECTRON_RUN_AS_NODE`. |
+| **wsl** | `--tier wsl` | A real Ubuntu distro. Starts and cleans up its own panes, by pid. |
+
+`yarn test:list` prints every suite and its tier.
+
+- **A fast-tier suite must stay dependency-free.** One that quietly starts
+  needing a built bundle turns the gate into a liability the first time somebody
+  runs it on a clean checkout — so anything added to `FAST` has to be checked
+  against that, not just observed to pass locally.
+- **A missing file is a failure, not a skip.** A suite that is renamed and
+  silently stops running is precisely what this exists to prevent.
+- The CDP tier stays out of CI on purpose: each suite launches a window, and a
+  gate that is red for windowing reasons teaches people to ignore it.
+
+## NEVER kill the running packaged app
+
+The installed app runs live Claude Code agent sessions. **Never close, restart or kill
+it.** The dev build runs as **`electron.exe`**; a packaged build is **`Torbie.exe`** —
+and, while an installed Tabby is still on this machine, **`Tabby.exe`** as well. So
+`Get-Process electron | Stop-Process` is safe and both of the others are off-limits.
+Always verify after killing anything: `@(Get-Process Torbie,Tabby).Count` must be
+unchanged. **Kill by PID, never by name** — `scripts/dev/launch-hidden.mjs` records
+the count before launching and re-checks it on exit, and only ever stops the PID it
+spawned.
 
 ## Local patches
 
@@ -1068,18 +1205,21 @@ disk, build time, arch, branch and provenance. Two tabs — the list (kind filte
 The bits that cost real time:
 
 - **Processes are attributed by executable path**, from one PowerShell call per
-  poll (`Get-Process -Name Tabby,electron` → `.Path`). `tasklist` cannot report a
-  path, and two builds both called `Tabby.exe` are otherwise indistinguishable.
+  poll (`Get-Process -Name Torbie,Tabby,electron` → `.Path`). `tasklist` cannot
+  report a path, and two builds sharing an executable name are otherwise
+  indistinguishable. Tabby is named alongside us because this page inventories
+  every build on the machine, and an installed Tabby is one.
   Linux reads `/proc` directly rather than spawning `ps`; the poll pauses while
   the window is unfocused, because it costs a subprocess.
 - **Discovery is one walk of the search roots that classifies each directory**
   — checkout, application directory, or neither — and stops descending as soon
   as it knows, because a build holds three thousand files nobody needs to list.
   A **standalone application directory** (binary + `resources`) counts wherever
-  it is: the frozen build slots under `~\Tabby\builds\` live outside any
+  it is: the frozen build slots under `~\Torbie\builds\` live outside any
   checkout, so nothing else would ever find them. A `data` directory beside the
   binary means portable, which is what lets a slot run alongside the installed
-  app. `~\Tabby` is therefore a default search root.
+  app. `~\Torbie` is therefore a default search root, and `~\Tabby` stays one
+  so slots cut before the rename remain visible.
 - **A slot's `BUILD-INFO.txt` wins over its version resource.** Slot binaries
   report `1.0.0`; the sidecar carries the real version, the commit, the branch,
   the originating checkout and the upstream base it was forked from. Taking
@@ -1139,8 +1279,15 @@ fork uses for `wtd` / `wtt` — and they are not two equivalent scratch installs
 
 | Slot | Directory | What it is |
 |---|---|---|
-| **canary** | `~\Tabby\builds\canary` | Disposable. Every build replaces it. The only slot the script will overwrite on its own. |
-| **dev** | `~\Tabby\builds\dev` | Production — the Tabby you work in. Changes exactly one way: canary is promoted into it. |
+| **canary** | `~\Torbie\builds\canary` | Disposable. Every build replaces it. The only slot the script will overwrite on its own. |
+| **dev** | `~\Torbie\builds\dev` | Production — the terminal you work in. Changes exactly one way: canary is promoted into it. |
+
+The root moved from `~\Tabby\builds` with the rename. `make-slot.mjs` moves a slot
+across on its next run — but only one with nothing waiting for it at the
+destination, and **never one that is running**, which is the one thing that
+script exists to refuse. `~\Tabby` stays in `builds.searchRoots`, so anything
+left behind is still listed, runnable and deletable from the Builds page rather
+than becoming invisible.
 
 ```bash
 node scripts/make-slot.mjs                 # build and install canary
@@ -1208,10 +1355,12 @@ forever — with Windows reporting the process as responding the whole time.
 - **`Responding` / `IsHungAppWindow` do not catch a boot that stalled.** The
   window pumps messages perfectly; it just never rendered. Measured on the real
   failure: responding `True`, 6.5 s of CPU across 37 minutes.
-- **The main window title is the signal that does.** A booted Tabby titles its
-  window after the active tab; one still on the splash is called `Tabby`. No
-  cooperation from the app required, so it works for stock builds too. Past a
-  30 s grace period, that is *stuck at boot*.
+- **The main window title is the signal that does.** A booted window is titled
+  after the active tab; one still on the splash is called after the app —
+  `Torbie`, or `Tabby` for a stock build, which is why `isSplashTitle()` takes
+  its list from `productNames.ts` rather than a literal. No cooperation from the
+  app required, so it works for stock builds too. Past a 30 s grace period, that
+  is *stuck at boot*.
 - **The cause is found on disk, not in the process.** `tabby-core`,
   `tabby-settings`, `tabby-terminal`, `tabby-local` and `tabby-electron` are
   the builtins whose absence is fatal — each throws `Cannot find module` out of
@@ -1229,26 +1378,26 @@ forever — with Windows reporting the process as responding the whole time.
 
 ### The active build and the taskbar pin
 
-Exactly one build is **active** — "the Tabby you use". It is the build the
+Exactly one build is **active** — "the terminal you use". It is the build the
 Windows taskbar pin launches, it carries an `active` badge, and it is never
-deletable, so there is always a working Tabby left on the machine. Together
+deletable, so there is always a working build left on the machine. Together
 with "the build this window runs from is never deletable", that is the
 guarantee: you must hand the crown to another build before you may delete this
 one.
 
 - **Nothing here can create a taskbar pin.** Windows removed the "pin to
-  taskbar" shell verb in 1809 and blocks it for automation; `Tabby.exe` only
+  taskbar" shell verb in 1809 and blocks it for automation; `Torbie.exe` only
   offers *Pin to Start*. What a pin *is*, though, is a shortcut in
   `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar`, and
-  rewriting its target is allowed. So: pin Tabby by hand once, and the page
+  rewriting its target is allowed. So: pin it by hand once, and the page
   keeps that single pin aimed at the active build.
 - **What you pin is a Start menu entry, and that part *can* be created.**
   Windows offers *Pin to Start* and *Pin to taskbar* only for things it
-  considers Start menu apps: `~\Tabby\Tabby-fork.lnk` was found by Start search
+  considers Start menu apps: `~\Torbie\Torbie-dev.lnk` was found by Start search
   but its context menu had nothing but Run as administrator and Open file
   location, which is what "I can't pin my fork" turned out to be. Builds →
   Options writes
-  `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Tabby-fork.lnk`; pinning it
+  `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Torbie.lnk`; pinning it
   is still a right-click, and the pin that results is a copy this page then
   keeps retargeted.
 - **One stable shortcut name, never the build's.** Pinning copies the file, so
@@ -1256,12 +1405,16 @@ one.
   it. `setActive` retargets it — but only when it already exists: putting an
   app in someone's Start menu because they clicked "make active" is not the
   page's call.
+- **The rename is exactly the case that warning describes**, so the old name is
+  retargeted rather than renamed away. A Start pin is a *copy* of the shortcut
+  it was made from and goes on pointing wherever that copy pointed, so
+  `taskbar.service.ts` writes `Torbie.lnk` and, whenever `Tabby-fork.lnk` is
+  still there, aims that at the active build as well. It never *creates* the
+  old name — by the rule directly above.
 - **Two slots means two shortcuts, and neither is ever retargeted.**
-  `Tabby-fork-canary.lnk` and `Tabby-fork-dev.lnk` (in `~\Tabby\` and in the
+  `Torbie-canary.lnk` and `Torbie-dev.lnk` (in `~\Torbie\` and in the
   Start menu) point at fixed paths, so `make-slot.mjs` writes them once and a
-  pin made from either stays correct across every rebuild. The older
-  `Tabby-fork.lnk` is kept, aimed at dev, because a Start pin made from it is a
-  copy that would otherwise break.
+  pin made from either stays correct across every rebuild.
 - **On first run the page adopts whatever the pin already points at**, rather
   than nominating a build and overruling the desktop.
 - **A source build can be pinned because of `--dev`.** A `.lnk` cannot carry
@@ -1359,16 +1512,21 @@ by reading `%APPDATA%\Microsoft\Windows\Recent\CustomDestinations` — the files
 are shell links, so the paths inside are greppable as UTF-16:
 
 - **The dev build keeps its own file.** Its entries name
-  `…\projects\tabby\node_modules\electron\dist\electron.exe`; the packaged
-  builds' name a `Tabby.exe`. So running a dev instance does not overwrite a
-  packaged build's list — but that is asserted, not relied on:
-  `app/test/jumpList.test.js` hashes every jump list file naming a `Tabby.exe`
-  before the run and refuses to pass unless they are byte-identical after.
-- **Only one packaged Tabby has a file**, and its entries point at
+  `…\projects\tabby\node_modules\electron\dist\electron.exe`; a packaged
+  build's name a `Torbie.exe` or a `Tabby.exe`. So running a dev instance does
+  not overwrite a packaged build's list — but that is asserted, not relied on:
+  `app/test/jumpList.test.js` hashes every jump list file naming either
+  packaged executable before the run and refuses to pass unless they are
+  byte-identical after.
+- **The rename moved the AppUserModelID**, `org.tabby` → `com.aylith.torbie`,
+  and that is the key a jump list is filed under — so a packaged Torbie writes
+  a *different* file from a packaged Tabby rather than fighting it for one.
+  The measurement below predates that and describes the old identity:
+- **Only one packaged Tabby had a file**, with entries pointing at
   `~\Tabby\builds\dev\Tabby.exe` — the slot, not the installed app. Either the
-  two share an identity and the slot wrote last, or the installed app's write
-  never landed. Not resolved; worth knowing before trusting a jump list to
-  belong to the build you think it does.
+  two shared an identity and the slot wrote last, or the installed app's write
+  never landed. Never resolved, and now moot for our own builds; still worth
+  knowing before trusting a jump list to belong to the build you think it does.
 - **The test publishes exactly once**, and only after giving the instance a
   scratch AppUserModelID of its own, deleting the file that leaves behind.
   Every other check runs against `JumpListService.build()`, which produces the
