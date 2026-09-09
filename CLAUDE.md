@@ -170,6 +170,26 @@ Thirteen translated strings changed msgid and now fall back to English in all 23
 locales; `yarn i18n:extract` regenerates `app.pot` but needs gettext's `msgcat`,
 which is not on this machine.
 
+## Where this repo is registered, and where it deliberately is not
+
+The catalog fills itself; five cross-repo registries do not, and nothing fails
+when one is skipped — so a repo can look fully onboarded while being invisible
+to the hub and the infra dashboard. The handbook's rule is that
+*"considered and doesn't apply" is a finished decision; "never looked" is the
+gap*, so each is recorded here rather than left to be re-derived.
+
+| Registry | Decision |
+|---|---|
+| `aylith-com/.aylith/deploy-alert-targets.json` | **Registered**, watching `tagged-release`. It cuts a GitHub release, which is the manifest's own criterion. `Package-Build` also publishes artifacts on a tag but runs on `main` too, and routing an ordinary red build there is the noise the criterion excludes; `tagged-release` `needs:` the gate, so a gate failure on the tag still surfaces. **Known gap:** a packaging failure on a tag does not alert. |
+| `aylith-hub/packages/db/seed.ts` | **No.** The hub groups changelogs, stats and live status *by service*; this is a desktop application with no service and, so far, no releases. Revisit at the first tagged release, when there is a changelog worth grouping. |
+| `aylith-infra/apps/api/src/config/apps.ts` | **No.** It polls a health endpoint. A terminal on someone's laptop has none, and inventing one would mean the app phoning home — the opposite of what severing upstream's telemetry was for. |
+| `entity-graph/adapters/` | **No.** What this stores is profiles, keys and window geometry, all per-machine and private. There is nothing another app should link to or put on a timeline. |
+| `aylith-venture/strategy/portfolio.md` | **No.** MIT, alpha, and a personal tool. Not part of the monetized portfolio; a business call rather than a wiring step, and the answer today is no. |
+
+`scripts/audit-onboarding.sh torbie` reports the first as satisfied and the
+rest as REVIEW — that is the audit asking a human, not a failure, and this
+table is the answer.
+
 ## The feature catalogue (`docs/`)
 
 `docs/` is a static showcase site listing everything this carries that upstream
