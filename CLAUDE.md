@@ -206,6 +206,14 @@ hand-exported, so nothing can drift.
 - `app/assets/activity.png` is deliberately untouched: it is the Touch Bar's
   "this tab has activity" indicator, not a brand asset.
 
+**macOS is verified structurally and not visually, deliberately.** There is no
+Mac here, and that was accepted rather than worked around: `icon.icns` is walked
+back byte for byte and the tray images are correctly black-plus-alpha, but
+nobody has seen them in Finder, the Dock or the menu bar. Do not re-open it on
+this machine — the next thing that would tell us anything is a real Mac, or a
+`build-macos.mjs` run on a runner. The same holds for the Automator workflows
+below. Treat both as *unchecked*, never as *checked and fine*.
+
 **Still outstanding.** The UI has not been moved onto the lab's warm-stone
 palette beyond the splash and the accent. The macOS
 Automator workflows were renamed and their code signatures dropped, which is
