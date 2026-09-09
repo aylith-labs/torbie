@@ -1,4 +1,10 @@
 {
+  "name": "torbie",
+  "version": "0.1.0",
+  "description": "A terminal that keeps Tabby plugins and answers why it froze",
+  "license": "MIT",
+  "repository": "https://github.com/aylith-labs/torbie",
+  "private": true,
   "devDependencies": {
     "@angular/animations": "^15.2.6",
     "@angular/cdk": "^15.2.6",
@@ -116,7 +122,6 @@
     "i18n:extract": "node scripts/i18n-extract.mjs"
   },
   "type": "module",
-  "private": true,
   "dependencies": {
     "dotenv": "^16.3.1"
   }
