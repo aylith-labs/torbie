@@ -677,6 +677,14 @@ it sweeps in `build/Release` binaries, `.obj` and `.tlog` files (2273 lines for 
 Patches are also version-pinned in their filename — when upstream bumps either package,
 regenerate or patch-package errors on the mismatch.
 
+**`pug-html-loader` must stay at 1.1.5.** 1.1.7 fails the build with `A valid
+query string passed to parseQuery should begin with '?'`: `app/webpack.config.mjs`
+reaches it through an inline loader chain
+(`file-loader?name=index.html!pug-html-loader!…`), and the `loader-utils` it
+picks up at that version refuses the empty query that leaves it. Found by
+applying a grouped Dependabot batch rather than reading it; the pin is exact so
+a range cannot drift past it.
+
 Do not commit `app/yarn.lock` churn. Yarn 1.x rewrites the aliased `string-width-cjs` /
 `strip-ansi-cjs` entries on every install; `git checkout -- app/yarn.lock` after
 installing. Upstream edits that file often, so local noise there causes sync pain.
