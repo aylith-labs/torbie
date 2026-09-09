@@ -173,10 +173,41 @@ read. `tabby://` stays registered beside `torbie://` for the same reason.
 it is a pane identity that `tabby-resume`'s WSL probe greps for, and a pane
 started before the rename is still carrying it.
 
-**Still outstanding.** The icon is still Tabby's — the mark belongs to
-`aylith-com`'s `aylith-brand-mark` skill, which owns the locked geometry and the
-asset-sync graph, and the handbook says plainly not to hand-edit mark assets. The
-UI has not been moved onto the lab's warm-stone palette either. The macOS
+**The mark is `>T`** — a prompt closing on the crossbar of a T, whose stem is a
+git-branch trunk with a commit at its foot and one at the end of the bar. Every
+asset is generated from one definition of it by `scripts/dev/make-icons.mjs`:
+the three SVGs, the six Linux PNGs, `build/windows/icon.ico`,
+`build/mac/icon.icns`, the five tray images and `docs/favicon.svg`. Nothing is
+hand-exported, so nothing can drift.
+
+- **Two treatments over one geometry**, per the studio's brand-mark skill.
+  *Theme-aware* flips ink to cream through `prefers-color-scheme` and is what the
+  SVGs ship; *bronze duotone* is what every raster bakes, because a PNG cannot
+  flip and the Windows taskbar takes its colour from `SystemUsesLightTheme`
+  rather than from the app.
+- **Rasterized by Chromium, never ImageMagick**, which mis-renders SVG strokes —
+  the same reason `jumpListIcons.service.ts` draws through a canvas.
+  `rasterize-icons.cjs` refuses any size that comes back fully transparent,
+  which is the one failure a set of icons produces silently.
+- **`.ico` and `.icns` are written by hand**; nothing in this stack encodes
+  either. The ICO is a directory plus one PNG per size (16/32/48/64/128/256).
+  The ICNS uses only PNG-capable type codes — `ic04`/`ic05` are ARGB, so the
+  16pt and 32pt slots are filled by their @2x forms and macOS scales down.
+  Both verified by walking the container back: every offset in range, every
+  declared length matching a real PNG of that size, and the ICNS walking to its
+  declared end exactly.
+- **A theme-aware SVG does flip when used as a CSS `background-image`** — that
+  is how the splash consumes it, and it is the context where an SVG gets no
+  stylesheet from its parent. Measured rather than assumed: the body tone reads
+  `rgb(28, 26, 22)` in light and `rgb(243, 239, 231)` in dark, which are the
+  palette's ink and cream exactly.
+- The macOS tray images are **templates — black plus alpha only**, which the OS
+  recolours for the menu bar. A coloured template renders as a solid blob.
+- `app/assets/activity.png` is deliberately untouched: it is the Touch Bar's
+  "this tab has activity" indicator, not a brand asset.
+
+**Still outstanding.** The UI has not been moved onto the lab's warm-stone
+palette beyond the splash and the accent. The macOS
 Automator workflows were renamed and their code signatures dropped, which is
 **unverified on macOS** — they previously launched `Tabby.app/Contents/MacOS/tabby`,
 so leaving them alone was a certain failure rather than an unverified one.
