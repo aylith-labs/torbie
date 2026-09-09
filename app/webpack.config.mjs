@@ -7,6 +7,7 @@ const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 import { AngularWebpackPlugin } from '@ngtools/webpack'
 import { execSync } from 'child_process'
 import { createEs2015LinkerPlugin } from '@angular/compiler-cli/linker/babel'
+import { version } from '../scripts/vars.mjs'
 
 // Baked in so a running instance can say which build it is — with several
 // frozen build slots around, "which one am I using?" is otherwise unanswerable.
@@ -25,7 +26,12 @@ const BUILD_DATE = `${buildTime.getFullYear()}-${pad(buildTime.getMonth() + 1)}-
 // Epoch millis too, so "N ago" is computed from an unambiguous instant rather
 // than by re-parsing a formatted local-time string.
 const BUILD_TIMESTAMP = buildTime.getTime()
-const BUILD_DESCRIBE = gitDescribe('git describe --tags', '')
+// Not `git describe`: a clone that still carries the imported upstream tags
+// describes HEAD as `v1.0.235-117-g…`, and a fresh one describes nothing at
+// all — so the same commit would label itself two different ways depending on
+// which tags happened to come along. `vars.mjs` owns the version; this only
+// says which commit it was built from.
+const BUILD_DESCRIBE = BUILD_SHA === 'unknown' ? version : `${version}+${BUILD_SHA}`
 
 // The same provenance, written next to the bundle. The DefinePlugin constants
 // below can only be read from inside a running instance; the Builds settings
