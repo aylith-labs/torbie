@@ -46,12 +46,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Installing Node
-      uses: actions/setup-node@v4.4.0
+      uses: actions/setup-node@v7.0.0
       with:
         node-version: 22
 
@@ -157,12 +157,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Install Node
-      uses: actions/setup-node@v4.4.0
+      uses: actions/setup-node@v7.0.0
       with:
         node-version: 22
 
@@ -182,7 +182,7 @@ jobs:
       if: matrix.build-arch == 'arm'
 
     - name: Download cached sysroot
-      uses: actions/cache@v3
+      uses: actions/cache@v6
       id: dl-cached-sysroot
       if: matrix.build-arch == 'arm'
       with:
@@ -306,7 +306,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -330,7 +330,7 @@ jobs:
 
     - name: Setup Software Trust Manager
       if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags'))
-      uses: digicert/code-signing-software-trust-action@cb502242630f8556eb815a4f9c1e8c64d2a2d2a3 # v1.0.0
+      uses: digicert/code-signing-software-trust-action@fae23a455ba4bde62b64fd7cb2f81ade788f5a95 # v1.0.0
       env:
         SM_HOST: ${{ vars.SM_HOST }}
         SM_API_KEY: ${{ secrets.SM_API_KEY }}
@@ -368,7 +368,7 @@ jobs:
         Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 
     - name: Installing Node
-      uses: actions/setup-node@v4.4.0
+      uses: actions/setup-node@v7.0.0
       with:
         node-version: 22
 
