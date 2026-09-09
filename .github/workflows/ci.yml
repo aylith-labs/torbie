@@ -43,7 +43,16 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libsecret-1-dev
+        # `|| true`, and deliberately. The runner image carries third-party apt
+        # sources we do not use — Google's Chrome repo among them — and one of
+        # those failing takes `apt-get update` down with it. Measured: a
+        # "Hash Sum mismatch" on dl.google.com short-circuited the `&&`, so
+        # libfontconfig1-dev was never installed and the gate went red compiling
+        # `fontmanager-redux` against a header nobody had asked apt for. The
+        # install below still fails loudly if a package cannot be found, which
+        # is the failure actually worth having.
+        sudo apt-get update || true
+        sudo apt-get install -y libfontconfig1-dev libsecret-1-dev
         npm i -g yarn
         cd app
         yarn

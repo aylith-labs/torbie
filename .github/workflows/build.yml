@@ -46,12 +46,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Installing Node
-      uses: actions/setup-node@v4.4.0
+      uses: actions/setup-node@v7
       with:
         node-version: 22
 
@@ -157,12 +157,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Install Node
-      uses: actions/setup-node@v4.4.0
+      uses: actions/setup-node@v7
       with:
         node-version: 22
 
@@ -174,7 +174,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
+        # `|| true` — the runner image carries third-party apt sources we do not
+        # use, and one of them failing takes the whole update down with it under
+        # `bash -e`. The install still fails loudly if a package is missing.
+        sudo apt-get update || true
         sudo apt-get install libfontconfig1-dev libarchive-tools zsh crossbuild-essential-${{matrix.arch}}
 
     - name: Setup tar to run as root
@@ -182,7 +185,7 @@ jobs:
       if: matrix.build-arch == 'arm'
 
     - name: Download cached sysroot
-      uses: actions/cache@v3
+      uses: actions/cache@v6
       id: dl-cached-sysroot
       if: matrix.build-arch == 'arm'
       with:
@@ -191,7 +194,8 @@ jobs:
 
     - name: Setup crossbuild sysroot
       run: |
-        sudo apt-get update -y && sudo apt-get install debootstrap qemu-user-static binfmt-support -y
+        sudo apt-get update -y || true
+        sudo apt-get install debootstrap qemu-user-static binfmt-support -y
         sudo qemu-debootstrap --include=libfontconfig1-dev,libsecret-1-dev,libnss3,libatk1.0-0,libatk-bridge2.0-0,libgdk-pixbuf2.0-0,libgtk-3-0,libgbm1 --variant=buildd --exclude=snapd --components=main,restricted,universe,multiverse --extractor=dpkg-deb --arch ${{matrix.arch}} bionic /${{matrix.build-arch}}-sysroot/ http://ports.ubuntu.com/ubuntu-ports/
         sudo find /${{matrix.build-arch}}-sysroot -type l -lname '/*' -exec sh -c 'file="$0"; dir=$(dirname "$file"); target=$(readlink "$0"); prefix=$(dirname "$dir" | sed 's@[^/]*@\.\.@g'); newtarget="$prefix$target"; ln -snf $newtarget $file' {} \; ;
       if: matrix.build-arch == 'arm' && steps.dl-cached-sysroot.outputs.cache-hit != 'true'
@@ -306,7 +310,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -368,7 +372,7 @@ jobs:
         Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 
     - name: Installing Node
-      uses: actions/setup-node@v4.4.0
+      uses: actions/setup-node@v7
       with:
         node-version: 22
 
