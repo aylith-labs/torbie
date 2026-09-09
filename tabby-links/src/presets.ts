@@ -142,6 +142,24 @@ const FROM_MANIFEST: ManifestPreset[] = [
         example: 'https://stith.lvh.me/agent/1a2b3c4d-5e6f',
         preview: true,
     },
+    {
+        id: 'stith-session-ids',
+        integration: 'stith',
+        label: 'Agent session ids in output',
+        description: 'A bare session id printed with no scheme and no link around it, which is how one usually appears',
+        match: 'text',
+        example: 'ce786f3f-6fdc-4165-b9bd-20ff858844db',
+        preview: true,
+    },
+    {
+        id: 'shefrd-pane-ids',
+        integration: 'shefrd',
+        label: 'Pane ids in output',
+        description: 'A multiplexer pane address like w1N:p39; opening one focuses that pane',
+        match: 'text',
+        example: 'w1N:p39',
+        preview: true,
+    },
 ]
 
 /**
