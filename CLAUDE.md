@@ -201,11 +201,22 @@ is that reason.
 | `upgrade/angular-21` | `@angular/compiler-cli` 22.1.5 | `>=6.0 <6.1` |
 | org standard | `typescript@latest` | **7.0.2** |
 
-So TS 7 is unreachable from either branch, and will stay unreachable until
-Angular ships a major that peers it. This is not a pin we chose and it is not
-one we can lift by editing a range: `@ngtools/webpack` and the AOT compiler
-both hard-fail outside the peer window. The lever is the Angular upgrade, not
-the TypeScript one.
+So TS 7.0 is unreachable from either branch. This is not a pin we chose and it
+is not one we can lift by editing a range: `@ngtools/webpack` and the AOT
+compiler both hard-fail outside the peer window.
+
+**The unblocking release is TypeScript 7.1, not an Angular major.** TS 7.0's
+Go rewrite dropped the API surface that Angular's compiler, Vue's `vue-tsc`
+and typescript-eslint all build on; 7.1 restores enough of it for them to move.
+So the sequence is: TS 7.1 stable → Angular widens its peer range → this repo
+follows. Measured 2026-09-09: `typescript@latest` is **7.0.2** and 7.1 exists
+only as nightlies on `next` (`7.1.0-dev.20260909.1`), which the org toolchain
+rules out explicitly — *"Do not pin `typescript@next` or a `x.y.z-dev.*` build
+anywhere."*
+
+Re-check by asking, not remembering: `npm view typescript dist-tags` for a
+stable 7.1, and `npm view @angular/compiler-cli@latest peerDependencies.typescript`
+for whether Angular has widened. Both have to have moved.
 
 **Report it upward rather than sitting on it** — the handbook asks for that
 explicitly, and a repo quietly two majors behind the org standard looks like
