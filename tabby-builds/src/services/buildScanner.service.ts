@@ -461,8 +461,8 @@ export class BuildScannerService {
             const full = path.join(dist, entry.name)
             if (entry.isDirectory()) {
                 const executable = await firstExisting([
-                    ...executableNames().map(name => path.join(full, name)),
-                    ...PRODUCT_NAMES.map(name => path.join(full, `${name}.app`, 'Contents', 'MacOS', name)),
+                    ...executableNames().map(exe => path.join(full, exe)),
+                    ...PRODUCT_NAMES.map(product => path.join(full, `${product}.app`, 'Contents', 'MacOS', product)),
                 ])
                 if (!executable) {
                     continue

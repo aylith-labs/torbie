@@ -94,7 +94,7 @@ export class Window {
             // light. Only go transparent when vibrancy actually needs it.
             backgroundColor: this.configStore.appearance?.vibrancy
                 ? '#00000000'
-                : (nativeTheme.shouldUseDarkColors ? '#131d27' : '#ffffff'),
+                : nativeTheme.shouldUseDarkColors ? '#131d27' : '#ffffff',
             acceptFirstMouse: true,
         }
 

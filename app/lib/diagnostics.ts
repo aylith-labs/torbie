@@ -156,7 +156,7 @@ function serialise (record: Record<string, unknown>): string {
         if (!(field in record)) {
             continue
         }
-        delete record[field]
+        Reflect.deleteProperty(record, field)
         record.truncated = true
         line = JSON.stringify(record)
         if (line.length <= MAX_RECORD_BYTES) {
@@ -226,7 +226,10 @@ export function flushDiagnostics (): void {
 /** Roll the log if it has grown past the cap. Runs once, at install. */
 function rotate (file: string): void {
     fs.stat(file, (err, stat) => {
-        if (err || stat.size < MAX_LOG_BYTES) {
+        if (err) {
+            return
+        }
+        if (stat.size < MAX_LOG_BYTES) {
             return
         }
         fs.rename(file, `${file}.1`, () => { /* a failed roll is not worth reporting */ })
@@ -275,7 +278,7 @@ export function note (kind: string, detail?: unknown): void {
 
 export interface Span {
     /** Close the span. Returns its duration in ms. */
-    end (extra?: unknown): number
+    end: (extra?: unknown) => number
 }
 
 const NULL_SPAN: Span = { end: () => 0 }
@@ -657,7 +660,7 @@ export function installDiagnostics (which: Role): void {
     // that wants to time itself looks this up and degrades to a no-op when it
     // is absent — which is the honest state under tabby-web, where none of
     // this exists.
-    ;(globalThis as any).__tabbyDiagnostics = { span, mark, note, report, recordFailure }
+    (globalThis as any).__tabbyDiagnostics = { span, mark, note, report, recordFailure }
 
     emit({
         kind: 'session-start',

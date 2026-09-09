@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core'
 
 /** Closed when the operation finishes. Returns its duration in ms. */
 export interface DiagnosticSpan {
-    end (extra?: unknown): number
+    end: (extra?: unknown) => number
 }
 
 const NULL_SPAN: DiagnosticSpan = { end: () => 0 }

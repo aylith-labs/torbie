@@ -112,7 +112,7 @@
     "start:prod": "electron app --debug",
     "prod": "cross-env TABBY_DEV=1 electron app",
     "docs": "node scripts/build-docs.mjs",
-    "lint": "eslint --ext ts */src */lib",
+    "lint": "eslint \"*/src/**/*.ts\" \"*/lib/**/*.ts\"",
     "test": "node scripts/dev/run-tests.mjs --tier fast",
     "test:checks": "node scripts/dev/run-tests.mjs --tier checks",
     "test:cdp": "node scripts/dev/run-tests.mjs --tier cdp",

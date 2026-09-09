@@ -63,6 +63,6 @@ export function isUpstreamBuild (nameOrPath: string): boolean {
  * responding throughout.
  */
 export function isSplashTitle (title: string): boolean {
-    const trimmed = (title ?? '').trim().toLowerCase()
+    const trimmed = title.trim().toLowerCase()
     return !trimmed || PRODUCT_NAMES.some(name => trimmed === name.toLowerCase())
 }
