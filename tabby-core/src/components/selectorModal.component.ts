@@ -77,9 +77,15 @@ export class SelectorModalComponent<T> {
         const f = this.filter.trim().toLowerCase()
         if (!f) {
             this.filteredOptions = this.options.slice().sort(
-                firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)
-                    .thenBy<SelectorOption<T>, string>(x => x.group ?? '')
-                    .thenBy<SelectorOption<T>, string>(x => x.name),
+                // The selector's type is inferred from the annotated parameter
+                // rather than written out. `thenby` 2.x drops the second type
+                // argument from these overloads, and spelling both out pins
+                // this file to 1.x for no gain — the types are identical either
+                // way, and TS2558 ("expected 1 type arguments, but got 2") is
+                // what a dependency bump then costs.
+                firstBy((x: SelectorOption<T>) => x.weight ?? 0)
+                    .thenBy((x: SelectorOption<T>) => x.group ?? '')
+                    .thenBy((x: SelectorOption<T>) => x.name),
             )
                 .filter(x => !x.freeInputPattern)
         } else {
