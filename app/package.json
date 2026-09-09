@@ -1,10 +1,11 @@
 {
   "name": "torbie",
-  "description": "A terminal for a modern age",
+  "description": "A terminal that keeps Tabby plugins and answers why it froze",
   "private": true,
   "repository": "https://github.com/aylith-labs/torbie",
   "author": {
-    "name": "Aylith Labs"
+    "name": "Aylith Labs",
+    "email": "hi@aylith.com"
   },
   "main": "dist/main.js",
   "version": "1.0.0-alpha.1",
