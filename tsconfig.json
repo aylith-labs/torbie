@@ -9,9 +9,23 @@
     // Likewise no longer inferred: without this, `Buffer` and the rest of the
     // node globals are unresolved in every package.
     "types": ["node"],
-    "module": "es2015",
-    "target": "es2016",
-    "moduleResolution": "node",
+    // Angular 22, @angular/cdk and ng-bootstrap 21 all publish their
+    // subpaths through an "exports" map — `@angular/cdk/drag-drop`,
+    // `@ng-bootstrap/ng-bootstrap/modal`, `@angular/platform-browser/animations`.
+    // `moduleResolution: node` predates that field and cannot see any of them,
+    // which surfaces as "has no exported member NgbModal" rather than as a
+    // resolution error, so it reads like an API change and is not one.
+    "module": "esnext",
+    "target": "es2022",
+    "moduleResolution": "bundler",
+    // `target: es2022` turns this on by default, which changes what a class
+    // field *is*: [[Define]] on the instance before the constructor body runs,
+    // rather than an assignment inside it. Angular code leans on the old
+    // semantics everywhere — a field initializer that calls
+    // `this.translate.instant(...)`, where `translate` is a constructor
+    // parameter property, is 64 of the 65 errors this produced. Angular's own
+    // generated tsconfig sets it false for the same reason.
+    "useDefineForClassFields": false,
     "noImplicitAny": false,
     "removeComments": false,
     "emitDeclarationOnly": false,
@@ -34,7 +48,9 @@
       "ES2015",
       "ES2017",
       "ES2019",
-      "ES2021"
+      "ES2021",
+      // Object.hasOwn, used in profiles.service.ts.
+      "ES2022"
     ],
     "paths": {
       "*": [

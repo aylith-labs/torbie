@@ -185,7 +185,12 @@ class HTMLFileDownload extends FileDownload {
     }
 
     finish () {
-        const blob = new Blob(this.buffers, { type: 'application/octet-stream' })
+        // `Uint8Array` is generic over its backing buffer in current lib.dom,
+        // and `BlobPart` accepts only an `ArrayBuffer`-backed view — a
+        // `SharedArrayBuffer`-backed one is genuinely not transferable. These
+        // are all ordinary Node buffers, so the cast states what is already
+        // true rather than papering over a real possibility.
+        const blob = new Blob(this.buffers as unknown as BlobPart[], { type: 'application/octet-stream' })
         const element = window.document.createElement('a')
         element.href = window.URL.createObjectURL(blob)
         element.download = this.name

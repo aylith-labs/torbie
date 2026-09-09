@@ -125,7 +125,21 @@ export default () => ({
         path: 'commonjs path',
     },
     plugins: [
-        new wp.optimize.ModuleConcatenationPlugin(),
+        // Off under Angular 22.
+        //
+        // Angular 22 ships its fesm2022 entry points split across `_*-chunk.mjs`
+        // files, and scope-hoisting those produces a reference to a module with
+        // a **null** id. At runtime that is
+        // `Cannot read properties of undefined (reading 'call')` thrown from
+        // inside webpack's own `__webpack_require__`, naming nothing and
+        // pointing at the runtime rather than at any source file — the renderer
+        // simply never starts. Found by patching the built bundle to print the
+        // id it could not find; it was `null`, for
+        // `@angular/common/fesm2022/_location-chunk.mjs`.
+        //
+        // Scope hoisting is an optimisation. Re-enable it if a later webpack or
+        // Angular fixes this, and check the renderer actually boots.
+        // new wp.optimize.ModuleConcatenationPlugin(),
         new wp.DefinePlugin({
             'process.type': '"renderer"',
             'process.env.TABBY_BUILD_SHA': JSON.stringify(BUILD_SHA),

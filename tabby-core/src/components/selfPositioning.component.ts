@@ -1,7 +1,11 @@
 import { HostBinding, ElementRef, Component } from '@angular/core'
 import { BaseComponent } from './base.component'
 
-@Component({})
+// An abstract base with no template — the decorator exists only so subclasses
+// inherit the host bindings. `standalone: false` for the same reason as
+// everywhere else: v19 flipped the default, and the concrete components that
+// extend this are all declared in NgModules.
+@Component({ standalone: false })
 export abstract class SelfPositioningComponent extends BaseComponent {
     @HostBinding('style.left') cssLeft = ''
     @HostBinding('style.top') cssTop = ''

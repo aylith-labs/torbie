@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@angular/core'
+import { Injectable, Inject, NgZone } from '@angular/core'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { Observable, Subject, AsyncSubject, takeUntil, debounceTime } from 'rxjs'
 
@@ -77,6 +77,7 @@ export class AppService {
 
     /** @hidden */
     private constructor (
+        private zone: NgZone,
         private config: ConfigService,
         private hostApp: HostAppService,
         private hostWindow: HostWindowService,
@@ -99,7 +100,21 @@ export class AppService {
             this.tabRecovery.saveTabs(this.tabs)
         })
 
-        config.ready$.toPromise().then(async () => {
+        // Inside the Angular zone, deliberately.
+        //
+        // Under Angular 22 this block is where the window's first tabs come
+        // from, and it runs long after `bootstrapModule` resolved — by which
+        // time the only thing that still calls `ApplicationRef.tick()` is the
+        // zone draining its microtask queue. Measured on a window that opened
+        // and then sat idle: `app.tabs.length === 1`, zero `onMicrotaskEmpty`
+        // emissions, zero ticks, and a DOM under `app-root` of exactly one
+        // element with every structural block unrendered. One forced pass took
+        // it to 44 and it reached 75 unaided, so nothing is wrong with the
+        // views — nothing was asking.
+        //
+        // Angular 15 got this for free because far more of the framework ran
+        // inside the zone. Asking for it explicitly is cheap and says why.
+        config.ready$.toPromise().then(async () => this.zone.run(async () => {
             if (this.bootstrapData.isMainWindow) {
                 if (config.store.recoverTabs) {
                     const tabs = await this.tabRecovery.recoverTabs()
@@ -119,7 +134,7 @@ export class AppService {
                     this.openNewTabRaw(tab)
                 }
             }
-        })
+        }))
 
         this.tabClosed$.subscribe(() => {
             if (!this.tabs.length && this.config.store.appearance.lastTabClosesWindow) {
