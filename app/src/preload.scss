@@ -1,5 +1,20 @@
+// The splash: the first thing drawn, before Angular or any theme exists.
+//
+// Colours here are literals on purpose — nothing that could read a token has
+// loaded yet — but they are the studio's warm-stone ramp rather than arbitrary
+// ones: surface for the ground, a single warm accent for anything lit. The
+// values are stated once at the top so the light block below overrides the
+// same names rather than inventing a second palette.
+//
+//   surface-950  #0a0907    surface-900  #12100d    surface-50  #f8f7f4
+//   accent-400   #dfa36b    accent-600   #c97a3a    accent-800  #8a4f24
+//
+// Measured contrast against its own ground: title 8.67:1 on dark, 6.08:1 on
+// light. Both well past 4.5:1, which matters more here than anywhere else in
+// the app — this is the screen someone stares at while waiting.
+
 app-root {
-  background: #1D272D;
+  background: #12100d;
 }
 
 .preload-logo {
@@ -11,8 +26,9 @@ app-root {
   height: 100vh;
   display: flex;
   animation: 0.5s ease-out fadeIn;
-  background-image: radial-gradient(#3a66820a 0%,  #000e17 30%, black 100%);
-  background-color: black;
+  // A faint warm glow behind the mark, falling to the darkest surface tone.
+  background-image: radial-gradient(#c97a3a0f 0%, #0d0b09 30%, #0a0907 100%);
+  background-color: #0a0907;
 
   &>div {
     width: 200px;
@@ -21,15 +37,15 @@ app-root {
     flex: none;
 
     .progress {
-      background: rgba(0,0,0,.25);
+      background: rgba(0, 0, 0, .25);
       height: 3px;
       margin: 10px 50px;
 
       .bar {
         transition: 1s ease-out width;
-        background: #a1c5e4;
+        background: #c97a3a;
         height: 3px;
-        box-shadow: 0 0 2px #ffffff1f;
+        box-shadow: 0 0 2px #dfa36b2e;
       }
     }
   }
@@ -54,21 +70,22 @@ app-root {
 
 
 .torbie-title {
-  color: #a1c5e4;
-  font-family: 'Source Sans Pro';
+  color: #dfa36b;
+  font-family: 'Space Grotesk', 'Source Sans Pro', system-ui, sans-serif;
   text-align: center;
   font-weight: normal;
   font-size: 32px;
   margin: 0;
 
   sup {
-      color: #842fe0;
+    // Decorative, deliberately quieter than the wordmark it hangs off.
+    color: #9e7a55;
   }
 }
 
 
-// The splash is the first thing drawn and used to be dark whatever the OS said,
-// so a light-themed desktop got a black flash before the window rendered.
+// The splash used to be dark whatever the OS said, so a light-themed desktop
+// got a black flash before the window rendered.
 //
 // `window.ts` already picks the window's backing colour from
 // `nativeTheme.shouldUseDarkColors`, and sets `nativeTheme.themeSource` from
@@ -77,29 +94,33 @@ app-root {
 // user's choice rather than only the OS default.
 //
 // Written as an override of the dark values above rather than as a pair of
-// themes, so the dark path keeps exactly the colours it had.
+// themes, so the dark path keeps exactly the colours it was given.
 @media (prefers-color-scheme: light) {
   app-root {
-    background: #f5f7f9;
+    background: #f8f7f4;
   }
 
   .preload-logo {
-    // Not pure white: the logo's palest tones (#ccecff, #9feced) all but vanish
-    // against it.
-    background-image: radial-gradient(#3a668212 0%, #e4ecf2 30%, #f5f7f9 100%);
-    background-color: #f5f7f9;
+    // Not pure white: the mark's palest tones all but vanish against it, and
+    // surface-50 is the ramp's own answer to that.
+    background-image: radial-gradient(#c97a3a14 0%, #f0ebe3 30%, #f8f7f4 100%);
+    background-color: #f8f7f4;
 
     &>div .progress {
       background: rgba(0, 0, 0, .08);
 
       .bar {
-        background: #3a6682;
+        background: #a8622c;
         box-shadow: 0 0 2px #0000001f;
       }
     }
   }
 
   .torbie-title {
-    color: #2f5d80;
+    color: #8a4f24;
+
+    sup {
+      color: #8a7460;
+    }
   }
 }
