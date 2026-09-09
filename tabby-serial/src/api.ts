@@ -80,7 +80,7 @@ export class SerialSession extends BaseSession {
             binding: this.serialService.detectBinding(),
             path: this.profile.options.port,
             autoOpen: false,
-            baudRate: parseInt(this.profile.options.baudrate as any),
+            baudRate: parseInt(this.profile.options.baudrate as any, 10),
             dataBits: this.profile.options.databits,
             stopBits: this.profile.options.stopbits,
             parity: this.profile.options.parity,
@@ -90,6 +90,7 @@ export class SerialSession extends BaseSession {
             xany: this.profile.options.xany,
         })
         let connected = false
+        // biome-ignore lint/suspicious/noAsyncPromiseExecutor: settles from the port's own open/error events, not from the async body
         await new Promise(async (resolve, reject) => {
             serial.on('open', () => {
                 connected = true

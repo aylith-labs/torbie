@@ -33,7 +33,7 @@ export class SerialService {
         let path = query
         let baudrate = 115200
         if (query.includes('@')) {
-            baudrate = parseInt(path.split('@')[1])
+            baudrate = parseInt(path.split('@')[1], 10)
             path = path.split('@')[0]
         }
         const profile: PartialProfile<SerialProfile> = {

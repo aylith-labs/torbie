@@ -23,12 +23,12 @@ export const configMergeByDefault = (a, b) => deepmerge(a, b) // eslint-disable-
 const LATEST_VERSION = 1
 
 function isStructuralMember (v): v is AnyRec {
-    return v instanceof Object && !(v instanceof Array) &&
+    return v instanceof Object && !Array.isArray(v) &&
         Object.keys(v).length > 0 && !v.__nonStructural
 }
 
 function isNonStructuralObjectMember (v): boolean {
-    return v instanceof Object && (v instanceof Array || v.__nonStructural)
+    return v instanceof Object && (Array.isArray(v) || v.__nonStructural)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-type-alias
@@ -201,7 +201,7 @@ export class ConfigService {
 
     getDefaults (): Record<string, any> {
         const cleanup = o => {
-            if (o instanceof Array) {
+            if (Array.isArray(o)) {
                 return o.map(cleanup)
             } else if (o instanceof Object) {
                 const r = {}

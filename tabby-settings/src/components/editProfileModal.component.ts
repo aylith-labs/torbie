@@ -5,11 +5,11 @@ import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
 import { PartialProfileGroup, Profile, ProfileProvider, ProfileSettingsComponent, ProfilesService, TAB_COLORS, ProfileGroup, ConnectableProfileProvider, FullyDefined, ConfigProxy } from 'tabby-core'
 
 const iconsData = require('../../../tabby-core/src/icons.json')
-const iconsClassList = Object.keys(iconsData).map(
+const iconsClassList = Object.keys(iconsData).flatMap(
     icon => iconsData[icon].map(
         style => `fa${style[0]} fa-${icon}`,
     ),
-).flat()
+)
 
 /** @hidden */
 @Component({

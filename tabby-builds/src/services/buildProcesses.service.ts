@@ -202,7 +202,7 @@ export class BuildProcessesService {
                     // statm reports pages resident; page size is 4 KB everywhere
                     // Tabby runs.
                     memoryBytes: parseInt(statm.split(' ')[1], 10) * 4096,
-                    startedAt: isNaN(startTicks) ? null : bootTime + startTicks / ticks * 1000,
+                    startedAt: Number.isNaN(startTicks) ? null : bootTime + startTicks / ticks * 1000,
                     cpuMs: cpuTicks / ticks * 1000,
                     // X11/Wayland window state is not readable this cheaply;
                     // reporting nothing beats reporting a guess.

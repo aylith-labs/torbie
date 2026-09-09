@@ -10,7 +10,7 @@ import * as url from 'url'
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
 
-let target = path.resolve(__dirname, '../builtin-plugins')
+const target = path.resolve(__dirname, '../builtin-plugins')
 sh.mkdir('-p', target)
 fs.writeFileSync(path.join(target, 'package.json'), '{}')
 sh.cd(target)

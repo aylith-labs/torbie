@@ -61,7 +61,7 @@ export class OSCProcessor extends SessionMiddleware {
             // Extract OSC string (between prefix and suffix)
             const oscString = data.subarray(suffixSearchStart, foundSuffix[1]).toString()
             const [oscCodeString, ...oscParams] = oscString.split(';')
-            const oscCode = parseInt(oscCodeString)
+            const oscCode = parseInt(oscCodeString, 10)
 
             if (oscCode === 7) {
                 // OSC 7 — `file://<host><path>`, the de-facto standard CWD report.

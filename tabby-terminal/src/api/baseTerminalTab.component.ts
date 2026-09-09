@@ -512,7 +512,7 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
         if (this.config.store.terminal.detectProgress) {
             const percentageMatch = /(^|[^\d])(\d+(\.\d+)?)%([^\d]|$)/.exec(data)
             if (!this.alternateScreenActive && percentageMatch) {
-                const percentage = percentageMatch[3] ? parseFloat(percentageMatch[2]) : parseInt(percentageMatch[2])
+                const percentage = percentageMatch[3] ? parseFloat(percentageMatch[2]) : parseInt(percentageMatch[2], 10)
                 if (percentage > 0 && percentage <= 100) {
                     this.setProgress(percentage)
                 }

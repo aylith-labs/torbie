@@ -53,7 +53,7 @@ export class CommandService {
         const flatItems: MenuItemOptions[] = []
         function flattenItem (item: MenuItemOptions, prefix?: string): void {
             if (item.submenu) {
-                item.submenu.forEach(x => flattenItem(x, (prefix ? `${prefix} > ` : '') + (item.commandLabel ?? item.label)))
+                item.submenu.forEach(x => { flattenItem(x, (prefix ? `${prefix} > ` : '') + (item.commandLabel ?? item.label)) })
             } else {
                 flatItems.push({
                     ...item,
@@ -61,7 +61,7 @@ export class CommandService {
                 })
             }
         }
-        items.forEach(x => flattenItem(x))
+        items.forEach(x => { flattenItem(x) })
 
         const commands = buttons.map(x => Command.fromToolbarButton(x))
         commands.push(...flatItems.map(x => Command.fromMenuItem(x)))

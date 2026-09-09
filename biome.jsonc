@@ -1,0 +1,121 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**/src/**/*.ts",
+      "**/lib/**/*.ts",
+      "**/test/**/*.js",
+      "**/test/**/*.cjs",
+      "scripts/**/*.mjs",
+      "scripts/**/*.cjs",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/typings",
+      "!builtin-plugins",
+      "!docs"
+    ]
+  },
+
+  // Off, deliberately, and this is the one setting here worth arguing about.
+  //
+  // Biome's formatter would rewrite 416 of 443 files. This project takes
+  // commits from upstream Tabby by cherry-pick, and a tree-wide reformat is the
+  // single most conflict-hostile change it is possible to make to that: every
+  // future pick would land in a file whose every line has moved. The style the
+  // repo already has (no semicolons, four spaces, single quotes) is recorded
+  // under `javascript.formatter` so that `biome format` is *correct* if it is
+  // ever run deliberately on a file — it simply is not run over the tree.
+  "formatter": { "enabled": false },
+
+  // Same reasoning: import order is not worth 245 rewritten files.
+  "assist": { "actions": { "source": { "organizeImports": "off" } } },
+
+  "javascript": {
+    "parser": {
+      // Angular's DI is built on parameter decorators — `@Inject(TOKEN) x: T`
+      // in a constructor — which the TC39 proposal Biome implements does not
+      // have. Without this, 38 files fail to *parse*, which is not a lint
+      // result but a refusal to read the file.
+      "unsafeParameterDecoratorsEnabled": true
+    },
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "asNeeded",
+      "indentStyle": "space",
+      "indentWidth": 4,
+      "lineWidth": 120
+    }
+  },
+
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+
+      "style": {
+        "useConst": "error",
+
+        // `fs`, `path`, `module` and `child_process` are webpack *externals*,
+        // keyed on exactly those names (`app/webpack.config.mjs`). Rewriting
+        // them to `node:fs` would silently unmap them and bundle a shim
+        // instead — the diagnostics layer documents what that costs.
+        "useNodejsImportProtocol": "off",
+
+        // A type-only import is erased, and Angular reads constructor
+        // parameter types at runtime to resolve them. Applying this rule to a
+        // DI'd class breaks injection with no compile error.
+        "useImportType": "off",
+
+        "noNonNullAssertion": "off",
+        "noParameterAssign": "off",
+        "useTemplate": "off",
+        "noUselessElse": "off"
+      },
+
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noAssignInExpressions": "off",
+        "noConfusingVoidType": "off",
+        "noImplicitAnyLet": "error"
+      },
+
+      "complexity": {
+        "noForEach": "off",
+
+        // A subclass constructor that only forwards to super() is not useless
+        // in Angular: its parameter list *is* the injection site, and deleting
+        // it makes the subclass uninjectable. Every occurrence here already
+        // carried an eslint-disable saying so.
+        "noUselessConstructor": "off",
+        "useLiteralKeys": "off",
+        "useArrowFunction": "off",
+        "noBannedTypes": "off"
+      },
+
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnreachable": "error",
+
+        // A default-implementation method on an abstract provider names its
+        // parameters as documentation and uses none of them — that is what an
+        // extension point looks like. `TabRecoveryAugmentor`, `ProfileProvider`
+        // and `PlatformService` are all this shape, and ESLint was configured
+        // the same way.
+        "noUnusedFunctionParameters": "off",
+
+        // `var x = require(...)` inside try/catch is how every optional native
+        // module is loaded here. It hoists out of the block on purpose, so the
+        // rest of the file can test it for undefined; changing it is not a
+        // formatting choice, it moves the binding to another scope.
+        "noInnerDeclarations": "off"
+      }
+    }
+  }
+}

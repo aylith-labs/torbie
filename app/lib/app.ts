@@ -213,7 +213,7 @@ export class Application {
     }
 
     enableTray (): void {
-        if (!!this.tray || process.platform === 'linux' || (this.configStore.hideTray ?? false) === true) {
+        if (this.tray || process.platform === 'linux' || (this.configStore.hideTray ?? false) === true) {
             return
         }
 

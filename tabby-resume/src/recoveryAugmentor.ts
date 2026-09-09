@@ -108,7 +108,7 @@ export class ResumeRecoveryAugmentor extends TabRecoveryAugmentor {
             return
         }
         if (Array.isArray(token.children)) {
-            token.children.forEach((child: any) => this.collectLeaves(child))
+            token.children.forEach((child: any) => { this.collectLeaves(child) })
             return
         }
         this.adopted.add(token)

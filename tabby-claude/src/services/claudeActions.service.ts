@@ -117,7 +117,7 @@ export class ClaudeActionsService {
             case 'stith':
                 void this.platform.openExternal(`${this.stith.baseURL}/s/${session.sessionId}`)
                 break
-            case 'focus':
+            // 'focus', and anything unrecognised.
             default:
                 // Falling back to stith rather than doing nothing: a session on
                 // another machine, or in another Tabby window, has no tab here.

@@ -78,10 +78,10 @@ export class TelnetProfilesService extends QuickConnectProfileProvider<TelnetPro
         let host = query
         let port = 23
         if (host.includes('[')) {
-            port = parseInt(host.split(']')[1].substring(1))
+            port = parseInt(host.split(']')[1].substring(1), 10)
             host = host.split(']')[0].substring(1)
         } else if (host.includes(':')) {
-            port = parseInt(host.split(/:/g)[1])
+            port = parseInt(host.split(/:/g)[1], 10)
             host = host.split(':')[0]
         }
 

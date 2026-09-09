@@ -208,7 +208,7 @@ export class ConfigSyncService {
                         this.lastRemoteChange = new Date(cfg.modified_at)
                     }
                 }
-            } catch (error) {
+            } catch {
                 this.logger.debug('Recovering from autoSync network error')
             }
             await new Promise(resolve => setTimeout(resolve, 60000))

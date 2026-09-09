@@ -18,7 +18,7 @@ export class X11Socket {
             xHost = spec
         }
 
-        const display = parseInt(xDisplay ?? '0')
+        const display = parseInt(xDisplay ?? '0', 10)
         const port = display < 100 ? display + 6000 : display
 
         if (xHost === 'unix') {

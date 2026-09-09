@@ -28,7 +28,7 @@ vars.allPackages.forEach(plugin => {
 
 if (['darwin', 'linux'].includes(process.platform)) {
     sh.cd('node_modules')
-    for (let x of vars.builtinPlugins) {
+    for (const x of vars.builtinPlugins) {
         sh.ln('-fs', '../' + x, x)
     }
     sh.cd('..')

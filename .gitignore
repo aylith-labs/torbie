@@ -37,3 +37,7 @@ sentry-symbols.js
 
 crowdin.yml
 .crowdin.env
+
+# Downloaded by scripts/build-windows.mjs; 25 MB of Microsoft redistributable
+# is not ours to track.
+build/vc_redist.exe

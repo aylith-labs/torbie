@@ -376,7 +376,7 @@ export class HotkeysService {
         const keys = {}
         for (const key in branch) {
             let value = branch[key]
-            if (value instanceof Object && !(value instanceof Array)) {
+            if (value instanceof Object && !(Array.isArray(value))) {
                 const subkeys = this.getHotkeysConfigRecursive(value)
                 for (const subkey in subkeys) {
                     keys[key + '.' + subkey] = subkeys[subkey]
@@ -385,7 +385,7 @@ export class HotkeysService {
                 if (typeof value === 'string') {
                     value = [value]
                 }
-                if (!(value instanceof Array)) {
+                if (!(Array.isArray(value))) {
                     continue
                 }
                 if (value.length > 0) {

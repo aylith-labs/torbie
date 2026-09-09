@@ -5,11 +5,11 @@ import { Observable, OperatorFunction, debounceTime, map, distinctUntilChanged }
 import { ConfigProxy, ProfileGroup, Profile, ProfileProvider, PlatformService, TranslateService, PartialProfileGroup, ProfilesService, TAB_COLORS } from 'tabby-core'
 
 const iconsData = require('../../../tabby-core/src/icons.json')
-const iconsClassList = Object.keys(iconsData).map(
+const iconsClassList = Object.keys(iconsData).flatMap(
     icon => iconsData[icon].map(
         style => `fa${style[0]} fa-${icon}`,
     ),
-).flat()
+)
 
 /** @hidden */
 @Component({

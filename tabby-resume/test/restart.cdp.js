@@ -157,7 +157,7 @@ async function main () {
     `)
     note(`recorded: ${JSON.stringify(recorded.command)}`)
     check('the pane\'s program was captured', recorded.command.includes(MARKER), true)
-    check('and written into the persisted layout', recorded.tokens.some(t => t && t.includes(MARKER)), true)
+    check('and written into the persisted layout', recorded.tokens.some(t => t?.includes(MARKER)), true)
 
     console.log('── the window is killed outright ──')
     // Not closed politely: `AppService.closeWindow` turns saving off before its

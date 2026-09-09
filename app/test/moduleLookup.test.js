@@ -19,7 +19,6 @@
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
-const Module = require('module')
 const { execFileSync } = require('child_process')
 
 const APPDATA = process.env.APPDATA ?? path.join(os.homedir(), 'AppData', 'Roaming')

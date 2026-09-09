@@ -132,7 +132,7 @@ export class ProfilesService {
         this.config.store.profiles = this.config.store.profiles.filter(p => p.id !== profile.id)
 
         const profileHotkeyName = ProfilesService.getProfileHotkeyName(profile)
-        if (this.config.store.hotkeys.profile.hasOwnProperty(profileHotkeyName)) {
+        if (Object.hasOwn(this.config.store.hotkeys.profile, profileHotkeyName)) {
             const profileHotkeys = deepClone(this.config.store.hotkeys.profile)
             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete profileHotkeys[profileHotkeyName]
@@ -149,7 +149,7 @@ export class ProfilesService {
             this.providerForProfile(profile)?.deleteProfile(this.getConfigProxyForProfile(profile))
 
             const profileHotkeyName = ProfilesService.getProfileHotkeyName(profile)
-            if (this.config.store.hotkeys.profile.hasOwnProperty(profileHotkeyName)) {
+            if (Object.hasOwn(this.config.store.hotkeys.profile, profileHotkeyName)) {
                 const profileHotkeys = deepClone(this.config.store.hotkeys.profile)
                 // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
                 delete profileHotkeys[profileHotkeyName]
@@ -252,6 +252,7 @@ export class ProfilesService {
             return Promise.resolve(null)
         }
 
+        // biome-ignore lint/suspicious/noAsyncPromiseExecutor: the body is wrapped in try/catch and settles through resolve/reject on every path
         return new Promise<PartialProfile<Profile>|null>(async (resolve, reject) => {
             try {
                 const recentProfiles = this.getRecentProfiles()
@@ -519,7 +520,7 @@ export class ProfilesService {
                 delete profile.group
             }
         }
-        if (this.config.store.hotkeys['group-selectors'].hasOwnProperty(group.id)) {
+        if (Object.hasOwn(this.config.store.hotkeys['group-selectors'], group.id)) {
             const groupSelectorsHotkeys = { ...this.config.store.hotkeys['group-selectors'] }
             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete groupSelectorsHotkeys[group.id]

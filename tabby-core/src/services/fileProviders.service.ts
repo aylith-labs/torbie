@@ -23,7 +23,6 @@ export class FileProvidersService {
             try {
                 return await p.retrieveFile(key)
             } catch {
-                continue
             }
         }
         throw new Error('Not found')

@@ -14,7 +14,7 @@ function hexLuminance (value: string): number|null {
     }
     const channel = (v: number) => {
         const c = v / 255
-        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
     }
     const r = channel(parseInt(hex.slice(0, 2), 16))
     const g = channel(parseInt(hex.slice(2, 4), 16))

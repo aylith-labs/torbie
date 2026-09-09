@@ -36,6 +36,7 @@ export class ElectronPTYProxy extends PTYProxy {
         private id: string,
     ) {
         super()
+        // biome-ignore lint/suspicious/noAsyncPromiseExecutor: the `finally` below always resolves, so this settles even on a throw, and the next line attaches the fallback
         this.truePID = new Promise(async (resolve) => {
             let pid = await this.getPID()
             try {

@@ -38,6 +38,7 @@ export class PathDropDecorator extends TerminalDecorator {
     }
 
     private quotePath (path: string, shellType: ShellType): string {
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control characters out of a dropped path is exactly what this line is for
         path = path.replace(/[\x00-\x1F\x7F]/g, '')
 
         if (shellType === 'powershell') {

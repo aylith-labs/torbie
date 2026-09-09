@@ -61,7 +61,7 @@ export class ElectronUpdaterService extends UpdaterService {
         if (this.electronUpdaterAvailable) {
             return new Promise((resolve, reject) => {
                 // eslint-disable-next-line @typescript-eslint/init-declarations, prefer-const
-                let cancel
+                let cancel: () => void
                 const onNoUpdate = () => {
                     cancel()
                     resolve(false)
@@ -89,15 +89,6 @@ export class ElectronUpdaterService extends UpdaterService {
                     this.logger.info('Electron updater unavailable, falling back', e)
                 }
             })
-
-            this.electron.ipcRenderer.on('updater:update-available', () => {
-                this.logger.info('Update available')
-            })
-
-            this.electron.ipcRenderer.once('updater:update-not-available', () => {
-                this.logger.info('No updates')
-            })
-
         } else {
             this.logger.debug('Checking for updates through fallback method.')
             const response = await fetch(UPDATES_URL)
@@ -111,7 +102,6 @@ export class ElectronUpdaterService extends UpdaterService {
             this.logger.info('No updates')
             return false
         }
-        return this.downloaded
     }
 
     async update (): Promise<void> {

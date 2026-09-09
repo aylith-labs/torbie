@@ -10,7 +10,7 @@ export function sessionKind (session: ClaudeSession): SessionKind {
     if (session.waitingOnPermission || session.awaitingInput) {
         return 'waiting'
     }
-    if (session.compacting || !!session.currentTool || session.status === 'active') {
+    if (session.compacting || session.currentTool || session.status === 'active') {
         return 'working'
     }
     return 'idle'

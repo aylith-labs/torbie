@@ -46,7 +46,6 @@ export function parseTabbyURL (url: string, cwd: string = process.cwd()): any {
                     case 'array':
                         parsedValue = parseShellCommand(value).filter(item => typeof item === 'string')
                         break
-                    case 'string':
                     default:
                         parsedValue = value
                         break

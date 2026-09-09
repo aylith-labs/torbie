@@ -193,9 +193,9 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
         }
         return {
             host: bindParts[0],
-            port: parseInt(bindParts[1]),
+            port: parseInt(bindParts[1], 10),
             targetAddress: tgtParts[0],
-            targetPort: parseInt(tgtParts[1]),
+            targetPort: parseInt(tgtParts[1], 10),
             type: forwardType,
             description: details,
         }
@@ -211,7 +211,7 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
             // The following have single string values
             case SSHProfilePropertyNames.User:
             case SSHProfilePropertyNames.Host:
-            case SSHProfilePropertyNames.JumpHost:
+            case SSHProfilePropertyNames.JumpHost: {
                 const basicString = settings[key]
                 if (typeof basicString === 'string') {
                     if (targetName === SSHProfilePropertyNames.JumpHost) {
@@ -223,10 +223,11 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
                     console.log('Unexpected value in settings for ' + key)
                 }
                 break
+            }
 
             // The following have single integer values
             case SSHProfilePropertyNames.Port:
-            case SSHProfilePropertyNames.KeepaliveCountMax:
+            case SSHProfilePropertyNames.KeepaliveCountMax: {
                 const numberString = settings[key]
                 if (typeof numberString === 'string') {
                     options[targetName] = parseInt(numberString, 10)
@@ -234,14 +235,15 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
                     console.log('Unexpected value in settings for ' + key)
                 }
                 break
+            }
 
             // KeepaliveInterval and ReadyTimeout are in seconds in SSH config but milliseconds in Tabby
             case SSHProfilePropertyNames.KeepaliveInterval:
-            case SSHProfilePropertyNames.ReadyTimeout:
+            case SSHProfilePropertyNames.ReadyTimeout: {
                 const secondsString = settings[key]
                 if (typeof secondsString === 'string') {
                     const parsedSeconds = parseInt(secondsString, 10)
-                    if (!isNaN(parsedSeconds) && parsedSeconds >= 0) {
+                    if (!Number.isNaN(parsedSeconds) && parsedSeconds >= 0) {
                         options[targetName] = parsedSeconds * 1000
                     } else {
                         console.log(`Invalid value for ${key}: "${secondsString}"`)
@@ -250,10 +252,11 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
                     console.log('Unexpected value in settings for ' + key)
                 }
                 break
+            }
 
             // The following have single yes/no values
             case SSHProfilePropertyNames.X11:
-            case SSHProfilePropertyNames.AgentForward:
+            case SSHProfilePropertyNames.AgentForward: {
                 let booleanString = settings[key]
                 booleanString = typeof booleanString === 'string' ? booleanString.toLowerCase() : ''
                 if ( booleanString === 'yes' || booleanString === 'no' ) {
@@ -262,17 +265,19 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
                     console.log('Unexpected value in settings for ' + key)
                 }
                 break
+            }
 
             // ProxyCommand will be an array if unquoted and containing multiple words,
             // or a simple string otherwise
-            case SSHProfilePropertyNames.ProxyCommand:
+            case SSHProfilePropertyNames.ProxyCommand: {
                 const proxyCommand = convertSSHConfigValuesToString(settings[key])
                 options[targetName] = proxyCommand
                 break
+            }
 
             // IdentityFile may have multiple values and the need to have '~' converted to the
             // path to the HOME directory
-            case SSHProfilePropertyNames.PrivateKeys:
+            case SSHProfilePropertyNames.PrivateKeys: {
                 const processedKeys: string [] = (settings[key] as string[]).map( s => {
                     let retVal: string = s
                     if (s.startsWith('~/')) {
@@ -282,10 +287,11 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
                 })
                 options[targetName] = processedKeys
                 break
+            }
 
             // The port forwarding directives all end up in the same space, but with a different value
             // in the SSHProfileOptions object
-            case SSHProfilePropertyNames.ForwardedPorts:
+            case SSHProfilePropertyNames.ForwardedPorts: {
                 const forwardTypeString = key.toLowerCase()
                 let forwardType: PortForwardType | null = null
                 switch (forwardTypeString) {
@@ -308,6 +314,7 @@ async function convertHostToSSHProfile (host: string, settings: Record<string, s
                     }
                 }
                 break
+            }
 
         }
 

@@ -78,7 +78,7 @@ export class MultifocusService {
             return
         }
         const tabs = this.app.tabs
-            .map((t => {
+            .flatMap((t => {
                 if (t instanceof BaseTerminalTabComponent) {
                     return [t]
                 } else if (t instanceof SplitTabComponent) {
@@ -88,7 +88,6 @@ export class MultifocusService {
                     return []
                 }
             }) as (_) => BaseTerminalTabComponent<any>[])
-            .flat()
         this.start(currentTab, tabs)
 
         this.warningElement.style.display = 'block'

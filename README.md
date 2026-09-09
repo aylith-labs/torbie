@@ -5,8 +5,22 @@ codebase and diverged from it. It keeps Tabby's plugin API — third-party plugi
 load unchanged — and adds the work catalogued in [`docs/`](docs/index.html): 43 features across
 diagnostics, link previews, session resume, build management and the terminal itself.
 
-> **Alpha.** Torbie is run from source and is not yet distributed as an installer. It is a personal
-> tool being developed in the open, not a supported product.
+## Install
+
+| | |
+| --- | --- |
+| **Windows** | `torbie-<version>-setup-x64.exe` — an NSIS installer; pick your own install directory. Or `torbie-<version>-portable-x64.zip`, which keeps its settings in a `data` folder beside the binary and runs alongside an existing install. |
+| **macOS** | `torbie-<version>-macos-arm64.dmg` (or `-x86_64`). |
+| **Linux** | `.deb`, `.rpm`, `.pacman`, `.tar.gz` and an AppImage. The deb and rpm replace `tabby-terminal` if you have it. |
+
+Every build is on the [releases page](https://github.com/aylith-labs/torbie/releases). Builds are
+not code-signed yet, so Windows SmartScreen will warn on first run and macOS will need
+*Open anyway* in System Settings → Privacy & Security.
+
+Installing does not disturb an existing Tabby: Torbie has its own application id, its own install
+directory and its own config directory. On first launch it copies your Tabby profile forward —
+settings, plugins, credentials, window geometry and your saved tab layout — by **copying**, never
+moving, so the original is left exactly as it was.
 
 ## What it is
 
@@ -34,20 +48,27 @@ claim, and the commits behind it.
 | **Per-window geometry** | Each window remembers its own position and size, rather than every window sharing one. |
 | **Jump list icons** | Taskbar profile entries wear their own icons, rasterized from the profile's Font Awesome class or SVG. |
 
-## Running it
+## Building it
 
-Torbie is built and run from source. See [HACKING.md](HACKING.md) for the full setup; the short
-version, once the prerequisites are in place:
+See [HACKING.md](HACKING.md) for the prerequisites; the short version once they are in place:
 
 ```bash
 yarn --network-timeout 1000000
 yarn run build
 node scripts/prepackage-plugins.mjs
+
+# run it from source
 ./node_modules/electron/dist/electron.exe --dev --user-data-dir=<profile> app
+
+# or produce the installer and portable zip in dist/
+node scripts/build-windows.mjs      # build-macos.mjs / build-linux.mjs
 ```
 
 `--user-data-dir` must come **before** the app path, or Electron hands the switch to the app and
 silently ignores it.
+
+A tagged push builds all three platforms in CI and publishes them to a GitHub release; the same
+scripts run locally and produce the same artifacts, unsigned.
 
 ## Plugins
 

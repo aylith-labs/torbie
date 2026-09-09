@@ -13,6 +13,7 @@ import { CheckboxComponent } from './checkbox.component'
     `,
     styleUrls: ['./toggle.component.scss'],
     providers: [
+        // biome-ignore lint/correctness/noInvalidUseBeforeDeclaration: the decorator factory runs after the class binding exists — this is Angular's own ControlValueAccessor registration
         { provide: NG_VALUE_ACCESSOR, useExisting: ToggleComponent, multi: true },
     ],
 })

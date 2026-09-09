@@ -111,11 +111,11 @@ export function normalizeModifier (value: unknown, fallback: ClickModifier = 'no
     // `hasOwnProperty` on both, not a truthiness test: `MODIFIERS['constructor']`
     // is inherited from `Object.prototype` and is a function, and a config file
     // is hand-editable.
-    if (Object.prototype.hasOwnProperty.call(MODIFIERS, key)) {
+    if (Object.hasOwn(MODIFIERS, key)) {
         return key as ClickModifier
     }
     const alias = key.toLowerCase()
-    if (Object.prototype.hasOwnProperty.call(MODIFIER_ALIASES, alias)) {
+    if (Object.hasOwn(MODIFIER_ALIASES, alias)) {
         return MODIFIER_ALIASES[alias] ?? fallback
     }
     return fallback
@@ -132,7 +132,7 @@ export function normalizeGesture (value: unknown, fallback: ClickGesture = 'left
  * which the type says cannot happen and a hand-edited `config.yaml` says can.
  */
 function modifierKeys (modifier: ClickModifier): ModifierKeys | undefined {
-    return Object.prototype.hasOwnProperty.call(MODIFIERS, modifier) ? MODIFIERS[modifier] : undefined
+    return  Object.hasOwn(MODIFIERS, modifier) ? MODIFIERS[modifier] : undefined
 }
 
 /**

@@ -149,7 +149,7 @@ export class AppRootComponent {
 
         this.hotkeys.hotkey$.subscribe((hotkey: string) => {
             if (hotkey.startsWith('tab-')) {
-                const index = parseInt(hotkey.split('-')[1])
+                const index = parseInt(hotkey.split('-')[1], 10)
                 if (index <= this.app.tabs.length) {
                     this.app.selectTab(this.app.tabs[index - 1])
                 }
@@ -302,7 +302,7 @@ export class AppRootComponent {
         this.buildConfigPath = this.platform.getConfigPath() ?? ''
         this.buildHint = this.buildSha
         const ts = parseInt(process.env.TABBY_BUILD_TIMESTAMP ?? '', 10)
-        this.buildTimestamp = isNaN(ts) ? null : ts
+        this.buildTimestamp = Number.isNaN(ts) ? null : ts
         this.refreshBuiltAgo()
     }
 

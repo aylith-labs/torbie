@@ -223,7 +223,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
      * provider after it from ever producing a hover again.
      */
     private provideLinks (state: TabState, y: number, callback: (links: any[] | undefined) => void): void {
-        let links: any[] | undefined = undefined
+        let links: any[] | undefined 
         try {
             links = this.computeLinks(state, y)
         } catch (err) {

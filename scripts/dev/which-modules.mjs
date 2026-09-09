@@ -15,5 +15,5 @@ const configPath = url.pathToFileURL(path.join(root, pkg, 'webpack.config.mjs'))
 const stats = await promisify(webpack)((await import(configPath)).default())
 const names = stats.toJson({ modules: true, reasons: false }).modules
     .map(m => m.name)
-    .filter(n => n && n.includes(filter))
+    .filter(n => n?.includes(filter))
 console.log(names.join('\n'))

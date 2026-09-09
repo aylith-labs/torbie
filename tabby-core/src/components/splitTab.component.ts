@@ -60,7 +60,6 @@ export class SplitContainer {
                     this.children.splice(i, 1)
                     this.ratios.splice(i, 1)
                     i--
-                    continue
                 } else if (child.children.length === 1) {
                     this.children[i] = child.children[0]
                 } else if (child.orientation === this.orientation) {
@@ -267,15 +266,15 @@ export class SplitTabComponent extends BaseTabComponent implements AfterViewInit
         this.setTitle('')
 
         this.focused$.subscribe(() => {
-            this.getAllTabs().forEach(x => x.emitFocused())
+            this.getAllTabs().forEach(x => { x.emitFocused() })
             if (this.focusedTab) {
                 this.focus(this.focusedTab)
             } else {
                 this.focusAnyIn(this.root)
             }
         })
-        this.blurred$.subscribe(() => this.getAllTabs().forEach(x => x.emitBlurred()))
-        this.visibility$.subscribe(visibility => this.getAllTabs().forEach(x => x.emitVisibility(visibility)))
+        this.blurred$.subscribe(() => this.getAllTabs().forEach(x => { x.emitBlurred() }))
+        this.visibility$.subscribe(visibility => this.getAllTabs().forEach(x => { x.emitVisibility(visibility) }))
 
         this.tabAdded$.subscribe(() => this.updateTitle())
         this.tabRemoved$.subscribe(() => this.updateTitle())

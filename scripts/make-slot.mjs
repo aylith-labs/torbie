@@ -190,7 +190,7 @@ function runningIn (dir) {
         { encoding: 'utf-8', windowsHide: true, timeout: 20000 })
         return out.split(/\r?\n/).map(x => x.trim()).filter(Boolean)
             .map(line => { const [pid, exe] = line.split('|'); return { pid: Number(pid), exe } })
-            .filter(p => p.exe && p.exe.toLowerCase().startsWith(dir.toLowerCase() + path.sep))
+            .filter(p => p.exe?.toLowerCase().startsWith(dir.toLowerCase() + path.sep))
     } catch {
         return []
     }

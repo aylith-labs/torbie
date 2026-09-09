@@ -6,7 +6,11 @@ import { BaseSession } from 'tabby-terminal'
 import { SessionOptions, ChildProcess, PTYInterface, PTYProxy } from './api'
 import { getEnvironment, substituteEnv } from './environment'
 
-const windowsDirectoryRegex = /([a-zA-Z]:[^\:\[\]\?\"\<\>\|]+)/mi
+// The character class excludes a literal ESC (0x1B) as well as the characters
+// Windows forbids in a path. This reads a directory out of terminal output,
+// where an unterminated escape sequence is a thing that actually arrives.
+// biome-ignore lint/suspicious/noControlCharactersInRegex: the ESC is deliberate — it is what stops an escape sequence being swallowed into the path
+const windowsDirectoryRegex = /([a-zA-Z]:[^:[\]?"<>|]+)/mi
 
 /**
  * The per-pane identity exported into every session as `TABBY_SESSION`, and

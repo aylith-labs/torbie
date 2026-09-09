@@ -43,7 +43,7 @@ export interface Vault {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface VaultSecretKey { }
+export type VaultSecretKey = {}
 
 function migrateVaultContent (content: any): Vault {
     return {

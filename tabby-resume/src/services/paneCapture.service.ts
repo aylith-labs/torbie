@@ -7,10 +7,11 @@ import { WslRecord, firstWorkerBelow, firstWorkerBelowList, foregroundOf, parseP
 
 /* eslint-disable block-scoped-var */
 
+// The same module tabby-electron reads process trees with. Missing on
+// anything but Windows, and its absence is the ordinary case there.
+let windowsProcessTree: any
 try {
-    // The same module tabby-electron reads process trees with. Missing on
-    // anything but Windows, and its absence is the ordinary case there.
-    var windowsProcessTree = require('@tabby-gang/windows-process-tree') // eslint-disable-line @typescript-eslint/no-var-requires, no-var
+    windowsProcessTree = require('@tabby-gang/windows-process-tree')
 } catch { }
 
 /** What we know about a pane before asking what it is running. */

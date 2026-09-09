@@ -211,7 +211,7 @@ async function parsePluginInfo (pluginDir: string, packageName: string): Promise
             path: pluginPath,
             info,
         }
-    } catch (error) {
+    } catch {
         console.error('Cannot load package info for', packageName)
         return null
     }

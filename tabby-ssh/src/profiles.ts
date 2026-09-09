@@ -112,7 +112,7 @@ export class SSHProfilesService extends QuickConnectProfileProvider<SSHProfile> 
     }
 
     quickConnect (query: string): PartialProfile<SSHProfile> {
-        let user: string|undefined = undefined
+        let user: string|undefined 
         let host = query
         let port = 22
         if (host.includes('@')) {
@@ -121,10 +121,10 @@ export class SSHProfilesService extends QuickConnectProfileProvider<SSHProfile> 
             user = parts.slice(0, parts.length - 1).join('@')
         }
         if (host.includes('[')) {
-            port = parseInt(host.split(']')[1].substring(1))
+            port = parseInt(host.split(']')[1].substring(1), 10)
             host = host.split(']')[0].substring(1)
         } else if (host.includes(':')) {
-            port = parseInt(host.split(/:/g)[1])
+            port = parseInt(host.split(/:/g)[1], 10)
             host = host.split(':')[0]
         }
 

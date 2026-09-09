@@ -32,7 +32,8 @@ yarn run test                      # the fast tier — pure logic, ~5s, what CI 
 yarn run test:checks               # check-docs + check-fork-marks (needs `upstream` fetched)
 yarn run test:cdp                  # the slow tier — each launches a hidden dev build
 yarn run test:list                 # every suite, by tier
-yarn run lint
+yarn run lint                      # biome check . — 443 files in ~0.15s
+yarn run lint:fix                  # biome check --write . (safe fixes only)
 yarn run typecheck
 ```
 
@@ -359,6 +360,51 @@ code ends `.finally(closeAll)`, and the shared driver settles every pending requ
 both when the target goes away and when it simply never replies (20s), because a
 promise that does neither is the same hang one level down.
 
+## Linting is Biome, and the formatter is off
+
+`biome.jsonc` replaces `.eslintrc.yml`. Biome is the org's house linter, and
+here it checks 443 files in about 150 ms against ESLint's 58 seconds — which is
+the difference between a check you run and one you remember to run.
+
+**Three settings carry the whole configuration, and each is load-bearing:**
+
+- **`unsafeParameterDecoratorsEnabled`.** Angular's DI is built on parameter
+  decorators — `@Inject(TOKEN) x: T` in a constructor — and the TC39 proposal
+  Biome implements has no such thing. Without this, **38 files fail to parse**,
+  which is not a lint result but a refusal to read the file.
+- **The formatter is off.** It would rewrite **416 of 443 files**. This project
+  takes commits from upstream by cherry-pick, and a tree-wide reformat is the
+  most conflict-hostile change possible to that — every future pick would land
+  in a file whose every line had moved. The house style (no semicolons, four
+  spaces, single quotes, trailing commas) is still *recorded* under
+  `javascript.formatter`, so `biome format` on a single file is correct if
+  someone runs it deliberately. `organizeImports` is off for the same reason:
+  245 files, no behavioural gain.
+- **`useImportType` and `useNodejsImportProtocol` are off**, and neither is a
+  taste call. A type-only import is erased, and Angular reads constructor
+  parameter *types* at runtime to resolve them — applying that rule to a DI'd
+  class breaks injection with no compile error. And `fs`, `path`, `module` and
+  `child_process` are webpack **externals** keyed on exactly those names, so
+  rewriting them to `node:fs` silently unmaps them and bundles a shim.
+
+Four more rules are off because the pattern each flags is deliberate and was
+already carrying an `eslint-disable` saying so: `noUselessConstructor` (a
+subclass constructor that only forwards to `super()` *is* the Angular injection
+site), `noInnerDeclarations` (`var x = require(...)` in a try/catch hoists out
+of the block on purpose, which is how every optional native module loads),
+`noUnusedFunctionParameters` (a default-implementation method on an abstract
+provider names its parameters as documentation) and `noUnusedVariables` on a
+public type parameter. Everything else that fired was fixed.
+
+- **A `// biome-ignore` carries its reason**, and the five in the tree are all
+  cases where the rule is right in general and wrong here: a regex that strips
+  control characters *on purpose*, an ESC deliberately excluded from a path
+  pattern, two `new Promise(async …)` that settle from callbacks, and Angular's
+  own `useExisting: <this class>` registration.
+- **The old `eslint-disable` comments are left in place** across 132 files. They
+  are inert now, but they document *why* a line is written the way it is, and
+  sweeping them would touch 132 mostly-upstream files to delete comments.
+
 ## Tests, and the tier they belong in
 
 Until the rename there was **no `test` script in any `package.json` and no
@@ -429,6 +475,16 @@ directly rather than installing:
 npm pack @tabby-gang/windows-process-tree@0.6.1 --pack-destination <tmp>
 tar -xzf <tmp>/*.tgz -C <tmp> && cp -r <tmp>/package app/node_modules/@tabby-gang/windows-process-tree
 cd app && npx patch-package && cd .. && node scripts/build-native.mjs
+```
+
+**`yarn --ignore-scripts` deletes the Electron binary.** Electron's `dist/` is
+produced by its own `postinstall`, so any install that skips scripts relinks the
+package and leaves `node_modules/electron/dist/electron.exe` gone — every launch
+then fails with `ENOENT spawn …electron.exe`, which does not mention scripts.
+Hit twice. Recover without a full reinstall:
+
+```bash
+cd node_modules/electron && node install.js
 ```
 
 **Never `npm install` in this repo.** It reconciles the yarn-managed tree to npm's layout

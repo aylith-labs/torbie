@@ -683,7 +683,7 @@ export class XTermFrontend extends Frontend {
     }
 
     private setFontSize () {
-        const scale = Math.pow(1.1, this.zoom)
+        const scale = 1.1 ** this.zoom
         this.xterm.options.fontSize = this.configuredFontSize * scale
         // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
         this.xterm.options.lineHeight = Math.max(1, (this.configuredFontSize + this.configuredLinePadding * 2) / this.configuredFontSize)

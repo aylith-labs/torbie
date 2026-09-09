@@ -33,7 +33,7 @@ export class ProfileTreeComponent extends BaseComponent {
 
     panelMinWidth = 200
     panelMaxWidth = 600
-    panelInternalWidth: number = parseInt(window.localStorage.profileTreeWidth ?? '300')
+    panelInternalWidth: number = parseInt(window.localStorage.profileTreeWidth ?? '300', 10)
     panelStartWidth = this.panelInternalWidth
     panelIsResizing = false
     panelStartX = 0

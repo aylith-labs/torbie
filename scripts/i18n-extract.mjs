@@ -5,7 +5,7 @@ import * as vars from './vars.mjs'
 import log from 'npmlog'
 import { GettextExtractor, JsExtractors, HtmlExtractors } from 'gettext-extractor'
 
-let extractor = new GettextExtractor()
+const extractor = new GettextExtractor()
 
 const tempOutput = 'locale/app.new.pot'
 const pot = 'locale/app.pot'

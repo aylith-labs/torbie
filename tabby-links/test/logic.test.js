@@ -46,8 +46,8 @@ Module._load = function (request, ...rest) {
     return originalLoad.call(this, request, ...rest)
 }
 
-const links = require(path.join(REPO, 'tabby-links/dist/index.js'))
-const runtime = links.IntegrationRuntimeService
+// Not bound to anything — this is the smoke test that the built bundle loads.
+require(path.join(REPO, 'tabby-links/dist/index.js'))
 // The helper functions are module-level exports of the runtime module; the
 // bundle re-exports only the services, so reach the helpers via the source.
 
@@ -466,7 +466,7 @@ console.log('\n── integration logos ──')
     // search would pass on a config that had been switched to `asset/resource`.
     const png = /test:\s*\/\\\.png\$\/\s*,\s*type:\s*'([a-z/]+)'/
         .exec(wp.replace(/\/\/[^\n]*/g, ''))
-    check('the package builds png as an inlined asset', png && png[1], 'asset/inline')
+    check('the package builds png as an inlined asset', png?.[1], 'asset/inline')
 }
 
 console.log('\n── parity fixes ──')
@@ -948,7 +948,7 @@ for (const preset of allPresets) {
     let compiles = true
     try {
         void new RegExp(preset.pattern, 'g')
-    } catch (err) {
+    } catch {
         compiles = false
     }
     check(`${preset.id}: compiles as a JS RegExp`, compiles, true)

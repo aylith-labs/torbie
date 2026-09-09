@@ -54,6 +54,7 @@ export type PartialProfileGroup<T extends ProfileGroup> = Omit<Omit<{
     name: string
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: part of the public plugin API — a plugin names both type arguments, so removing PP is a breaking change
 export interface ProfileSettingsComponent<P extends Profile, PP extends ProfileProvider<P>> {
     profile: FullyDefined<P>
     save?: () => void

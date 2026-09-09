@@ -41,7 +41,7 @@ export class LinkHighlighterDecorator extends TerminalDecorator {
             }
         }
 
-        let regex = new RegExp('')
+        let regex = /(?:)/
         const regexSource = this.handlers.map(x => `(${x.regex.source})`).join('|')
         try {
             regex = new RegExp(regexSource)

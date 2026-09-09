@@ -776,7 +776,6 @@ export class SSHSession {
                 } catch (e) {
                     const identitySuffix = method.publicKey ? ` with identity ${method.publicKey.fingerprint()}` : ''
                     this.emitServiceMessage(colors.bgYellow.yellow.black(' ! ') + ` Failed to authenticate using agent${identitySuffix}: ${e}`)
-                    continue
                 }
             }
         }
