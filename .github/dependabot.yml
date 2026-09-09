@@ -1,74 +1,69 @@
+# Dependency updates, deliberately quiet.
+#
+# What this replaces was upstream's: eleven npm directories on a **daily**
+# schedule with `open-pull-requests-limit: 20` each — up to 220 open pull
+# requests, every one of which triggers both the CI gate and a three-platform
+# packaging build. Measured on this repository's first two minutes: 29 pull
+# requests before anyone had looked at it once. That is not dependency
+# hygiene, it is a denial of service against your own attention and your own
+# Actions minutes.
+#
+# So: weekly, grouped into one pull request per directory, and a limit that
+# means the number stays readable. A grouped update is also easier to judge —
+# one CI run says whether the whole batch is safe, rather than eleven runs
+# each saying whether one patch bump is.
+#
+# The per-package directories are still listed individually because that is
+# how this tree is laid out: each `tabby-*` package has its own package.json
+# and its own lockfile, and Dependabot cannot see into a directory it was not
+# pointed at.
 version: 2
 updates:
 - package-ecosystem: npm
-  directory: "/"
+  directories:
+    - "/"
+    - "/app"
+    - "/tabby-community-color-schemes"
+    - "/tabby-core"
+    - "/tabby-electron"
+    - "/tabby-local"
+    - "/tabby-plugin-manager"
+    - "/tabby-settings"
+    - "/tabby-ssh"
+    - "/tabby-terminal"
+    - "/tabby-web"
   schedule:
-    interval: daily
+    interval: weekly
+    day: monday
     time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/app"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-core"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-settings"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-terminal"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-local"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-community-color-schemes"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-electron"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-web"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-plugin-manager"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
-- package-ecosystem: npm
-  directory: "/tabby-ssh"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 20
+  open-pull-requests-limit: 5
+  groups:
+    # One pull request per directory rather than per package. Angular, xterm
+    # and Electron each move as a set here, and splitting them produces pull
+    # requests that cannot pass on their own.
+    all:
+      patterns: ["*"]
+      update-types: ["minor", "patch"]
+  ignore:
+    # Major bumps of these are migrations, not updates — the Angular upgrade
+    # lives on its own branch precisely because it is one. An automated pull
+    # request for them is noise that will never be merged as-is.
+    - dependency-name: "@angular/*"
+      update-types: ["version-update:semver-major"]
+    - dependency-name: "@xterm/*"
+      update-types: ["version-update:semver-major"]
+    - dependency-name: "electron"
+      update-types: ["version-update:semver-major"]
+    - dependency-name: "typescript"
+      update-types: ["version-update:semver-major"]
+
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
-    interval: daily
+    interval: weekly
+    day: monday
     time: "04:00"
-  open-pull-requests-limit: 20
+  open-pull-requests-limit: 3
+  groups:
+    actions:
+      patterns: ["*"]
