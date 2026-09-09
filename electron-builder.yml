@@ -1,11 +1,15 @@
 ---
-appId: org.tabby
-productName: Tabby
+appId: com.aylith.torbie
+productName: Torbie
 compression: normal
 npmRebuild: false
 protocols:
-  - name: Tabby URL
+  # `tabby` stays registered alongside `torbie`: a `tabby://` link already in
+  # somebody's notes, script or bookmark keeps working, exactly as `terminus`
+  # was kept when this codebase was last renamed.
+  - name: Torbie URL
     schemes:
+      - torbie
       - tabby
 files:
 - '**/*'
@@ -43,19 +47,19 @@ asarUnpack:
 - node_modules/**/*.node
 win:
   icon: "./build/windows/icon.ico"
-  artifactName: tabby-${version}-portable-${env.ARCH}.${ext}
+  artifactName: torbie-${version}-portable-${env.ARCH}.${ext}
   signtoolOptions:
     rfc3161TimeStampServer: http://timestamp.sectigo.com
 nsis:
   oneClick: false
-  artifactName: tabby-${version}-setup-${env.ARCH}.${ext}
+  artifactName: torbie-${version}-setup-${env.ARCH}.${ext}
   installerIcon: "./build/windows/icon.ico"
   allowToChangeInstallationDirectory: true
-  shortcutName: Tabby Terminal
+  shortcutName: Torbie
 mac:
   category: public.app-category.utilities
   icon: "./build/mac/icon.icns"
-  artifactName: tabby-${version}-macos-${env.ARCH}.${ext}
+  artifactName: torbie-${version}-macos-${env.ARCH}.${ext}
   hardenedRuntime: true
   entitlements: "./build/mac/entitlements.plist"
   entitlementsInherit: "./build/mac/entitlements.plist"
@@ -75,13 +79,13 @@ mac:
 linux:
   category: "Utility;TerminalEmulator;System"
   icon: "./build/icons"
-  artifactName: tabby-${version}-linux-${env.ARCH}.${ext}
+  artifactName: torbie-${version}-linux-${env.ARCH}.${ext}
   executableArgs:
   - "--no-sandbox"
   desktop:
     entry:
-      StartupWMClass: tabby
-      MimeType: x-scheme-handler/tabby
+      StartupWMClass: torbie
+      MimeType: x-scheme-handler/torbie;x-scheme-handler/tabby
 snap:
   plugs:
   - default
@@ -98,6 +102,8 @@ deb:
   fpm:
   - '--replaces'
   - 'terminus-terminal'
+  - '--replaces'
+  - 'tabby-terminal'
 pacman:
   depends:
   - gnome-keyring
@@ -110,6 +116,8 @@ rpm:
   - '_build_id_links none'
   - '--replaces'
   - 'terminus-terminal'
+  - '--replaces'
+  - 'tabby-terminal'
 electronFuses:
   runAsNode: false
   enableNodeOptionsEnvironmentVariable: false

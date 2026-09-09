@@ -545,7 +545,7 @@ export class BuildsSettingsTabComponent extends BaseComponent {
             const shortcut = await this.actions.writeStartMenuShortcut(build)
             this.startMenuTarget = build.executable
             this.notifications.info(this.translate.instant(
-                'Added to the Start menu. Search for Tabby-fork, then right-click it to pin it.'))
+                'Added to the Start menu. Search for Torbie, then right-click it to pin it.'))
             this.startMenuShortcut = shortcut
         } catch (err) {
             this.notifications.error(String(err))

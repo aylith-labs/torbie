@@ -76,7 +76,7 @@ export class Window {
 
         const bwOptions: BrowserWindowConstructorOptions = {
             ...placement.bounds,
-            title: 'Tabby',
+            title: 'Torbie',
             minWidth: 400,
             minHeight: 300,
             webPreferences: {

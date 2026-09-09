@@ -1,6 +1,6 @@
 # Some background
 
-Tabby is an Electron app, with the frontend written in Typescript with the help of Angular framework. It's built using Webpack.
+Torbie is an Electron app, with the frontend written in Typescript with the help of Angular framework. It's built using Webpack.
 
 # Getting started
 
@@ -10,7 +10,7 @@ First of all, clone this repository.
 - [Node.js](https://nodejs.org/en/download/) **version 15 or newer*
 - [Yarn](https://yarnpkg.com/)
 
-First, from within the `tabby` directory install the dependencies via yarn:
+First, from within the checkout install the dependencies via yarn:
 
 ```
 # macOS & Windows:
@@ -25,13 +25,13 @@ yarn
 
 _⚠️Note: If you forked this repository, you may need to pull down the tags from this repository before installing node modules. `git pull --tags upstream master`_
 
-Build Tabby:
+Build it:
 
 ```
 yarn run build
 ```
 
-Start Tabby
+Start it
 
 ```
 yarn start
@@ -95,7 +95,7 @@ The app will load all plugins from the source checkout in the dev mode, from the
 
 Only modules whose `package.json` file contains a `tabby-plugin` keyword will be loaded.
 
-If you're currently in your plugin's directory, start Tabby as `TABBY_PLUGINS=$(pwd) tabby --debug`
+If you're currently in your plugin's directory, start it as `TORBIE_PLUGINS=$(pwd) torbie --debug`
 
 A plugin should only provide a default export, which should be a `NgModule` class (or a `NgModuleWithDependencies` where applicable). This module will be injected as a dependency to the app's root module.
 

@@ -1,11 +1,10 @@
 {
-  "name": "tabby",
+  "name": "torbie",
   "description": "A terminal for a modern age",
   "private": true,
-  "repository": "https://github.com/Eugeny/tabby",
+  "repository": "https://github.com/aylith-labs/torbie",
   "author": {
-    "name": "Tabby Developers",
-    "email": "e@ajenti.org"
+    "name": "Aylith Labs"
   },
   "main": "dist/main.js",
   "version": "1.0.0-alpha.1",

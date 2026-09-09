@@ -19,6 +19,8 @@ if (fs.existsSync(portableData)) {
     // TABBY_CONFIG_DIRECTORY with ??=, so an inherited value would win — force
     // it here instead.
     process.env.TABBY_CONFIG_DIRECTORY = portableData
+    process.env.TORBIE_CONFIG_DIRECTORY = portableData
     delete process.env.NODE_PATH
     delete process.env.TABBY_PLUGINS
+    delete process.env.TORBIE_PLUGINS
 }

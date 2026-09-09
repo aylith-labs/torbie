@@ -419,7 +419,7 @@ ng-template(#options)
     .form-line(*ngIf='taskbarSupported')
         .header
             .title(translate) Retarget the taskbar pin
-            .description(translate) Making a build active repoints the pinned Tabby shortcut at it. Windows has no way to create a pin, so pin Tabby once by hand and this keeps it aimed at the right build
+            .description(translate) Making a build active repoints the pinned shortcut at it. Windows has no way to create a pin, so pin Torbie once by hand and this keeps it aimed at the right build
         toggle(
             [(ngModel)]='config.store.builds.pinToTaskbar',
             (ngModelChange)='saveConfiguration()',
@@ -428,7 +428,7 @@ ng-template(#options)
     .form-line(*ngIf='taskbarSupported')
         .header
             .title(translate) The pin currently launches
-            .description.mono {{pinTarget || ('Tabby is not pinned to the taskbar'|translate)}}
+            .description.mono {{pinTarget || ('Not pinned to the taskbar'|translate)}}
         button.btn.btn-secondary((click)='rescan()')
             span(translate) Recheck
 

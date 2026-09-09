@@ -47,13 +47,25 @@ const dryRun = args.has('--dry-run')
 const promote = args.has('--promote')
 const skipBuild = args.has('--skip-build')
 
-const SLOTS_ROOT = path.join(os.homedir(), 'Tabby', 'builds')
-const USER_DATA = path.join(os.homedir(), 'AppData', 'Roaming', 'tabby')
+/** Matches `productName` in electron-builder.yml — the binary it produces. */
+const EXE_NAME = 'Torbie.exe'
+
+const SLOTS_ROOT = path.join(os.homedir(), 'Torbie', 'builds')
+/** Where slots lived before the rename. Migrated from, never written to. */
+const LEGACY_SLOTS_ROOT = path.join(os.homedir(), 'Tabby', 'builds')
+
+const APPDATA_ROOT = path.join(os.homedir(), 'AppData', 'Roaming')
+// The profile lives under the new name once the app has run once —
+// `app/lib/migrateUserData.ts` copies the old one forward — so the old
+// directory is only reached on a machine that has not started the new build yet.
+const USER_DATA = fs.existsSync(path.join(APPDATA_ROOT, 'torbie'))
+    ? path.join(APPDATA_ROOT, 'torbie')
+    : path.join(APPDATA_ROOT, 'tabby')
 
 /** The only two slot directories that may exist. */
 const SLOTS = {
-    canary: { dir: 'canary', label: 'canary', shortcut: 'Tabby-fork-canary.lnk' },
-    dev: { dir: 'dev', label: 'dev', shortcut: 'Tabby-fork-dev.lnk' },
+    canary: { dir: 'canary', label: 'canary', shortcut: 'Torbie-canary.lnk' },
+    dev: { dir: 'dev', label: 'dev', shortcut: 'Torbie-dev.lnk' },
 }
 
 const git = (cmd, fallback = 'unknown') => {
@@ -86,11 +98,11 @@ function buildStamp (now, sha) {
 function buildInfo (role, stamp, sha, head, branch, upstream, now) {
     const commits = git(`log --oneline ${upstream.base}..${head}`, '')
     return [
-        'Tabby fork - build slot',
-        '=======================',
+        'Torbie - build slot',
+        '===================',
         '',
         `Slot:          ${role}   (${role === 'dev'
-            ? 'production - the Tabby you work in; changes only when canary is promoted'
+            ? 'production - the terminal you work in; changes only when canary is promoted'
             : 'disposable - replaced by every build'})`,
         `Build:         ${stamp}`,
         `Built:         ${now.toISOString()}`,
@@ -112,7 +124,7 @@ function buildInfo (role, stamp, sha, head, branch, upstream, now) {
         '--------------',
         'data\\             portable userData (app/lib/portable.ts redirects here)',
         'data\\config.yaml  this slot\'s own settings; kept across rebuilds of it',
-        'data\\plugins      junction -> %APPDATA%\\tabby\\plugins (shared, live)',
+        `data\\plugins      junction -> ${path.join(USER_DATA, 'plugins')} (shared, live)`,
         '',
         'Notes',
         '-----',
@@ -174,7 +186,7 @@ function runningIn (dir) {
     }
     try {
         const out = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
-            "Get-Process -Name Tabby -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.Id)|$($_.Path)\" }"],
+            "Get-Process -Name Torbie,Tabby -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.Id)|$($_.Path)\" }"],
         { encoding: 'utf-8', windowsHide: true, timeout: 20000 })
         return out.split(/\r?\n/).map(x => x.trim()).filter(Boolean)
             .map(line => { const [pid, exe] = line.split('|'); return { pid: Number(pid), exe } })
@@ -285,6 +297,44 @@ function assertProfileWritable (dir) {
     }
 }
 
+/**
+ * Move slots cut under the old name into the new root, once.
+ *
+ * A slot is where the terminal you actually use lives, so this is deliberately
+ * conservative: only a slot with no destination waiting for it, and never one
+ * that is running — swapping a directory out from under a live window is the
+ * one thing this script exists to refuse. Anything left behind is still listed
+ * by the Builds page, because `~/Tabby` stays in `searchRoots`.
+ */
+function migrateLegacySlots () {
+    if (!fs.existsSync(LEGACY_SLOTS_ROOT)) {
+        return
+    }
+    for (const { dir } of Object.values(SLOTS)) {
+        const from = path.join(LEGACY_SLOTS_ROOT, dir)
+        const to = path.join(SLOTS_ROOT, dir)
+        if (!fs.existsSync(from) || fs.existsSync(to)) {
+            continue
+        }
+        const busy = runningIn(from)
+        if (busy.length) {
+            console.log(`note:   ${from} is running (PID ${busy.map(p => p.pid).join(', ')}) — left where it is.`)
+            continue
+        }
+        if (dryRun) {
+            console.log(`would move ${from} -> ${to}`)
+            continue
+        }
+        fs.mkdirSync(SLOTS_ROOT, { recursive: true })
+        // The read-only bit `freeze()` set stops a rename on Windows.
+        run('attrib', ['-R', `"${path.join(from, '*')}"`, '/S', '/D'], LEGACY_SLOTS_ROOT)
+        fs.renameSync(from, to)
+        console.log(`moved:  ${from} -> ${to}`)
+    }
+}
+
+migrateLegacySlots()
+
 const now = new Date()
 // Resolved once: a commit made while the build runs would otherwise leave the
 // slot's name and its recorded commit disagreeing.
@@ -315,7 +365,7 @@ if (!promote && git('status --porcelain', '')) {
     console.log('commit, but the bundle is compiled from the tree — those differ.\n')
 }
 
-if (promote && !fs.existsSync(path.join(canary, 'Tabby.exe'))) {
+if (promote && !fs.existsSync(path.join(canary, EXE_NAME))) {
     console.error(`\nNothing to promote: there is no canary at ${canary}.`)
     process.exit(1)
 }
@@ -405,9 +455,9 @@ if (!dryRun) {
 // fixed, so a pin made from either of these stays correct for ever. That is
 // the whole reason the timestamped directory names went.
 console.log('\nshortcuts')
-const exe = path.join(target, 'Tabby.exe')
+const exe = path.join(target, EXE_NAME)
 for (const lnk of [
-    path.join(os.homedir(), 'Tabby', slot.shortcut),
+    path.join(os.homedir(), 'Torbie', slot.shortcut),
     // The Start menu entry is the one Windows will let you pin: *Pin to Start*
     // and *Pin to taskbar* appear for Start menu apps and for nothing else.
     path.join(process.env.APPDATA ?? '', 'Microsoft', 'Windows', 'Start Menu',
@@ -424,7 +474,7 @@ for (const lnk of [
         `$l.TargetPath = '${exe.replace(/'/g, '\'\'')}'`,
         `$l.WorkingDirectory = '${target.replace(/'/g, '\'\'')}'`,
         `$l.IconLocation = '${exe.replace(/'/g, '\'\'')},0'`,
-        `$l.Description = 'Tabby fork (local) - ${slot.label} slot'`,
+        `$l.Description = 'Torbie (local) - ${slot.label} slot'`,
         '$l.Save()',
     ].join('; ')
     execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], { stdio: 'ignore' })

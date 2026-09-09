@@ -4,6 +4,13 @@ import { installDiagnostics, mark, recordFailure } from './diagnostics'
 
 import { app, ipcMain, Menu } from 'electron'
 
+import { syncEnvAliases } from './env'
+
+// Both spellings name the same thing, and neither prefix is retired — see
+// `env.ts`. Done before anything reads one, so no later site has to know that
+// there are two.
+syncEnvAliases()
+
 // Dev mode has only ever been expressible as an environment variable, and a
 // Windows shortcut cannot carry one — so a build run from source could not be
 // pinned to the taskbar or launched from anywhere but a prepared shell. Read
@@ -11,15 +18,28 @@ import { app, ipcMain, Menu } from 'electron'
 // branch on it.
 if (process.argv.includes('--dev')) {
     process.env.TABBY_DEV = '1'
+    process.env.TORBIE_DEV = '1'
 }
 
 // set userData Path on portable version
 import './portable'
 
+import { migrateUserData } from './migrateUserData'
+
 // set defaults of environment variables
 import 'dotenv/config'
+// A `.env` may have introduced either spelling of something.
+syncEnvAliases()
 process.env.TABBY_PLUGINS ??= ''
+process.env.TORBIE_PLUGINS ??= ''
+
+// Before the config directory is settled: everything downstream reads
+// TABBY_CONFIG_DIRECTORY, so a profile carried forward after this point would
+// land in a directory nothing reads.
+migrateUserData()
+
 process.env.TABBY_CONFIG_DIRECTORY ??= app.getPath('userData')
+process.env.TORBIE_CONFIG_DIRECTORY ??= process.env.TABBY_CONFIG_DIRECTORY
 
 // Once the config directory is settled there is somewhere to write, and every
 // renderer forked from here inherits it. A blocked main process freezes every
@@ -60,13 +80,16 @@ process.mainModule = module
 
 const application = new Application(configStore)
 
-// Register tabby:// URL scheme
-if (process.defaultApp) {
-    if (process.argv.length >= 2) {
-        app.setAsDefaultProtocolClient('tabby', process.execPath, [process.argv[1]])
+// Register the torbie:// URL scheme, and tabby:// alongside it so a link
+// written before the rename still opens.
+for (const scheme of ['torbie', 'tabby']) {
+    if (process.defaultApp) {
+        if (process.argv.length >= 2) {
+            app.setAsDefaultProtocolClient(scheme, process.execPath, [process.argv[1]])
+        }
+    } else {
+        app.setAsDefaultProtocolClient(scheme)
     }
-} else {
-    app.setAsDefaultProtocolClient('tabby')
 }
 
 ipcMain.on('app:new-window', (_event, options?: { initialTab?: any }) => {

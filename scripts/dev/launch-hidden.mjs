@@ -42,9 +42,12 @@ const profile = arg('profile', path.join(
 
 function tabbyCount () {
     try {
+        // Both names: this guard exists to prove no packaged app was disturbed,
+        // and after the rename there are two kinds of packaged app on the
+        // machine. A guard that counts only one of them proves half as much.
         return parseInt(execFileSync('powershell', [
             '-NoProfile', '-Command',
-            '@(Get-Process Tabby -ErrorAction SilentlyContinue).Count',
+            '@(Get-Process Torbie,Tabby -ErrorAction SilentlyContinue).Count',
         ], { encoding: 'utf8' }).trim(), 10)
     } catch {
         return -1

@@ -57,7 +57,7 @@ const linkerPlugin = createEs2015LinkerPlugin({
 })
 
 export default () => ({
-    name: 'tabby',
+    name: 'torbie',
     target: 'node',
     entry: {
         'index.ignore': 'file-loader?name=index.html!pug-html-loader!' + path.resolve(__dirname, './index.pug'),

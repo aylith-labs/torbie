@@ -12,8 +12,14 @@ export interface RunningProcess extends BuildProcess {
     executable: string
 }
 
-/** Only these ever belong to a Tabby build; everything else is skipped early. */
-const NAME_PATTERN = /^(tabby|electron)(\.exe)?$/i
+/**
+ * Only these ever belong to a build we track; everything else is skipped early.
+ *
+ * `tabby` stays beside `torbie` because an installed upstream Tabby is one of
+ * the builds this page inventories — and because a process filter that quietly
+ * matches nothing looks exactly like a machine with nothing running.
+ */
+const NAME_PATTERN = /^(torbie|tabby|electron)(\.exe)?$/i
 
 /**
  * Windows has no cheap native way to map a PID to its executable path, and
@@ -24,7 +30,7 @@ const WINDOWS_PROBE = `
 $ErrorActionPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $epoch = [datetime]'1970-01-01'
-$rows = foreach ($p in Get-Process -Name Tabby,tabby,electron) {
+$rows = foreach ($p in Get-Process -Name Torbie,Tabby,electron) {
     $exe = $null
     try { $exe = $p.Path } catch { }
     if (-not $exe) { continue }

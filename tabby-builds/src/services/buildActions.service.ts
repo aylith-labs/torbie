@@ -8,6 +8,7 @@ import { ConfigService, MenuItemOptions, NotificationsService, PlatformService, 
 import { TabbyBuild } from '../api'
 import { fs } from '../nodeFs'
 import { humanBytes } from '../format'
+import { PRODUCT_NAME } from '../productNames'
 import { BuildDoctorService } from './buildDoctor.service'
 import { BuildProcessesService } from './buildProcesses.service'
 import { BuildSizeService } from './buildSize.service'
@@ -321,7 +322,7 @@ export class BuildActionsService {
                     args: spec.args,
                     cwd: spec.cwd,
                     icon: await this.pinIcon(build, spec.target),
-                    description: build.name === 'Tabby' ? 'Tabby' : `Tabby — ${build.name}`,
+                    description: build.name === PRODUCT_NAME ? PRODUCT_NAME : `${PRODUCT_NAME} — ${build.name}`,
                 })
                 this.notifications.info(this.translate.instant('{name} is now the active build, and the taskbar pin points at it', { name: build.name }))
             } catch (err) {
@@ -354,7 +355,7 @@ export class BuildActionsService {
             args: launch.args,
             cwd: launch.cwd,
             icon: await this.pinIcon(build, launch.target),
-            description: build.name === 'Tabby' ? 'Tabby' : `Tabby — ${build.name}`,
+            description: build.name === PRODUCT_NAME ? PRODUCT_NAME : `${PRODUCT_NAME} — ${build.name}`,
         })
     }
 
@@ -385,7 +386,7 @@ export class BuildActionsService {
                 : configured.trim()
         }
         const hash = crypto.createHash('sha1').update(repo.toLowerCase()).digest('hex').slice(0, 8)
-        return path.join(os.tmpdir(), `tabby-dev-profile-${hash}`)
+        return path.join(os.tmpdir(), `torbie-dev-profile-${hash}`)
     }
 
     reveal (build: TabbyBuild): void {

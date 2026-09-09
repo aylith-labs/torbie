@@ -5,6 +5,7 @@ import { ConfigService } from 'tabby-core'
 
 import { BuildHealth, HealthFinding, TabbyBuild } from '../api'
 import { fs } from '../nodeFs'
+import { PRODUCT_REPO, UPSTREAM_REPO, isSplashTitle, isUpstreamBuild } from '../productNames'
 
 /**
  * Builtin plugins without which the renderer cannot finish starting.
@@ -34,11 +35,6 @@ const NEVER_USER_PLUGINS = [
 
 /** How long a build may sit on the splash before that counts as stuck. */
 const BOOT_GRACE_MS = 30000
-
-/** The window title Tabby carries before it has opened a tab. */
-function isSplashTitle (title: string): boolean {
-    return !title || title.trim().toLowerCase() === 'tabby'
-}
 
 async function exists (p: string): Promise<boolean> {
     try {
@@ -287,12 +283,20 @@ export class BuildDoctorService {
         return path.join(os.homedir(), 'Downloads', 'Installers')
     }
 
-    /** The release page for a version, for the case where nothing local fits. */
+    /**
+     * The release page for a version, for the case where nothing local fits.
+     *
+     * Which project's releases depends on which build this is: an installed
+     * upstream Tabby is listed by this page too, and sending someone to
+     * Torbie's releases for a version Torbie never published would be a dead
+     * link dressed up as an answer.
+     */
     releaseURL (build: TabbyBuild): string {
+        const repo = isUpstreamBuild(`${build.name} ${build.root}`) ? UPSTREAM_REPO : PRODUCT_REPO
         const version = build.version?.split('-')[0]
         return version
-            ? `https://github.com/Eugeny/tabby/releases/tag/v${version}`
-            : 'https://github.com/Eugeny/tabby/releases'
+            ? `https://github.com/${repo}/releases/tag/v${version}`
+            : `https://github.com/${repo}/releases`
     }
 
     get autoCheckEnabled (): boolean {

@@ -7,9 +7,9 @@
 // absent DSN skips `init` entirely rather than initialising a client with
 // nowhere to go.
 //
-// `TORBIE_SENTRY_DSN` is read from `process.env` so that `webpack.DefinePlugin`
-// can substitute it at build time (see `app/webpack.config.mjs`); it is
-// undefined in a source build, which is what keeps a dev run silent.
+// `TORBIE_SENTRY_DSN` is read from the real environment, so a build that has
+// a project to report into supplies it and one that does not stays silent
+// without a code change.
 const { init } = String(process.type) === 'main' ? require('@sentry/electron/dist/main') : require('@sentry/electron/dist/renderer')
 
 const SENTRY_DSN = process.env.TORBIE_SENTRY_DSN

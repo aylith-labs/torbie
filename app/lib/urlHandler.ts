@@ -1,8 +1,12 @@
 import { createParserConfig } from './cli'
 import { parse as parseShellCommand } from 'shell-quote'
 
+/** Both schemes are registered — `tabby://` for links written before the rename. */
+const SCHEMES = ['torbie://', 'tabby://']
+
 export function isTabbyURL (arg: string): boolean {
-    return arg.toLowerCase().startsWith('tabby://')
+    const lower = arg.toLowerCase()
+    return SCHEMES.some(scheme => lower.startsWith(scheme))
 }
 
 export function parseTabbyURL (url: string, cwd: string = process.cwd()): any {

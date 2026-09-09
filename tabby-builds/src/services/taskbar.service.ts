@@ -2,6 +2,8 @@ import * as path from 'path'
 import { execFile } from 'child_process'
 import { Injectable } from '@angular/core'
 
+import { executableNames } from '../productNames'
+
 /** What a taskbar pin points at. */
 export interface TaskbarPin {
     /** The .lnk file itself. */
@@ -12,12 +14,12 @@ export interface TaskbarPin {
 }
 
 /**
- * Does this pin launch a Tabby? Either the app binary directly, or an Electron
- * running a checkout — which is how a source build is pinned.
+ * Does this pin launch one of ours? Either the app binary directly, or an
+ * Electron running a checkout — which is how a source build is pinned.
  */
 function isTabbyTarget (pin: TaskbarPin): boolean {
     const name = path.basename(pin.target).toLowerCase()
-    if (name === 'tabby.exe' || name === 'tabby') {
+    if (executableNames().some(candidate => candidate.toLowerCase() === name)) {
         return true
     }
     return /^electron(\.exe)?$/.test(name) && /(^|\s)app(\s|$)/.test(pin.arguments)
@@ -134,7 +136,7 @@ Write-Output $json
      *
      * This is what makes pinning possible at all. Windows offers *Pin to
      * Start* and *Pin to taskbar* for things it considers Start menu apps;
-     * a shortcut anywhere else — `~\Tabby\Tabby-fork.lnk`, say — is found by
+     * a shortcut anywhere else — `~\Torbie\Torbie-dev.lnk`, say — is found by
      * search but offers only Run as administrator and Open file location.
      * Unlike a taskbar pin, this shortcut is ours to create.
      *
@@ -143,9 +145,26 @@ Write-Output $json
      * made from it.
      */
     startMenuShortcut (): string {
+        return this.startMenuPath('Torbie.lnk')
+    }
+
+    /**
+     * Entries written under the old name, still retargeted where they exist.
+     *
+     * The rename is exactly the case the comment above warns about: a Start
+     * pin is a *copy* of the shortcut it was made from, and it keeps pointing
+     * at whatever that copy's target was. So `Tabby-fork.lnk` is not renamed
+     * or deleted — it is kept aimed at the active build alongside the new one,
+     * which is the only way an existing pin survives.
+     */
+    legacyStartMenuShortcuts (): string[] {
+        return ['Tabby-fork.lnk'].map(name => this.startMenuPath(name))
+    }
+
+    private startMenuPath (name: string): string {
         return path.join(
             process.env.APPDATA ?? '',
-            'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Tabby-fork.lnk',
+            'Microsoft', 'Windows', 'Start Menu', 'Programs', name,
         )
     }
 
@@ -186,6 +205,32 @@ $link = (New-Object -ComObject WScript.Shell).CreateShortcut(${psString(this.sta
             throw new Error('Start menu shortcuts are a Windows feature')
         }
         const shortcut = this.startMenuShortcut()
+        await this.writeShortcut(shortcut, spec)
+
+        // An entry written under the old name is only *retargeted*, never
+        // created: putting an app in someone's Start menu is a thing they
+        // asked for once, and asking again on their behalf is not this page's
+        // call. Failing to move one must not fail the whole operation either —
+        // the new entry is the one that matters.
+        for (const legacy of this.legacyStartMenuShortcuts()) {
+            try {
+                if (await this.shortcutExists(legacy)) {
+                    await this.writeShortcut(legacy, spec)
+                }
+            } catch {
+                // Reported nowhere on purpose: a stale alias is a cosmetic loss.
+            }
+        }
+        return shortcut
+    }
+
+    private async shortcutExists (shortcut: string): Promise<boolean> {
+        const out = await runPowerShell(
+            `if (Test-Path -LiteralPath ${psString(shortcut)}) { 'yes' } else { '' }`)
+        return out.trim() === 'yes'
+    }
+
+    private async writeShortcut (shortcut: string, spec: PinSpec): Promise<void> {
         await runPowerShell(`
 $ErrorActionPreference = 'Stop'
 $link = (New-Object -ComObject WScript.Shell).CreateShortcut(${psString(shortcut)})
@@ -196,7 +241,6 @@ $link.IconLocation = ${psString(`${spec.icon},0`)}
 $link.Description = ${psString(spec.description)}
 $link.Save()
 `)
-        return shortcut
     }
 
     async isPinned (): Promise<boolean> {

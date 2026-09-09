@@ -7,13 +7,19 @@ import { ConfigService } from 'tabby-core'
 
 import { BuildGitInfo, BuildKind, TabbyBuild } from '../api'
 import { fs } from '../nodeFs'
+import { PRODUCT_NAMES, SOURCE_PACKAGE_NAMES, executableNames } from '../productNames'
 import { normalize } from './buildProcesses.service'
 
 /** Directory names never worth descending into while looking for checkouts. */
 const SKIP_DIRS = new Set(['node_modules', '.git', '.yarn', '.cache', 'venv', '__pycache__'])
 
-/** Files that count as a Tabby installer or portable bundle. */
-const INSTALLER_PATTERN = /^tabby[-_. ].*\.(exe|msi|dmg|appimage|deb|rpm|zip|snap)$/i
+/**
+ * Files that count as an installer or portable bundle, for either product —
+ * the counterpart of `artifactName` in `electron-builder.yml`, which is why
+ * the name list is shared rather than spelled again here.
+ */
+const INSTALLER_PATTERN = new RegExp(
+    `^(${PRODUCT_NAMES.map(n => n.toLowerCase()).join('|')})[-_. ].*\\.(exe|msi|dmg|appimage|deb|rpm|zip|snap)$`, 'i')
 
 /** Running build first, then by kind, then newest build first. */
 const KIND_ORDER: Record<BuildKind, number> = {
@@ -246,28 +252,36 @@ export class BuildScannerService {
 
     private async wellKnownInstalls (): Promise<Seed[]> {
         const home = os.homedir()
-        const candidates: { root: string, executable: string }[] = []
-        if (process.platform === 'win32') {
-            const roots = [
-                process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Programs', 'Tabby') : null,
-                process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'Tabby') : null,
-                process.env['ProgramFiles(x86)'] ? path.join(process.env['ProgramFiles(x86)'], 'Tabby') : null,
-            ].filter((x): x is string => !!x)
-            candidates.push(...roots.map(root => ({ root, executable: path.join(root, 'Tabby.exe') })))
-        } else if (process.platform === 'darwin') {
-            const roots = ['/Applications/Tabby.app', path.join(home, 'Applications', 'Tabby.app')]
-            candidates.push(...roots.map(root => ({
-                root, executable: path.join(root, 'Contents', 'MacOS', 'Tabby'),
-            })))
-        } else {
-            candidates.push(
-                { root: '/opt/Tabby', executable: '/opt/Tabby/tabby' },
-                { root: '/usr/lib/tabby', executable: '/usr/lib/tabby/tabby' },
-                {
-                    root: path.join(home, '.local', 'share', 'Tabby'),
-                    executable: path.join(home, '.local', 'share', 'Tabby', 'tabby'),
-                },
-            )
+        // Both products, because this page inventories every build on the
+        // machine and an installed upstream Tabby is one of them.
+        const candidates: { root: string, executable: string, product: string }[] = []
+        for (const product of PRODUCT_NAMES) {
+            const lower = product.toLowerCase()
+            if (process.platform === 'win32') {
+                const roots = [
+                    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Programs', product) : null,
+                    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, product) : null,
+                    process.env['ProgramFiles(x86)'] ? path.join(process.env['ProgramFiles(x86)'], product) : null,
+                ].filter((x): x is string => !!x)
+                candidates.push(...roots.map(root => ({
+                    root, executable: path.join(root, `${product}.exe`), product,
+                })))
+            } else if (process.platform === 'darwin') {
+                const roots = [`/Applications/${product}.app`, path.join(home, 'Applications', `${product}.app`)]
+                candidates.push(...roots.map(root => ({
+                    root, executable: path.join(root, 'Contents', 'MacOS', product), product,
+                })))
+            } else {
+                candidates.push(
+                    { root: `/opt/${product}`, executable: `/opt/${product}/${lower}`, product },
+                    { root: `/usr/lib/${lower}`, executable: `/usr/lib/${lower}/${lower}`, product },
+                    {
+                        root: path.join(home, '.local', 'share', product),
+                        executable: path.join(home, '.local', 'share', product, lower),
+                        product,
+                    },
+                )
+            }
         }
 
         const seeds: Seed[] = []
@@ -277,15 +291,15 @@ export class BuildScannerService {
             }
             seeds.push({
                 kind: 'installed',
-                name: 'Tabby',
+                name: candidate.product,
                 root: candidate.root,
                 extraPaths: [],
                 executable: candidate.executable,
                 stampPath: candidate.executable,
                 repoPath: null,
-                detail: 'Installed by the Tabby installer',
+                detail: `Installed by the ${candidate.product} installer`,
                 uninstaller: await firstExisting([
-                    path.join(candidate.root, 'Uninstall Tabby.exe'),
+                    path.join(candidate.root, `Uninstall ${candidate.product}.exe`),
                 ]),
             })
         }
@@ -356,15 +370,15 @@ export class BuildScannerService {
      */
     private async appSeed (dir: string): Promise<Seed | null> {
         const executable = await firstExisting([
-            path.join(dir, 'Tabby.exe'),
-            path.join(dir, 'tabby'),
-            path.join(dir, 'Tabby.app', 'Contents', 'MacOS', 'Tabby'),
+            ...executableNames().map(name => path.join(dir, name)),
+            ...PRODUCT_NAMES.map(name => path.join(dir, `${name}.app`, 'Contents', 'MacOS', name)),
         ])
         if (!executable) {
             return null
         }
         const hasResources = await exists(path.join(dir, 'resources'))
-            || await exists(path.join(dir, 'Tabby.app', 'Contents', 'Resources'))
+            || !!await firstExisting(PRODUCT_NAMES.map(
+                name => path.join(dir, `${name}.app`, 'Contents', 'Resources')))
         if (!hasResources) {
             return null
         }
@@ -395,7 +409,7 @@ export class BuildScannerService {
             return false
         }
         const pkg = await readJSON(path.join(dir, 'app', 'package.json'))
-        return pkg?.name === 'tabby'
+        return SOURCE_PACKAGE_NAMES.includes(pkg?.name)
     }
 
     /** The checkout behind `electron.exe app`, found by walking up from the binary. */
@@ -447,9 +461,8 @@ export class BuildScannerService {
             const full = path.join(dist, entry.name)
             if (entry.isDirectory()) {
                 const executable = await firstExisting([
-                    path.join(full, 'Tabby.exe'),
-                    path.join(full, 'tabby'),
-                    path.join(full, 'Tabby.app', 'Contents', 'MacOS', 'Tabby'),
+                    ...executableNames().map(name => path.join(full, name)),
+                    ...PRODUCT_NAMES.map(name => path.join(full, `${name}.app`, 'Contents', 'MacOS', name)),
                 ])
                 if (!executable) {
                     continue

@@ -13,25 +13,42 @@ try {
 
 @Injectable({ providedIn: 'root' })
 export class ShellIntegrationService {
-    private automatorWorkflows = ['Open Tabby here.workflow', 'Paste path into Tabby.workflow']
+    private automatorWorkflows = ['Open Torbie here.workflow', 'Paste path into Torbie.workflow']
     private automatorWorkflowsLocation: string
     private automatorWorkflowsDestination: string
     private registryKeys = [
         {
-            path: 'Software\\Classes\\Directory\\Background\\shell\\Tabby',
-            value: 'Open Tabby here',
+            path: 'Software\\Classes\\Directory\\Background\\shell\\Torbie',
+            value: 'Open Torbie here',
             command: 'open "%V"',
         },
         {
-            path: 'SOFTWARE\\Classes\\Directory\\shell\\Tabby',
-            value: 'Open Tabby here',
+            path: 'SOFTWARE\\Classes\\Directory\\shell\\Torbie',
+            value: 'Open Torbie here',
             command: 'open "%V"',
         },
         {
-            path: 'Software\\Classes\\*\\shell\\Tabby',
-            value: 'Paste path into Tabby',
+            path: 'Software\\Classes\\*\\shell\\Torbie',
+            value: 'Paste path into Torbie',
             command: 'paste "%V"',
         },
+    ]
+
+    /**
+     * Keys written under a previous name, swept on every install.
+     *
+     * A renamed integration does not remove its old registry key: it just
+     * stops managing it, so the user is left with a context-menu entry
+     * pointing at an executable that may no longer exist and no switch
+     * anywhere that turns it off. Two names were already being cleaned up
+     * here; `Tabby` joins them.
+     */
+    private staleRegistryKeys = [
+        'Software\\Classes\\Directory\\Background\\shell\\Open Tabby here',
+        'Software\\Classes\\*\\shell\\Paste path into Tabby',
+        'Software\\Classes\\Directory\\Background\\shell\\Tabby',
+        'SOFTWARE\\Classes\\Directory\\shell\\Tabby',
+        'Software\\Classes\\*\\shell\\Tabby',
     ]
 
     private constructor (
@@ -74,11 +91,10 @@ export class ShellIntegrationService {
                 wnr.setRegistryValue(wnr.HK.CU, registryKey.path + '\\command', '', wnr.REG.SZ, exe + ' ' + registryKey.command)
             }
 
-            if (wnr.getRegistryKey(wnr.HK.CU, 'Software\\Classes\\Directory\\Background\\shell\\Open Tabby here')) {
-                wnr.deleteRegistryKey(wnr.HK.CU, 'Software\\Classes\\Directory\\Background\\shell\\Open Tabby here')
-            }
-            if (wnr.getRegistryKey(wnr.HK.CU, 'Software\\Classes\\*\\shell\\Paste path into Tabby')) {
-                wnr.deleteRegistryKey(wnr.HK.CU, 'Software\\Classes\\*\\shell\\Paste path into Tabby')
+            for (const stale of this.staleRegistryKeys) {
+                if (wnr.getRegistryKey(wnr.HK.CU, stale)) {
+                    wnr.deleteRegistryKey(wnr.HK.CU, stale)
+                }
             }
         }
     }

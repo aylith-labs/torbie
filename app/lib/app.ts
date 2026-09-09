@@ -235,7 +235,7 @@ export class Application {
             this.tray.setContextMenu(contextMenu)
         }
 
-        this.tray.setToolTip(`Tabby ${app.getVersion()}`)
+        this.tray.setToolTip(`Torbie ${app.getVersion()}`)
     }
 
     disableTray (): void {
@@ -312,7 +312,7 @@ export class Application {
     }
 
     async handleSecondInstance (argv: string[], cwd: string): Promise<void> {
-        // Someone launched Tabby and the single-instance lock gave it to us. If
+        // Someone launched the app and the single-instance lock gave it to us. If
         // we still have no window once that settles, we are no use to them and
         // must get out of the way — armed before the await, because a window
         // that never boots never lets this method return.
@@ -339,7 +339,7 @@ export class Application {
             {
                 label: 'Application',
                 submenu: [
-                    { role: 'about', label: 'About Tabby' },
+                    { role: 'about', label: 'About Torbie' },
                     { type: 'separator' },
                     {
                         label: 'Preferences',
