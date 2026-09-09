@@ -23,11 +23,20 @@ const OPEN = `
     }
     if (!link) { throw new Error('no Builds item in the settings nav') }
     link.click()
+    // Wait for the page, not for a card. The view setting is persisted, and
+    // this suite leaves it on "table" — so waiting for a .build-card passed on
+    // a fresh profile and then hung on every rerun until it blew past the CDP
+    // driver's 20s request budget, which surfaces as "no builds were found"
+    // about a scan that had in fact returned seven.
+    let component = null
     for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 500))
-        if (document.querySelector('.build-card:not(.skeleton)')) { break }
+        const host = document.querySelector('builds-settings-tab')
+        component = host && window.ng.getComponent(host)
+        if (component && !component.scanning && component.builds.length) { break }
     }
-    window.__B = window.ng.getComponent(document.querySelector('builds-settings-tab'))
+    if (!component) { throw new Error('the Builds page never rendered') }
+    window.__B = component
     return window.__B.builds.length
 `
 

@@ -18,6 +18,7 @@ import { IntegrationCredentialsService } from './integrationCredentials.service'
 const BUILT_IN: IntegrationManifest[] = [
     require('../integrations/github.json'),
     require('../integrations/jira.json'),
+    require('../integrations/shefrd.json'),
     require('../integrations/slack.json'),
     require('../integrations/stith.json'),
 ]

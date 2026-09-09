@@ -99,7 +99,8 @@ async function main () {
         'jira-issue-keys', 'jira-issue-links',
         'github-pull-requests', 'github-issues', 'github-commits',
         'slack-messages',
-        'stith-session-uris', 'stith-web-links',
+        'stith-session-uris', 'stith-web-links', 'stith-session-ids',
+        'shefrd-pane-ids',
         'git-commit-hashes', 'media-files', 'source-code-files',
     ])
     note(`${opened.rules} rule(s) already on this profile`)
@@ -152,7 +153,7 @@ async function main () {
         }
     `)
     check('the flyout opened', viaMenu.error, '')
-    check('it lists every preset', viaMenu.count, 11)
+    check('it lists every preset', viaMenu.count, 13)
     check('under a heading', viaMenu.header, 'Start from a preset')
     check('exactly one rule was added', viaMenu.added, 1)
     check('and opened in the editor', viaMenu.opened, true)

@@ -2,6 +2,13 @@
 const { connect } = require('./cdp')
 const https = require('https')
 
+// Read from the manifest rather than restated here. This list was hardcoded and
+// went stale twice — once when the lintel copy added `pane` as a default field —
+// and a test that has to be edited every time a manifest gains a field is a test
+// that gets edited to whatever makes it pass.
+const DEFAULT_FIELD_KEYS = require('../src/integrations/stith.json')
+    .fields.filter(f => f.default).map(f => f.key)
+
 let passed = 0
 let failed = 0
 function check (name, actual, expected) {
@@ -114,7 +121,7 @@ async function main () {
         const keys = preview.fields.map(f => f.key)
         check('the session name is the title', preview.fields.find(f => f.kind === 'title')?.key, 'name')
         check('status renders as a badge', preview.fields.find(f => f.key === 'status')?.kind, 'badge')
-        check('only default fields are shown', keys.every(k => ['name', 'status', 'project', 'machine', 'lastActivity', 'error'].includes(k)), true)
+        check('only default fields are shown', keys.every(k => DEFAULT_FIELD_KEYS.includes(k)), true)
         note(`fields: ${preview.fields.map(f => `${f.label}=${f.value}`).join(' | ')}`)
     }
 

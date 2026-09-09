@@ -912,9 +912,9 @@ const api = loadSource('tabby-links/src/api.ts')
 const rules = loadSource('tabby-links/src/services/linkRules.service.ts')
 
 // Presets take their patterns from the manifests, so build the list the
-// settings page would: the four built-ins, shaped as the registry hands them
+// settings page would: the five built-ins, shaped as the registry hands them
 // over.
-const BUILT_IN = ['github', 'jira', 'slack', 'stith'].map(id => {
+const BUILT_IN = ['github', 'jira', 'shefrd', 'slack', 'stith'].map(id => {
     const manifest = require(path.join(REPO, `tabby-links/src/integrations/${id}.json`))
     return { id: manifest.id, name: manifest.name, manifest }
 })
@@ -931,6 +931,9 @@ check('every preset is offered, in order', allPresets.map(p => p.id), [
     // session id, printed with no scheme around it, which previously matched
     // and then failed at the click.
     'stith-session-uris', 'stith-web-links', 'stith-session-ids',
+    // Dropped silently until `shefrd.json` was registered: a preset whose
+    // integration is not in the pool resolves no matcher and is not offered.
+    'shefrd-pane-ids',
     'git-commit-hashes', 'media-files', 'source-code-files',
 ])
 check('with no integrations, only the standalone presets remain',

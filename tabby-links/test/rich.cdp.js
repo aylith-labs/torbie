@@ -52,14 +52,19 @@ async function main () {
             detect: reg.detectPatterns(),
         }
     `)
-    check('all four built-ins discovered', registry.ids, ['github', 'jira', 'slack', 'stith'])
+    check('all five built-ins discovered', registry.ids, ['github', 'jira', 'shefrd', 'slack', 'stith'])
     check('jira brought its field groups', registry.jiraGroups > 0, true)
     check('jira brought its tabs', registry.jiraTabs > 0, true)
     check('jira brought its choice action', registry.jiraActions > 0, true)
     check('jira has optional steps', registry.jiraOptionalSteps > 0, true)
     check('github brought its whole pipeline', registry.githubSteps > 5, true)
-    check('stith owns a detect pattern',
-        registry.detect.map(d => d.integrationId), ['stith'])
+    // stith declares three since the lintel manifest landed — each `stith://`
+    // verb is matched separately, so a focus link is never read as a session
+    // one, plus the bare pane address and the rule reference — and shefrd
+    // brought one of its own.
+    check('the detect patterns belong to the integrations that declared them',
+        registry.detect.map(d => d.integrationId).sort(),
+        ['shefrd', 'stith', 'stith', 'stith'])
 
     console.log('\n── detectPatterns join the scan pool ──')
     const pool = await cdp.evaluate(`
@@ -72,9 +77,9 @@ async function main () {
             synthetic: rules.filter(r => r.rule.integration === 'stith').map(r => r.rule.pattern),
         }
     `)
-    check('a stith pattern is in the pool', pool.synthetic.length, 1)
-    check('and it is bound to stith',
-        pool.synthetic[0].includes('stith://'), true)
+    check('every stith pattern is in the pool', pool.synthetic.length, 3)
+    check('and they are bound to stith',
+        pool.synthetic.some(p => p.includes('stith://')), true)
     check('the 16-pattern cap still holds', pool.count <= 16, true)
 
     console.log('\n── a grouped, tabbed, actionable preview renders ──')

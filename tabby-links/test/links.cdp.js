@@ -104,13 +104,24 @@ async function main () {
         const el = document.querySelector('link-tooltip-settings-tab')
         if (!el) { return { error: 'page did not render' } }
         const cmp = window.ng.getComponent(el)
+        // "Show buttons on the link tooltip" lives in the Buttons group, which
+        // starts collapsed — and a collapsed group's body is an ng-template
+        // that has never been instantiated, so its controls are absent from the
+        // DOM rather than hidden. Open every group before reading the page,
+        // which is what this check is actually about. clicks.cdp.js learned
+        // this when the page was grouped; this suite was missed.
+        for (const id of ['card', 'buttons', 'clicking', 'previews']) {
+            cmp.setCollapsed(id, false)
+        }
+        window.ng.applyChanges(cmp)
+        await new Promise(r => setTimeout(r, 400))
         const text = el.textContent
         return {
             rules: cmp.rules.length,
             hasDefaults: text.includes('Maximum width of the link tooltip')
                 && text.includes('Delay before the link tooltip appears')
                 && text.includes('Delay before the link tooltip disappears')
-                && text.includes('Show buttons on the link tooltip')
+                && text.includes('Show the built-in buttons')
                 && text.includes('URI schemes that open without a warning'),
             integrationsInDropdown: cmp.integrations.map(i => i.id),
         }
