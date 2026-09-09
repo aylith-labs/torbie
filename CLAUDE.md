@@ -441,6 +441,18 @@ feature — twelve today, all reverts, docs or build patches.
 Prereqs on this machine: VS 2022 Build Tools (VC x86/x64 toolset v143), Rust +
 `x86_64-pc-windows-msvc`, Python 3.13, `yarn` 1.x, `node-gyp`. Node v25 works; CI uses 22.
 
+**Electron is pinned to 43, and 44 is a plugin-API break rather than a chore.**
+Electron 44 replaced the synchronous `clipboard` with a promise-based one:
+`clipboard.readText()` returns `Promise<string>` there, and the old
+`readText(type?)` is gone. `PlatformService.readClipboard(): string` is an
+abstract method in `tabby-core`'s public API — plugins call it, and
+`baseTerminalTab`'s paste path is synchronous around it — so taking 44 means
+changing a signature every third-party plugin compiled against. The boundary was
+measured by unpacking each major's `electron.d.ts`: 39, 40, 41, 42 and 43 all
+still declare `readText(type?): string`, and 44 is the first that does not. So
+43 is the highest version that costs nothing, and 44 waits for a deliberate
+decision about that signature.
+
 ```bash
 yarn --network-timeout 1000000     # postinstall: patch-package, install-deps, build-native
 yarn run build                     # typings + webpack for app and all tabby-* packages
@@ -2047,11 +2059,25 @@ upstream's and was never scoped to it.
   the reference for the port) keeps physical pixels and rescales them; Electron's
   screen coordinates are already per-display DIPs, so rescaling would introduce
   exactly the drift it exists to prevent.
-- **A frameless window reports back 2px taller than the size its constructor was
-  given.** Measured, consistently. `getBounds()` is what gets saved, so a window
-  only ever opened and closed grew 2px and crept down the screen every launch —
-  upstream has this too. `setBounds` is exact, so the restored rectangle is
-  applied once more after construction.
+- **A frameless window does not land on the rectangle it is given, and the
+  discrepancy moves with Electron — so it is measured, never assumed.**
+  `getBounds()` is what gets saved, so anything the window does not honour
+  compounds: a window only ever opened and closed grew every launch and crept
+  across the screen. Upstream has this too.
+  - On **Electron 38** the constructor came back 2px taller and `setBounds` was
+    exact, so re-applying the rectangle once after construction was the whole
+    fix.
+  - On **Electron 43** `setBounds` is not exact either: measured against this
+    machine's 1.5x display, width comes back **+1 on every value** — 897→898,
+    902→903, a real 1px border — so one pass turned 820 into 821, saved 821, and
+    the next launch made it 822. The drift was back, one pixel at a time, and
+    the test caught it by comparing the reopened window against the *file* it
+    was restored from rather than against the number a test typed.
+  - `window.ts` now measures the delta after `setBounds` and subtracts it.
+    Width comes back exact. **Height cannot**: at 1.5x it snaps to the nearest
+    odd number (598→599, 600→601), so it settles one pixel from the request and
+    then stays there — a platform floor, not drift. `windowGeometry.test.js`
+    allows one pixel on *size only*, and keeps the anti-drift assertion exact.
 - **"On screen" is decided by the title bar, not by area.** The old check only
   fired when the saved rect missed the nearest display *entirely*, so a window
   whose title bar was above the top of the screen was restored exactly there and

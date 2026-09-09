@@ -243,7 +243,23 @@ function check (ok, message) {
 }
 
 const rect = b => b && `${b.width}x${b.height}+${b.x}+${b.y}`
-const same = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+/**
+ * Position exactly; size to within the pixel the platform will actually give.
+ *
+ * A frameless window does not get every size it asks for. Measured on Electron
+ * 43 against this machine's 1.5x display: `setBounds` reports width back
+ * **+1 on every value** — 897→898, 898→899, 902→903, a real 1px border — and
+ * height snaps to the nearest odd number, 598→599 and 600→601, which is the
+ * 1.5x round trip through physical pixels. Electron 38 had neither, so this is
+ * a platform change rather than a regression in what is under test here.
+ *
+ * The tolerance is bounded at one pixel and applies to size only. It is not a
+ * softening of the thing this suite exists for: the bug was a rectangle that
+ * *grew on every launch*, and that is asserted separately and exactly, against
+ * what the window actually settled at rather than against what was asked for.
+ */
+const same = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y
+    && Math.abs(a.width - b.width) <= 1 && Math.abs(a.height - b.height) <= 1
 
 /** A window is reachable if a strip of its title bar is inside some work area. */
 function reachable (b, displays) {
@@ -357,11 +373,20 @@ async function main () {
     check(same(reopened[0].bounds, A2) && same(reopened[1].bounds, B2),
         `reopened where they were left: ${rect(reopened[0].bounds)} and ${rect(reopened[1].bounds)}`
         + ` (wanted ${rect(A2)} and ${rect(B2)})`)
-    // Exactly, not roughly. A frameless window reports back 2px taller than the
-    // size its constructor was given, so a rectangle that goes round this loop
-    // untouched used to grow on every launch.
-    check(reopened[0].bounds.height === A2.height && reopened[1].bounds.height === B2.height,
-        `and at the size they were, not a couple of pixels taller each time`)
+    // Exactly, and against what was *saved* rather than what was asked for —
+    // which is the whole of it. A frameless window does not land on every size
+    // it is given, so the asked-for number is the wrong thing to hold a second
+    // launch to; what must not happen is the rectangle growing each time it
+    // goes round this loop, which is the bug this suite exists for. Comparing
+    // the reopened window against the file it was restored from is that
+    // property, stated without a tolerance.
+    check(reopened[0].bounds.width === saved?.[1]?.width
+        && reopened[0].bounds.height === saved?.[1]?.height
+        && reopened[1].bounds.width === saved?.[2]?.width
+        && reopened[1].bounds.height === saved?.[2]?.height,
+        `and at exactly the size that was saved, not a pixel larger each launch:`
+        + ` ${rect(reopened[0].bounds)} vs ${rect(saved?.[1])},`
+        + ` ${rect(reopened[1].bounds)} vs ${rect(saved?.[2])}`)
     for (const w of reopened) {
         w.close()
     }
@@ -380,7 +405,10 @@ async function main () {
         windowBoundaries: OFFSCREEN,
     })
     const [o1] = await windows(1)
-    check(reachable(o1.bounds, displays) && o1.bounds.height === OFFSCREEN.height,
+    // Height to within the platform's own pixel, for the reason `same()` gives:
+    // what is being asserted is that the window was *moved* back on screen
+    // rather than resized to fit, and a 1px snap is neither.
+    check(reachable(o1.bounds, displays) && Math.abs(o1.bounds.height - OFFSCREEN.height) <= 1,
         `a saved rect with its title bar 700px above the screen came back on screen: `
         + `${rect(OFFSCREEN)} -> ${rect(o1.bounds)}`)
 

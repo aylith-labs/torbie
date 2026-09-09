@@ -120,14 +120,37 @@ export class Window {
         }
 
         if (placement.source !== 'default') {
-            // The constructor's width and height are not what `getBounds()`
-            // reports back — measured on Windows, consistently 2px taller for a
-            // frameless window — so a rectangle that came from `getBounds()`
-            // and goes back in through the constructor grows a little every
-            // time it round-trips, and a window that is only ever opened and
-            // closed creeps down the screen. `setBounds` is exact, so applying
-            // the same rectangle once more is what stops the drift.
-            this.window.setBounds(placement.bounds as Rectangle)
+            // A frameless window does not land on the rectangle it is given,
+            // and what it lands on is what `getBounds()` reports and what gets
+            // saved — so a window only ever opened and closed grows a little on
+            // every launch and creeps across the screen.
+            //
+            // `setBounds` used to be exact, and applying the rectangle once
+            // more after construction was enough. It is not any more: measured
+            // on Electron 43 against a 1.5x display, `setBounds` reports width
+            // back **+1 on every value** (897→898, 902→903 — a real 1px
+            // border), so one pass turns 820 into 821, saves 821, and the next
+            // launch makes it 822.
+            //
+            // So the discrepancy is *measured and subtracted* rather than
+            // assumed to be zero, which also stops this needing to be re-tuned
+            // at the next Electron. Width comes back exact. Height cannot: at
+            // 1.5x it snaps to the nearest odd number, so it settles one pixel
+            // from the request and then stays there, which is a platform floor
+            // rather than drift.
+            const wanted = placement.bounds as Rectangle
+            this.window.setBounds(wanted)
+            const got = this.window.getBounds()
+            const corrected = {
+                x: wanted.x - (got.x - wanted.x),
+                y: wanted.y - (got.y - wanted.y),
+                width: wanted.width - (got.width - wanted.width),
+                height: wanted.height - (got.height - wanted.height),
+            }
+            if (corrected.width !== wanted.width || corrected.height !== wanted.height
+                || corrected.x !== wanted.x || corrected.y !== wanted.y) {
+                this.window.setBounds(corrected)
+            }
         }
 
         this.webContents = this.window.webContents
