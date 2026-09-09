@@ -11,7 +11,8 @@
     "build": "webpack --progress --color",
     "watch": "webpack --progress --color --watch",
     "postinstall": "run-script-os",
-    "postinstall:darwin:linux": "exit"
+    "postinstall:darwin:linux": "exit",
+    "postinstall:win32": "exit 0"
   },
   "files": [
     "dist",

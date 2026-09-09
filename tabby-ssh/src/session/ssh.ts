@@ -384,7 +384,17 @@ export class SSHSession {
         if (this.profile.options.proxyCommand) {
             this.emitServiceMessage(colors.bgBlue.black(' Proxy command ') + ` Using ${this.profile.options.proxyCommand}`)
 
+            // `shell-quote` types this as `ParseEntry[]`: an operator (`|`,
+            // `&&`, a redirect) or a comment parses to an object rather than a
+            // string. Neither can be handed to `newCommand`, and neither ever
+            // worked here — the older typing just called them all strings. So
+            // they are dropped, and a command that was nothing but operators
+            // says so instead of spawning `undefined`.
             const argv = shellQuote.parse(this.profile.options.proxyCommand)
+                .filter((entry): entry is string => typeof entry === 'string')
+            if (!argv.length) {
+                throw new Error(`The proxy command "${this.profile.options.proxyCommand}" has no program to run`)
+            }
             transport = await russh.SshTransport.newCommand(argv[0], argv.slice(1))
         } else if (this.jumpChannel) {
             transport = await russh.SshTransport.newSshChannel(this.jumpChannel.take())

@@ -33,7 +33,13 @@ export class CommandLineEditorComponent {
     }
 
     parseCommand () {
+        // Strings only: `shell-quote` parses an operator or a comment to an
+        // object, and this editor stores a program and its arguments. An
+        // operator was never storable here — the older typing simply called
+        // everything a string — so it is dropped rather than stringified into
+        // something the profile would then try to execute.
         const args = shellQuote.parse(this.command)
+            .filter((entry): entry is string => typeof entry === 'string')
         this.model.command = args[0] ?? ''
         this.model.args = args.slice(1)
     }
