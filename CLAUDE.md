@@ -577,7 +577,7 @@ all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
 | **fast** | `yarn test` | Nothing but a checkout. ~4s, 303 checks. **This is the gate.** |
 | **built** | `yarn test:built` | `yarn run build` — it reads the compiled bundle, 515 checks. |
 | **checks** | `yarn test:checks` | `check-docs` needs full history; `check-fork-marks` needs `upstream` fetched. |
-| **cdp** | `yarn test:cdp` | A compiled bundle *and* a hidden dev build per suite, 40–60s each. |
+| **cdp** | see below | A compiled bundle **and an instance already listening**. Not a push-button tier. |
 | **electron** | `--tier electron` | Electron's native ABI, via `ELECTRON_RUN_AS_NODE`. |
 | **wsl** | `--tier wsl` | A real Ubuntu distro. Starts and cleans up its own panes, by pid. |
 
@@ -593,8 +593,29 @@ all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
   *added* rather than the next time someone starts from a clean tree.
 - **A missing file is a failure, not a skip.** A suite that is renamed and
   silently stops running is precisely what this exists to prevent.
-- The CDP tier stays out of CI on purpose: each suite launches a window, and a
+- The CDP tier stays out of CI on purpose: each suite drives a window, and a
   gate that is red for windowing reasons teaches people to ignore it.
+- **`yarn test:cdp` does not work, and the tier list is documentation rather
+  than a command.** Only the five `app/test/*.test.js` suites launch their own
+  instances; every `*.cdp.js` attaches to one that is *already listening* and
+  refuses rather than guessing. Run bare, it reports 6 of 28 and twenty-two
+  copies of "no hidden dev build is listening", which reads like a catastrophe
+  and is a missing precondition. Start one first, with whatever plugins the
+  suites need, and leave it up:
+
+  ```bash
+  node scripts/dev/launch-hidden.mjs --enable links,linkifier,claude,builds --keep &
+  node tabby-links/test/card.cdp.js        # then the suites, individually
+  ```
+
+- **Suites share that instance and its profile, so one can poison the next.**
+  `tableView.cdp.js` leaves the Builds page on the table view, `view` is
+  persisted in `config.yaml`, and its own setup used to wait for a
+  `.build-card` that the table view never draws — so it passed on a fresh
+  profile and hung on every rerun until it exceeded the driver's 20s request
+  budget, reporting "no builds were found" about a scan that had returned
+  seven. Wait for a component's own readiness, never for markup only one of its
+  views renders.
 
 ## NEVER kill the running packaged app
 
