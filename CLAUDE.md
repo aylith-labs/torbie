@@ -329,7 +329,8 @@ all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
 
 | Tier | Command | What it needs |
 |---|---|---|
-| **fast** | `yarn test` | Nothing. Pure logic, ~5s, 818 checks. **This is the gate.** |
+| **fast** | `yarn test` | Nothing but a checkout. ~4s, 303 checks. **This is the gate.** |
+| **built** | `yarn test:built` | `yarn run build` — it reads the compiled bundle, 515 checks. |
 | **checks** | `yarn test:checks` | `check-docs` needs full history; `check-fork-marks` needs `upstream` fetched. |
 | **cdp** | `yarn test:cdp` | A compiled bundle *and* a hidden dev build per suite, 40–60s each. |
 | **electron** | `--tier electron` | Electron's native ABI, via `ELECTRON_RUN_AS_NODE`. |
@@ -337,10 +338,14 @@ all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
 
 `yarn test:list` prints every suite and its tier.
 
-- **A fast-tier suite must stay dependency-free.** One that quietly starts
-  needing a built bundle turns the gate into a liability the first time somebody
-  runs it on a clean checkout — so anything added to `FAST` has to be checked
-  against that, not just observed to pass locally.
+- **A fast-tier suite must stay dependency-free, and the runner enforces it.**
+  One that quietly starts needing a built bundle turns the gate into a liability
+  the first time somebody runs it on a clean checkout. That is not hypothetical:
+  `tabby-links/test/logic.test.js` was put in `FAST` and CI caught it on the
+  first run, because it reads `tabby-links/dist` and every developer machine
+  already has one. `run-tests.mjs` now greps the fast tier for a `/dist/`
+  reference and refuses — cruder than running it, but it fails when the suite is
+  *added* rather than the next time someone starts from a clean tree.
 - **A missing file is a failure, not a skip.** A suite that is renamed and
   silently stops running is precisely what this exists to prevent.
 - The CDP tier stays out of CI on purpose: each suite launches a window, and a

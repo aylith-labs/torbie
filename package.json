@@ -114,6 +114,7 @@
     "docs": "node scripts/build-docs.mjs",
     "lint": "eslint \"*/src/**/*.ts\" \"*/lib/**/*.ts\"",
     "test": "node scripts/dev/run-tests.mjs --tier fast",
+    "test:built": "node scripts/dev/run-tests.mjs --tier built",
     "test:checks": "node scripts/dev/run-tests.mjs --tier checks",
     "test:cdp": "node scripts/dev/run-tests.mjs --tier cdp",
     "test:list": "node scripts/dev/run-tests.mjs --list",

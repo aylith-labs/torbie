@@ -25,17 +25,30 @@ import * as url from 'node:url'
 const root = path.resolve(url.fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 
 /**
- * Suites that need nothing running. Anything added here has to stay that way:
- * a fast-tier suite that quietly starts depending on a built bundle turns the
- * gate into a liability the first time somebody runs it on a clean checkout.
+ * Suites that need nothing but a checkout. Anything added here has to stay
+ * that way: a fast-tier suite that quietly starts depending on a built bundle
+ * turns the gate into a liability the first time somebody runs it on a clean
+ * checkout.
+ *
+ * That is not hypothetical — `tabby-links/test/logic.test.js` was put here and
+ * CI caught it on the first run, because it `require`s `tabby-links/dist` and
+ * every developer machine already has one. It lives in BUILT now.
  */
 const FAST = [
     'scripts/dev/cdp.test.cjs',
-    'tabby-links/test/logic.test.js',
     'tabby-links/test/delimitedLinks.test.js',
     'tabby-links/test/wslPath.test.js',
     'tabby-resume/test/logic.test.js',
     'tabby-terminal/test/webSearch.test.js',
+]
+
+/**
+ * Needs `yarn run build`, but no window and no Electron: it reads the compiled
+ * bundle rather than driving it. Cheap once the build exists, which is why CI
+ * runs it after the build step rather than skipping it.
+ */
+const BUILT = [
+    'tabby-links/test/logic.test.js',
 ]
 
 /** Consistency checks over the tree itself. `check-fork-marks` needs `upstream` fetched. */
@@ -91,7 +104,7 @@ const CDP = [
     'tabby-upstream/test/upstream.cdp.js',
 ]
 
-const TIERS = { fast: FAST, checks: CHECKS, wsl: WSL, electron: ELECTRON, cdp: CDP }
+const TIERS = { fast: FAST, built: BUILT, checks: CHECKS, wsl: WSL, electron: ELECTRON, cdp: CDP }
 
 function arg (name, fallback) {
     const i = process.argv.indexOf(`--${name}`)
@@ -113,6 +126,26 @@ const files = TIERS[tier]
 if (!files) {
     console.error(`Unknown tier "${tier}". One of: ${Object.keys(TIERS).join(', ')}`)
     process.exit(2)
+}
+
+// The fast tier's whole value is that it needs nothing, and that claim decayed
+// silently the first time it was made: a suite reading `tabby-links/dist`
+// passed on every developer machine, because every one of them has a build
+// sitting there, and only failed on a clean CI checkout. Grepping for the
+// dependency is cruder than running it, but it fails at the moment the suite
+// is *added* rather than the next time someone starts from a clean tree.
+if (tier === 'fast') {
+    const offenders = files.filter(file => {
+        const full = path.join(root, file)
+        return fs.existsSync(full) && /['"`][^'"`]*\/dist\//.test(fs.readFileSync(full, 'utf8'))
+    })
+    if (offenders.length) {
+        console.error('These are in the fast tier but read a compiled bundle — move them to BUILT:')
+        for (const file of offenders) {
+            console.error(`  ${file}`)
+        }
+        process.exit(1)
+    }
 }
 
 const failures = []

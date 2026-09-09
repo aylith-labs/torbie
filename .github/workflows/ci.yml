@@ -72,3 +72,8 @@ jobs:
 
     - name: Build
       run: yarn run build
+
+    # These read the compiled bundle — the integration icons webpack inlines,
+    # for instance — so they can only run once there is one.
+    - name: Test against the build
+      run: yarn run test:built
