@@ -2,7 +2,7 @@
 // One source of truth: the cards, the filters and the detail pages all read
 // this, so they cannot disagree with each other.
 //
-// The numbers are real. `commits` are the actual short SHAs on `local`, and
+// The numbers are real. `commits` are the actual short SHAs on `main`, and
 // `ins`/`del`/`files` come from git's own diffstat for exactly those commits:
 //
 //   git show --numstat --format= <sha>...     # ins and del summed
@@ -11,15 +11,17 @@
 // `dateAdded` is the earliest commit date in the group. A feature that was
 // refined over weeks keeps the date it first landed.
 //
-// KEEPING THIS CURRENT: when a commit lands on `local` that a reader would
+// KEEPING THIS CURRENT: when a commit lands on `main` that a reader would
 // call a feature, it belongs here — either as a new entry or added to an
 // existing one's `commits`, with the diffstat recomputed. A catalogue that has
 // stopped tracking the branch is worse than no catalogue.
 //
-// `local` is rebased onto `master` at every upstream sync, so every SHA below
-// changes when that happens and every commit link goes stale at once. Rerun
-// `node scripts/dev/check-docs.mjs` after a rebase: it recomputes all of this
-// against git and names each entry that no longer matches.
+// The SHAs below are stable. Under the old scheme `local` was rebased onto
+// `master` at every upstream sync, which rewrote every one of them and took
+// every commit link stale at once — the site's one real maintenance cost. A
+// single `main` that is never rebased retires it. Run
+// `node scripts/dev/check-docs.mjs` after adding a feature, not after a sync:
+// it recomputes all of this against git and names each entry that disagrees.
 //
 // `desc` is plain text and is escaped everywhere it is rendered. The long-form
 // prose in feature-details.js may contain inline HTML; this may not.
@@ -388,5 +390,32 @@ window.FEATURES = [
     commits: ["c79ccc1f","befec385"],
     files: 18, ins: 647, del: 346,
     desc: "Chromium does not report a debugging port it could not bind — it just does not listen, and every request then goes to whatever is on that port. Measured here: a test assuming a fixed port attached to the user's own browser, full of logged-in tabs, and only a URL filter stopped it evaluating JavaScript in them. Ports are now found, never assumed, and nothing is attached to until it answers as Electron.",
+  },
+  {
+    id: "own-accounts", title: "It stops reporting into upstream's accounts",
+    cat: "robustness", catLabel: "Robustness",
+    dateAdded: "2026-09-09",
+    commits: ["a024ed8d"],
+    files: 17, ins: 48, del: 124,
+    desc: "Every build of this fork carried upstream Tabby's own credentials as literals, so its crashes went to Eugeny's Sentry project, its launches to his Mixpanel, and a published artifact would have authenticated against his Keygen distribution account — all under a version string that means nothing there. The updater and the release-notes tab read his releases too, so this build would offer to update itself to a different program. Analytics is removed outright rather than repointed, and the two switches that fed it go with it: a toggle that no longer sends anything is worse than no toggle, because it reads as a choice the user is making.",
+  },
+
+  // ------------------------------------------------------------------- ui
+  {
+    id: "torbie", title: "The fork becomes Torbie, and the plugins still load",
+    cat: "ui", catLabel: "UI & theming",
+    standout: true,
+    dateAdded: "2026-09-09",
+    commits: ["1b8f8ee2"],
+    files: 83, ins: 624, del: 4540,
+    desc: "A tortoiseshell tabby: the lineage is in the name, and the product is its own. Everything a user or the operating system reads is renamed; nothing a plugin reads is. There is no version gate anywhere in the loader — the tabby- package prefix and the tabby-plugin npm keyword are the entire compatibility contract — so touching either would silently unload everybody's plugins. Four places recognised a build by the literal 'tabby' and each was half of a pair that breaks in silence: rename one side and the scan just finds nothing, or the health check calls every stuck build healthy. They read one shared list now, which keeps both products, because an installed Tabby is still a build this machine has. The profile is copied forward before anything reads it, both environment prefixes are honoured, and tabby:// stays registered beside torbie://.",
+  },
+  {
+    id: "ci-gate", title: "Something finally runs the tests",
+    cat: "robustness", catLabel: "Robustness",
+    dateAdded: "2026-09-09",
+    commits: ["6f532472"],
+    files: 31, ins: 646, del: 130,
+    desc: "There was no test script in any package.json and no workflow ran any of the forty test files here — every one was run by hand, which is not a slow safety net but the absence of one. The suites are grouped into tiers, because they cost three orders of magnitude apart: the fast tier is pure logic, 818 checks in four seconds, and that is what CI gates on alongside typecheck, lint, the consistency checkers and a build. The tier that launches a hidden window stays out on purpose — a gate that goes red for windowing reasons teaches people to ignore it. A missing suite file fails rather than skips, since a test that is renamed and quietly stops running is the exact thing this exists to prevent.",
   },
 ];

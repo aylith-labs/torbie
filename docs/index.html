@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>steven-pribilinskiy/tabby — a Tabby fork</title>
-<meta name="description" content="What this personal Tabby fork has that upstream Eugeny/tabby does not: link previews and integrations, Claude session awareness, session resume, diagnostics for a window that froze, and a page listing every build on the machine." />
+<title>Torbie — what it carries over Tabby</title>
+<meta name="description" content="What Torbie has that upstream Eugeny/tabby does not: link previews and integrations, Claude session awareness, session resume, diagnostics for a window that froze, and a page listing every build on the machine." />
 <link rel="stylesheet" href="site.css" />
 <script src="theme.js"></script>
 <style>
@@ -97,18 +97,18 @@
 </div>
 
 <header class="hero">
-  <span class="badge">personal fork — run from source, not distributed</span>
-  <h1>Tabby, with the fixes that were not going to arrive</h1>
+  <span class="badge">alpha — run from source, not yet distributed</span>
+  <h1>Torbie: a terminal that tells you what it is doing</h1>
   <p class="tagline">
-    A personal fork of <a href="https://github.com/Eugeny/tabby">Eugeny/tabby</a>. Hover a
-    link and see what it actually points at; get a pane back running what it was running;
-    find out why a window froze; and know which of the four Tabbys on the machine you are
-    looking at. This is the catalogue of everything it carries on top of upstream — with
-    the caveats, which are half the point.
+    Derived from <a href="https://github.com/Eugeny/tabby">Eugeny/tabby</a>, and still
+    running its plugins. Hover a link and see what it actually points at; get a pane back
+    running what it was running; find out why a window froze; and know which of the four
+    builds on the machine you are looking at. This is the catalogue of everything it
+    carries on top of upstream — with the caveats, which are half the point.
   </p>
   <div class="links">
     <a class="btn btn-primary" href="features.html">Browse all features &rarr;</a>
-    <a class="btn btn-ghost" href="https://github.com/steven-pribilinskiy/tabby">View on GitHub</a>
+    <a class="btn btn-ghost" href="https://github.com/aylith-labs/torbie">View on GitHub</a>
   </div>
 </header>
 
@@ -134,7 +134,7 @@
       <p>
         Where a feature is a <em>fix</em> to something upstream already built, it says so.
         Where something is not proven, it says that too, in its own block on the page. The
-        fork's working notes (<code>CLAUDE.md</code>) are unusually candid about what has and
+        project's working notes (<code>CLAUDE.md</code>) are unusually candid about what has and
         has not been measured, and a catalogue that quietly dropped that would be worse than
         no catalogue at all.
       </p>
@@ -148,7 +148,7 @@
   <section>
     <h2 class="section-title">Known limits</h2>
     <div class="limits">
-      <h3>Things this fork does not fix, or has not proved it fixes</h3>
+      <h3>Things this does not fix, or has not proved it fixes</h3>
       <ul>
         <li>
           <strong>Emoji width is still wrong.</strong> <code>&#10055;&#65039;</code> gets one
@@ -169,7 +169,7 @@
         <li>
           <strong>Some things are upstream's, and are not claimed here.</strong> Separate
           light and dark colour schemes, and pane titles with draggable dividers, are stock
-          upstream Tabby. So is the jump list itself — this fork only fixed the icons on it.
+          upstream Tabby. So is the jump list itself — only its icons were fixed here.
         </li>
         <li>
           <strong>Not everything on the branch is in the catalogue.</strong> Six commits are
@@ -184,7 +184,7 @@
 </main>
 
 <footer class="site">
-  <a href="https://github.com/steven-pribilinskiy/tabby">steven-pribilinskiy/tabby</a>
+  <a href="https://github.com/aylith-labs/torbie">aylith-labs/torbie</a>
   — a fork of <a href="https://github.com/Eugeny/tabby">Eugeny/tabby</a>, MIT licensed.
 </footer>
 

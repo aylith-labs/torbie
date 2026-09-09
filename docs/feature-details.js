@@ -825,4 +825,62 @@ window.FEATURE_DETAILS = {
       "<code>CDP_PORT</code> names an instance; it vouches for nothing.",
     ],
   },
+
+  "own-accounts": {
+    problem:
+      "This fork shipped upstream Tabby's own credentials as literals, and had done since the first commit. Its crashes went to Eugeny's Sentry project, its launches to his Mixpanel, and a published artifact would have authenticated against his Keygen distribution account — all under a version string that means nothing in any of them. The updater and the release-notes tab read <em>his</em> releases, so this build would have offered to update itself to a different program.",
+    how:
+      "The Sentry DSN comes from the environment now, and an absent one skips <code>init</code> entirely rather than initialising a client aimed somewhere else. Mixpanel is gone. Keygen is gone: distribution is GitHub releases only, and the packagecloud step that pushed into <code>eugeny/tabby</code> went with it. The update and release-notes feeds, Website, Source code, Report a problem and <code>FUNDING.yml</code> all point at this project.",
+    notes: [
+      "<strong>The analytics switches were removed with the analytics.</strong> A toggle that no longer sends anything is worse than no toggle, because it reads as a choice the user is making.",
+      "The Discord and Weblate links are upstream's community rather than this project's, and are removed rather than repointed at nothing.",
+      "<code>sentry-upload.mjs</code> guards itself on the same credentials, so the three workflow steps that call it became no-ops instead of failures.",
+    ],
+    caveats: [
+      "<code>config.service.ts</code>'s <code>https://api.tabby.sh</code> literal is deliberately <em>not</em> changed. It is compared inside a <code>config.version &lt; 7</code> migration, so changing it changes which users get their sync token cleared. It is a version check, not an endpoint.",
+      "There is no Sentry project to point at yet, so this build reports no crashes anywhere. That is a deliberate silence, not an oversight.",
+    ],
+  },
+
+  "torbie": {
+    problem:
+      "The fork had diverged far enough to stop being \"a patched Tabby\" — 100-odd commits, its own diagnostics, watchdog, resume and build-slot subsystems — while still calling itself by upstream's name, reporting into upstream's accounts, and writing into upstream's config directory. That is confusing for a user and unfair to upstream.",
+    how:
+      "Everything a user or the operating system reads is renamed: product name, window and tray titles, splash, installer artifacts, shell integration, Start-menu and slot shortcuts, the <code>appId</code>. Nothing a <em>plugin</em> reads is renamed, and that asymmetry is the whole design.",
+    notes: [
+      "<strong>The plugin contract is untouched, because there is no version gate to fall back on.</strong> The <code>tabby-</code> package prefix, the <code>tabby-plugin</code> and <code>tabby-builtin-plugin</code> npm keywords and the module names plugins <code>require</code> <em>are</em> the entire compatibility check — there is no <code>apiVersion</code> anywhere in the loader. Renaming either half would unload every installed plugin with no error at all. Verified live: all 17 load, and the diagnostics log records no <code>require-failed</code> beyond the one that is expected on Windows.",
+      "<strong>Four pairs that break in silence.</strong> A build was recognised by the literal <code>'tabby'</code> in four unrelated places — the install roots, the executable beside <code>resources</code>, a checkout's <code>package.json</code>, and the window title that means a renderer never booted. Rename one side of any of them and nothing throws: the scan finds nothing, or the doctor calls every stuck build healthy. They read one shared list now, and it keeps <em>both</em> products, because this machine still has an installed Tabby and a page whose job is \"every build here\" must go on seeing it.",
+      "<strong>The profile is copied forward, never moved.</strong> <code>app/package.json</code>'s name decides <code>userData</code>, so it moved; the old profile is copied in before anything reads the config directory — config, window geometry, credentials, jump-list icons, plugins, and <code>Local Storage</code>, which holds the saved tab layout and is the one whose loss would be destructive rather than merely rude. Copy rather than move, because the old directory belongs to an app that may still be running.",
+      "<strong>Both environment prefixes are honoured and neither is retired.</strong> <code>TABBY_*</code> is documented, used by every test here, and already sitting in shell profiles and shortcuts — where an unset variable is not an error but a default. Each is mirrored to the other once at startup, so a caller may use either. <code>tabby://</code> stays registered beside <code>torbie://</code> for the same reason.",
+      "This codebase has done this once before: it still migrates <code>../terminus/config.yaml</code> forward and still aliases <code>tabby-*</code> to <code>terminus-*</code>. That rename is the template, and its lesson is <em>add names alongside, never replace</em>.",
+    ],
+    caveats: [
+      "<strong>The icon is still Tabby's.</strong> The mark belongs to a brand-asset skill that owns the locked geometry and asset-sync graph, and hand-editing mark assets is exactly what that skill exists to prevent. The interface has not been moved onto the studio's palette either.",
+      "<strong>The macOS Automator workflows are unverified.</strong> They were renamed and their now-meaningless code signatures dropped, from Windows, with no way to test them. They previously launched <code>Tabby.app/Contents/MacOS/tabby</code>, so leaving them alone was a certain failure rather than an unverified one — but that is a trade, not a fix.",
+      "Thirteen translated strings changed their msgid and now fall back to English in all 23 locales. Regenerating the catalogue needs gettext's <code>msgcat</code>, which is not on the machine this was done on.",
+      "Changing the <code>appId</code> changes the AppUserModelID, so an existing taskbar pin carries the old identity and an NSIS upgrade becomes a side-by-side install rather than an in-place one.",
+    ],
+  },
+
+  "ci-gate": {
+    problem:
+      "There was <strong>no <code>test</code> script in any <code>package.json</code>, and no workflow ran any of the forty test files in the repository</strong>. Every one was run by hand, from memory, when someone thought of it. That is not a slow safety net; it is the absence of one, and it is the real gap behind wanting the project to be more stable.",
+    how:
+      "The suites are grouped into tiers by what they need, because they cost three orders of magnitude apart. The <strong>fast</strong> tier needs nothing running — 6 suites, 818 checks, about four seconds — and that is what CI gates on, alongside typecheck, lint, the two consistency checkers and a build. <code>build.yml</code> no longer restates any of it; it calls the gate, and so does the release workflow, so the thing that runs is the same definition and it runs on the ref actually being shipped.",
+    settings: [
+      "<code>yarn test</code> — the fast tier, the gate",
+      "<code>yarn test:checks</code> — the catalogue and fork-mark checkers",
+      "<code>yarn test:cdp</code> — every suite that launches a hidden build",
+      "<code>yarn test:list</code> — all of them, by tier",
+    ],
+    notes: [
+      "<strong>A missing suite file fails rather than skips.</strong> A test that is renamed and quietly stops running is precisely what this exists to prevent, so it cannot be allowed to look like a pass.",
+      "<strong>A fast-tier suite must stay dependency-free.</strong> One that quietly starts needing a compiled bundle turns the gate into a liability the first time somebody runs it on a clean checkout.",
+      "A green run on <code>main</code> says nothing about a tag: separate triggers, separate run histories. So the release workflow calls the gate rather than trusting that it passed at some point.",
+    ],
+    caveats: [
+      "<strong>The CDP tier is not in CI, and that is a real gap, not a solved problem.</strong> Each of those suites launches a window and takes the better part of a minute; a gate that goes red for windowing reasons on a hosted runner teaches people to ignore it. They still have to be run deliberately.",
+      "The same applies to the suites needing a WSL distro or Electron's native ABI.",
+    ],
+  },
 };

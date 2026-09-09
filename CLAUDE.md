@@ -172,9 +172,9 @@ which is not on this machine.
 
 ## The feature catalogue (`docs/`)
 
-`docs/` is a static showcase site listing everything this fork carries that
-upstream does not — 43 features over 94 of the 102 commits the fork carries,
-each with a detail page. Plain HTML/CSS/JS opened straight from disk: no build step,
+`docs/` is a static showcase site listing everything this carries that upstream
+does not — 46 features over 97 of the 109 commits on top of upstream, each with
+a detail page. Plain HTML/CSS/JS opened straight from disk: no build step,
 no Jekyll (`.nojekyll`), no CDN, no network at all. `docs/features.js` is the
 one source the cards, the filters and the detail pages all read;
 `docs/feature-details.js` carries the long-form prose beside it. Both workflows
@@ -193,7 +193,7 @@ recomputes every `ins`/`del`/`files`/`dateAdded` from git and fails on anything
 that disagrees, on a commit claimed twice, on a commit not on the branch, on a
 detail entry for a feature that no longer exists, on a dead link, and on a
 capture referenced but never committed. It also *warns* about commits in no
-feature — eight today, all reverts, docs or build patches.
+feature — twelve today, all reverts, docs or build patches.
 
 - **Commit SHAs are now stable.** Under the old rebase-onto-`master` scheme,
   replaying the series rewrote every SHA, so all of the commit links went stale

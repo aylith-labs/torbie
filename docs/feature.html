@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Feature — steven-pribilinskiy/tabby</title>
+<title>Feature — Torbie</title>
 <meta name="description" content="What this feature does, why it exists, what it costs, and what it does not claim." />
 <link rel="stylesheet" href="site.css" />
 <script src="theme.js"></script>
@@ -154,7 +154,7 @@
 <script src="feature-details.js"></script>
 <script>
 (function () {
-    var REPO = 'https://github.com/steven-pribilinskiy/tabby/commit/'
+    var REPO = 'https://github.com/aylith-labs/torbie/commit/'
 
     function esc (s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -175,11 +175,11 @@
         host.innerHTML = '<div class="missing"><h1>No such feature</h1>' +
             '<p>Nothing in the catalogue is called <code>' + esc(id || '(nothing)') + '</code>.</p>' +
             '<p><a href="features.html">Back to all features</a></p></div>'
-        document.title = 'Not found — steven-pribilinskiy/tabby'
+        document.title = 'Not found — Torbie'
         return
     }
 
-    document.title = feature.title + ' — steven-pribilinskiy/tabby'
+    document.title = feature.title + ' — Torbie'
     var d = (window.FEATURE_DETAILS || {})[feature.id] || null
     var html = ''
 
