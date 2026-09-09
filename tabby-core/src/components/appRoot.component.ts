@@ -297,7 +297,13 @@ export class AppRootComponent {
         this.buildSha = process.env.TABBY_BUILD_SHA ?? 'unknown'
         this.buildBranch = process.env.TABBY_BUILD_BRANCH ?? 'unknown'
         this.buildDateDisplay = process.env.TABBY_BUILD_DATE ?? 'unknown'
-        this.buildVersion = this.platform.getAppVersion()
+        // `vars.mjs` owns the version, and it is baked in beside the commit for
+        // the same reason the commit is: `app.getVersion()` reads
+        // `app/package.json`, which a *packaged* build has had rewritten by
+        // electron-builder's `extraMetadata` and a *source* build has not — so
+        // the same tree called itself two different things depending on how it
+        // was started. The constant is the one both are built from.
+        this.buildVersion = process.env.TABBY_BUILD_VERSION ?? this.platform.getAppVersion()
         this.buildPath = this.platform.getInstallPath() ?? ''
         this.buildConfigPath = this.platform.getConfigPath() ?? ''
         this.buildHint = this.buildSha
@@ -319,7 +325,7 @@ export class AppRootComponent {
     copyBuildHint (): void {
         this.platform.setClipboard({
             text: [
-                `Tabby ${this.buildVersion}`,
+                `Torbie ${this.buildVersion}`,
                 `commit ${this.buildSha} (${this.buildBranch})`,
                 `built ${this.builtAgo} (${this.buildDateDisplay})`,
                 ...this.buildPath ? [`path ${this.buildPath}`] : [],

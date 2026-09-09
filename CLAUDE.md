@@ -223,6 +223,38 @@ Thirteen translated strings changed msgid and now fall back to English in all 23
 locales; `yarn i18n:extract` regenerates `app.pot` but needs gettext's `msgcat`,
 which is not on this machine.
 
+## What version this is, and where that number comes from
+
+**The root `package.json` owns it.** `scripts/vars.mjs` reads `version` there —
+`0.1.0` — and appends `-nightly.${REV}` unless `git tag --points-at HEAD`
+carries exactly `v0.1.0`. Nothing consults a tag it did not put there, so a
+clone that still has upstream's imported tags cannot relabel the same commit.
+Torbie has released nothing yet; every build is a nightly.
+
+**`app/package.json`'s version is not that number, and used to disagree with
+it loudly.** It said `1.0.0-alpha.1` — upstream Tabby's placeholder, which
+upstream also never bumps (their real version is a git tag; `v1.0.235` at the
+time of writing, while their `app/package.json` still reads `1.0.0-alpha.1`).
+That field is what `app.getVersion()` returns, and it is rewritten at package
+time by electron-builder's `extraMetadata` in `scripts/build-windows.mjs` — so
+a **packaged** build reported `0.1.0-nightly.0` and a **source** build of the
+identical commit reported `1.0.0-alpha.1`. It is `0.1.0` now, so the two agree
+on the base, but the two paths still differ by the nightly suffix.
+
+**So what the UI shows is compiled in, not read back.**
+`process.env.TABBY_BUILD_VERSION` is a DefinePlugin constant in *both* webpack
+configs (the app bundle and every plugin bundle — `appRoot.component.ts` lives
+in `tabby-core`, so the app config alone would not reach it), set from
+`vars.mjs`. The build tooltip and `HomeBaseService.appVersion` — the settings
+header, the start page, and the first line of a bug report — read the constant
+and fall back to `app.getVersion()`. Measured in a live source build:
+`0.1.0-nightly.0`, sha `e44e74d9`, branch `main`, built "2 minutes ago".
+
+`app.getVersion()` is deliberately left alone at its two remaining call sites:
+`updater.service.ts` compares it against a GitHub release tag, and
+`configSync.service.ts` records `last_used_with_version`. Both want the
+identity a release has, not the one a working tree has.
+
 ## Toolchain: why TypeScript is pinned, and why that is not neglect
 
 The org toolchain says `typescript` at its `latest` dist-tag — TS 7, the Go
