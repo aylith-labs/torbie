@@ -19,13 +19,79 @@ function normalizePath (p: string): string {
 
 const builtinPluginsPath = process.env.TABBY_DEV ? path.dirname(remote.app.getAppPath()) : path.join((process as any).resourcesPath, 'builtin-plugins')
 
+/**
+ * Angular 22 changed two decorator defaults, and a plugin written for Tabby
+ * declares neither. Both are restored here, for everything that resolves
+ * `@angular/core` through this map.
+ *
+ * **`standalone` now defaults to `true`.** A plugin's components are declared
+ * in its own NgModule, which Angular then refuses:
+ *
+ *     Unexpected "McpSettingsTabComponent" found in the "declarations" array
+ *     of the "McpModule" NgModule — it is marked as standalone
+ *
+ * The module throws, the plugin does not load, and the count drops from 21 to
+ * 18 with nothing in `diagnostics.log`, because nothing failed to *resolve*.
+ *
+ * **`changeDetection` now defaults to `OnPush`.** `ChangeDetectionStrategy`
+ * gained `Eager = 1` (the old `CheckAlways`) and made `Default` a deprecated
+ * alias of it, and the compiler reads `changeDetection ?? OnPush`. This is the
+ * whole of "Angular 22 boots but does not render": measured on
+ * `AppRootComponent`, which declares no strategy, `onPush` was true and a full
+ * `ApplicationRef.tick()` refreshed nothing, while `ng.applyChanges()` — which
+ * marks the view dirty first — took the DOM from 1 element to 78.
+ *
+ * **Patched here rather than on 87 files of decorators, because our own
+ * components are not the whole population.** Third-party plugins are the reason
+ * this fork exists; they are JIT — measured, none of the three installed here
+ * ships a static `ɵcmp`, they call `Component()` at runtime — and
+ * `webpack.plugin.config.mjs` marks `/^@angular/` external, so every builtin
+ * *and* every plugin reaches the decorator through this one object. Annotating
+ * our own would fix our UI and silently freeze theirs, which is the breakage
+ * the `tabby-` prefix and the absent version check exist to prevent.
+ *
+ * Only *absent* keys are filled in, so the five components that ask for
+ * `OnPush` deliberately still get it.
+ *
+ * Libraries are unaffected either way: `@ng-bootstrap` and `@angular/cdk` are
+ * partial-compiled and go through the linker, which picks its defaults from the
+ * Angular version each was *built against* rather than from this decorator.
+ *
+ * A Proxy, not a copy: every other export keeps its identity, and those include
+ * the DI tokens and classes the whole app compares against. Assigning onto the
+ * namespace is not an option — webpack defines harmony exports as
+ * non-configurable getters, the same reason `xtermFrontend.ts` has to spread
+ * `_core.browser` rather than write into it.
+ */
+function withAngular15DecoratorDefaults (core: any): any {
+    const patched: Record<string, any> = {}
+    for (const name of ['Component', 'Directive', 'Pipe']) {
+        const original = core[name]
+        patched[name] = (metadata: any = {}) => {
+            const filled = { ...metadata }
+            if (filled.standalone === undefined) {
+                filled.standalone = false
+            }
+            if (name === 'Component' && filled.changeDetection === undefined) {
+                filled.changeDetection = core.ChangeDetectionStrategy.Eager
+            }
+            return original(filled)
+        }
+    }
+    return new Proxy(core, {
+        get: (target, property, receiver) => typeof property === 'string' && property in patched
+            ? patched[property]
+            : Reflect.get(target, property, receiver),
+    })
+}
+
 const cachedBuiltinModules = {
     '@angular/animations': require('@angular/animations'),
     '@angular/cdk/drag-drop': require('@angular/cdk/drag-drop'),
     '@angular/cdk/clipboard': require('@angular/cdk/clipboard'),
     '@angular/common': require('@angular/common'),
     '@angular/compiler': require('@angular/compiler'),
-    '@angular/core': require('@angular/core'),
+    '@angular/core': withAngular15DecoratorDefaults(require('@angular/core')),
     '@angular/forms': require('@angular/forms'),
     '@angular/localize': require('@angular/localize'),
     '@angular/localize/init': require('@angular/localize/init'),
