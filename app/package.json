@@ -5,7 +5,7 @@
   "repository": "https://github.com/aylith-labs/torbie",
   "author": {
     "name": "Aylith Labs",
-    "email": "hi@aylith.com"
+    "email": "hello@aylith.com"
   },
   "main": "dist/main.js",
   "version": "1.0.0-alpha.1",
