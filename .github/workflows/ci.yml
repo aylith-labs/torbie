@@ -21,6 +21,8 @@ on:
       - 'docs/**'
       - '**/*.md'
   workflow_call:
+  # A gate you cannot run on demand is a gate you cannot debug.
+  workflow_dispatch:
 
 jobs:
   checks:
