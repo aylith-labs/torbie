@@ -524,6 +524,28 @@ window.FEATURE_DETAILS = {
     ],
   },
 
+  "brand-mark": {
+    problem:
+      "A fork that has become its own product cannot keep wearing the logo of the project it came from — and an icon set is the classic thing to hand-export once per size and then let drift, so that the 16px tray image and the 512px Linux icon slowly stop being the same mark.",
+    how:
+      "The mark is <strong>&gt;T</strong>: a prompt closing on the crossbar of a T, whose stem is a git-branch trunk with a commit at its foot and one at the end of the bar. Its geometry lives in one object in <code>scripts/dev/make-icons.mjs</code> and <em>nowhere else</em>. Every asset is rendered from it — three SVGs, six Linux PNGs, <code>build/windows/icon.ico</code>, <code>build/mac/icon.icns</code>, five tray images and the docs favicon, eighteen files. Nothing is hand-exported, so nothing can drift, and changing the mark means changing one path string and re-running the script.",
+    steps: [
+      "<code>node scripts/dev/make-icons.mjs --dry-run</code> to see what would change and by how much.",
+      "<code>node scripts/dev/make-icons.mjs</code> to write them.",
+    ],
+    notes: [
+      "<strong>Two treatments over one geometry.</strong> <em>Theme-aware</em> flips ink to cream through <code>prefers-color-scheme</code> and is what the SVGs ship; <em>bronze duotone</em> is what every raster bakes, because a PNG cannot flip and the Windows taskbar takes its colour from <code>SystemUsesLightTheme</code> rather than from the app.",
+      "<strong>Rasterized by Chromium, never ImageMagick</strong>, which mis-renders SVG strokes — the same reason the jump list draws its icons through a canvas. The rasterizer <strong>refuses any size that comes back fully transparent</strong>, which is the one failure a set of icons produces silently.",
+      "<strong><code>.ico</code> and <code>.icns</code> are written by hand</strong>, because nothing in this stack encodes either. Both are verified by walking the container back: every offset in range, every declared length matching a real PNG of that size, and the ICNS walking to its declared end exactly.",
+      "A theme-aware SVG <em>does</em> flip when used as a CSS <code>background-image</code> — that is how the splash consumes it, and it is the context where an SVG gets no stylesheet from its parent. Measured rather than assumed: the body tone reads <code>rgb(28, 26, 22)</code> in light and <code>rgb(243, 239, 231)</code> in dark, which are the palette's ink and cream exactly.",
+      "The splash and the <code>appearance.accentColor</code> default move onto the same warm-stone palette in the same pass, so the mark and the interface around it are one set of colours rather than two.",
+    ],
+    caveats: [
+      "<strong>macOS is verified structurally and not visually, deliberately.</strong> There is no Mac here. <code>icon.icns</code> is walked back byte for byte and the tray images are correctly black-plus-alpha — which is what the OS needs to recolour them for the menu bar — but nobody has seen them in Finder, the Dock or the menu bar. Treat them as <em>unchecked</em>, never as <em>checked and fine</em>.",
+      "<code>app/assets/activity.png</code> is deliberately untouched: it is the Touch Bar's \"this tab has activity\" indicator, not a brand asset.",
+    ],
+  },
+
   "tab-actions": {
     problem:
       "Split and Open in new window were offered for terminal tabs and not for anything else, and moving a tab out started a fresh session rather than carrying the running one.",
@@ -741,6 +763,26 @@ window.FEATURE_DETAILS = {
   },
 
   // ----------------------------------------------------------- robustness
+
+  "angular-22": {
+    problem:
+      "Upstream sits on Angular 15 and TypeScript 4.9, which is two majors behind the TypeScript everything else in this lab uses and well past the point where the ecosystem still ships types for it. Moving is not optional forever. But this codebase is <em>also</em> the host for third-party plugins written years ago, and a framework upgrade that quietly changes what a decorator means breaks every one of them at once.",
+    how:
+      "The tree is on <strong>Angular 22.1.5 and TypeScript 6.0.3</strong>. Four of the six blockers were ordinary: <code>moduleResolution</code> that predated the <code>exports</code> field every modern package publishes its subpaths through; <code>useDefineForClassFields</code>, which changes what a class field <em>is</em> and broke sixty-four field initializers that call a constructor parameter property; a bootstrap option that no longer exists and was <em>silently ignored</em> rather than rejected, leaving the app running zoneless; and webpack scope-hoisting Angular's chunked ESM into a reference to a module with a <strong>null id</strong>. The last two are the interesting ones, and both are restored in a single place.",
+    notes: [
+      "<strong>Angular 22 makes <code>OnPush</code> the default change-detection strategy.</strong> <code>ChangeDetectionStrategy</code> gained <code>Eager</code> for the old <code>CheckAlways</code> and demoted <code>Default</code> to a deprecated alias of it, and the compiler reads <code>changeDetection ?? OnPush</code>. The app booted, loaded every plugin, built its whole component tree — and rendered <strong>one element</strong>.",
+      "<strong>The obvious diagnosis was wrong, and measuring is what corrected it.</strong> \"Nothing schedules the first pass\" fits the symptom exactly. But the zone was real, its inner zone was <code>angular</code>, the scheduler was subscribed to that exact instance, and it emitted. A full <code>ApplicationRef.tick()</code> still changed nothing while the debug API's <code>applyChanges()</code> took the DOM from 1 element to 78 — and the only difference between them is that <code>applyChanges</code> marks the view dirty first, which is the signature of a view Angular no longer treats as <code>CheckAlways</code>.",
+      "<strong><code>standalone</code> now defaults to <code>true</code> as well</strong>, which is the same change in a second place and fails much louder. A plugin declares its components in its own NgModule; Angular refuses them, the module throws, and the plugin does not load. Measured: <strong>eighteen plugins instead of twenty-one</strong>, with nothing in <code>diagnostics.log</code>, because nothing had failed to <em>resolve</em>.",
+      "<strong>Both defaults are restored on the shared module map, and that placement is the whole point.</strong> Third-party plugins are the reason this fork exists; they are JIT — none of the three installed here ships a compiled component definition, they call the decorator at runtime — and the plugin webpack config marks <code>@angular/*</code> external, so every builtin <em>and</em> every plugin reaches the decorator through one object. Annotating this project's own eighty-seven files would have fixed its interface and silently frozen theirs.",
+      "Only <em>absent</em> keys are filled in, so the five components that ask for <code>OnPush</code> deliberately still get it. Libraries are unaffected either way: <code>@ng-bootstrap</code> and <code>@angular/cdk</code> are partial-compiled and go through the linker, which picks its defaults from the Angular version each was built against.",
+      "Measured after: the window renders <strong>91 elements unaided</strong> — the same count as the Angular 15 build — and a forced pass then changes nothing, which is what a fully-rendered application looks like. Twenty-one plugins load, all three third-party ones among them, every builtin they require resolves, and their config providers ran.",
+    ],
+    caveats: [
+      "<strong>This is not a zoneless migration.</strong> Zone-based change detection is asked for explicitly rather than inherited. Going properly zoneless is a real piece of work this codebase has not had — no signals, no <code>markForCheck</code> discipline, and a great deal of state mutated from xterm callbacks and IPC handlers.",
+      "<strong>Scope hoisting is off</strong>, which is an optimisation given up rather than a problem solved. It should be re-enabled when a later webpack or Angular stops producing the null module id — and only with a boot to prove it.",
+      "TypeScript is at 6.0.3 because that is the whole of Angular's peer range. TypeScript 7 remains unreachable until 7.1 restores the compiler API surface Angular builds on; that is a finding recorded against the pin, not a version anyone chose.",
+    ],
+  },
 
   "module-lookup": {
     problem:
