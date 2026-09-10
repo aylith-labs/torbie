@@ -353,6 +353,27 @@ function errorText (err: any): string {
     return String(message).replace(/^Error:\s*/, '')
 }
 
+/** Resolve the owner-less preset before expanding the canonical fetch pipeline. */
+export async function resolveGitHubReference (candidates: string, repo: string, number: string, token: string, request = httpRequest): Promise<{ owner: string, pull: boolean, link: string }> {
+    const owners = [...new Set(candidates.split(/[\s,]+/).filter(x => /^[A-Za-z0-9-]+$/.test(x)))].slice(0, 8)
+    if (!owners.length) throw new Error('Configure candidate owners to preview repo#number references')
+    const deadline = Date.now() + 8000
+    for (const owner of owners) {
+        const response = await request({
+            url: `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${encodeURIComponent(number)}`,
+            method: 'GET',
+            headers: { accept: 'application/vnd.github+json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+            timeoutMs: Math.max(1, deadline - Date.now()),
+        })
+        if (response.status === 404) { if (Date.now() >= deadline) break; continue }
+        if (response.status !== 200) throw new Error(`Reference lookup failed (${response.status})`)
+        const issue = parseJson(response.body)
+        const pull = !!issue?.pull_request
+        return { owner, pull, link: `https://github.com/${owner}/${encodeURIComponent(repo)}/${pull ? 'pull' : 'issues'}/${encodeURIComponent(number)}` }
+    }
+    throw new Error('Reference was not found under the configured owners')
+}
+
 @Injectable({ providedIn: 'root' })
 export class IntegrationRuntimeService {
     private cache = new Map<string, CacheEntry>()
@@ -394,6 +415,8 @@ export class IntegrationRuntimeService {
      * what someone who has not set it up yet needs.
      */
     resolveTextLink (text: string, hint: string): string {
+        const cached = this.cache.get(`github|${text}`)
+        if ((hint === '' || hint === 'github') && cached && Date.now() < cached.expiry && cached.preview.link) return cached.preview.link
         const match = this.findMatch('text', text, hint, false)
         if (!match?.matcher.link) {
             return ''
@@ -549,6 +572,16 @@ export class IntegrationRuntimeService {
             data: {},
         }
 
+        if (integration.id === 'github' && match.vars.repo && match.vars.number && !match.vars.owner) {
+            try {
+                const resolved = await resolveGitHubReference(integration.settings.candidateOwners ?? '', match.vars.repo, match.vars.number, integration.credentials.token ?? '')
+                match = { ...match, vars: { ...match.vars, owner: resolved.owner, ispull: resolved.pull ? 'pull' : '' } }
+                preview.link = resolved.link
+            } catch (error) {
+                preview.error = `GitHub: ${errorText(error)}`
+                return preview
+            }
+        }
         const results: Record<string, any> = {}
         let last: any = null
 

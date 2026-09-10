@@ -335,8 +335,6 @@ const DIVERGENCES = {
     // expresses that, so a `repo#123` match here would resolve no owner and
     // fetch `repos//<repo>/issues/<n>` — a 404 offered as a suggested rule.
     // Adopt the pair together, once that resolution is ported.
-    'github.settings': true,
-    'github.matchers': true,
     // Ours only: the `html` document. That fork compiles its WebView2 host but
     // ships it disabled, so the key is inert there rather than wrong.
     'stith.html': true,
@@ -925,7 +923,7 @@ const allPresets = presets.rulePresets(BUILT_IN)
 // ids is the assertion that none of them has been.
 check('every preset is offered, in order', allPresets.map(p => p.id), [
     'jira-issue-keys', 'jira-issue-links',
-    'github-pull-requests', 'github-issues', 'github-commits',
+    'github-pull-requests', 'github-issues', 'github-commits', 'github-repo-number',
     'slack-messages',
     // `stith-session-ids` arrived with the lintel manifest: a bare 8-4-4-4-12
     // session id, printed with no scheme around it, which previously matched
@@ -934,11 +932,11 @@ check('every preset is offered, in order', allPresets.map(p => p.id), [
     // Dropped silently until `shefrd.json` was registered: a preset whose
     // integration is not in the pool resolves no matcher and is not offered.
     'shefrd-pane-ids',
-    'git-commit-hashes', 'media-files', 'source-code-files',
+    'git-commit-hashes', 'media-files', 'source-code-files', 'text-files', 'pdf-files', 'office-document-files',
 ])
 check('with no integrations, only the standalone presets remain',
     presets.rulePresets([]).map(p => p.id),
-    ['git-commit-hashes', 'media-files', 'source-code-files'])
+    ['git-commit-hashes', 'media-files', 'source-code-files', 'text-files', 'pdf-files', 'office-document-files'])
 
 // No second copy of anyone's regex: a manifest-backed preset's pattern has to
 // be a string the manifest itself contains, selected unambiguously.
@@ -1116,6 +1114,17 @@ check('preset and "Add as rule" agree',
 // answer is almost always "nothing happened". So the matching is measured here
 // rather than only in the UI: exact modifiers, each gesture, and what a rule
 // does to the action a chord runs.
+
+// File presets with the same group still have distinct extension criteria.
+for (const id of ['text-files', 'pdf-files', 'office-document-files']) {
+    const preset = allPresets.find(p => p.id === id)
+    const rule = presets.applyPreset(preset)
+    rule.name = 'My file rule'
+    check(`${id}: renamed rule remains recognizable`, presets.ruleIsPreset(rule, preset), true)
+    for (const other of allPresets.filter(p => p.id !== id && !p.pattern)) {
+        check(`${id}: does not alias ${other.id}`, presets.ruleIsPreset(rule, other), false)
+    }
+}
 
 console.log('\n── click chords ──')
 const chords = loadSource('tabby-links/src/clickChords.ts')
@@ -1534,5 +1543,27 @@ console.log('\n── settings group rules ──')
             .join('\n').includes('ngbAccordion'), false)
 }
 
-console.log(`\n${passed} passed, ${failed} failed`)
-process.exit(failed ? 1 : 0)
+async function githubReferenceTests () {
+    const seen = []
+    const resolved = await rt.resolveGitHubReference('missing, aylith-labs', 'terminal', '42', 'fixture-token', async request => {
+        seen.push(request)
+        return request.url.includes('/missing/')
+            ? { status: 404, statusText: 'Not Found', body: '{}' }
+            : { status: 200, statusText: 'OK', body: '{"pull_request":{}}' }
+    })
+    check('repo#number probes candidate owners in order', seen.length, 2)
+    check('repo#number resolves pull requests', resolved.link, 'https://github.com/aylith-labs/terminal/pull/42')
+    check('reference credentials only go to GitHub', seen.every(r => new URL(r.url).hostname === 'api.github.com'), true)
+    const issue = await rt.resolveGitHubReference('aylith-labs', 'terminal', '9', '', async () => ({ status: 200, statusText: 'OK', body: '{}' }))
+    check('repo#number distinguishes issues', issue.link, 'https://github.com/aylith-labs/terminal/issues/9')
+    let missing = false
+    try { await rt.resolveGitHubReference('', 'terminal', '1', '', async () => { throw new Error('must not fetch') }) } catch (error) { missing = /Configure candidate owners/.test(error.message) }
+    check('missing candidate owners produce an actionable error', missing, true)
+    let denied = false
+    try { await rt.resolveGitHubReference('aylith-labs', 'terminal', '1', '', async () => ({ status: 403, statusText: 'Forbidden', body: '{}' })) } catch (error) { denied = /403/.test(error.message) }
+    check('reference lookup preserves permission failures', denied, true)
+}
+githubReferenceTests().then(() => {
+    console.log(`\n${passed} passed, ${failed} failed`)
+    process.exit(failed ? 1 : 0)
+}).catch(error => { console.error(error); process.exit(1) })

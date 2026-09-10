@@ -4,7 +4,16 @@
     "icon": "ms-appx:///IntegrationIcons/github.png",
     "version": 1,
     "cacheSeconds": 300,
-    "settings": [],
+    "settings": [
+        {
+            "key": "candidateOwners",
+            "label": "Candidate owners",
+            "placeholder": "e.g. org1, org2",
+            "default": "",
+            "description": "Comma-separated GitHub accounts or organizations to search when resolving repository references without an explicit owner (e.g. repo#123).",
+            "required": false
+        }
+    ],
     "credentials": [
         {
             "key": "token",
@@ -26,6 +35,12 @@
         {
             "kind": "link",
             "pattern": "^https://github\\.com/(?<owner>[^/]+)/(?<repo>[^/]+)/commit/(?<sha>[0-9a-f]{7,40})"
+        },
+        {
+            "kind": "text",
+            "pattern": "^(?<repo>[A-Za-z0-9_.-]+)#(?<number>\\d+)",
+            "description": "GitHub pull requests and issues (repo#number)",
+            "suggested": true
         }
     ],
     "fetch": [

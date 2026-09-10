@@ -15,7 +15,7 @@ export const FILE_TYPE_GROUPS: Record<LinkFileTypeGroup, string[]> = {
     video: VIDEO,
     audio: AUDIO,
     media: [...IMAGE, ...VIDEO, ...AUDIO],
-    sourceCode: ['cs', 'cpp', 'h', 'hpp', 'c', 'py', 'js', 'ts', 'rs', 'go', 'java', 'rb', 'ps1', 'sh'],
+    sourceCode: ['cs', 'cpp', 'h', 'hpp', 'c', 'py', 'js', 'jsx', 'ts', 'tsx', 'rs', 'go', 'java', 'rb', 'ps1', 'sh'],
     document: ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'md'],
     archive: ['zip', '7z', 'rar', 'tar', 'gz'],
     executable: ['exe', 'msi', 'bat', 'cmd', 'ps1'],

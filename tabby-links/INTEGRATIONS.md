@@ -572,3 +572,16 @@ rendering it needs both the `Feature_HyperlinkPreviewHtml` flag and `WebView2Loa
 the app, and neither ships today, so a manifest that sets `html` falls back to its `fields` list
 there. Write a `fields` list as well as an `html` document if the manifest is meant to be useful
 in both.
+
+## Shared Lintel presets
+
+`src/presets.generated.ts` is generated from Lintel's `presets.json`. Update both hosts
+with `node conformance/sync-presets.mjs --terminal <path> --torbie <path>` from Lintel.
+Add `--check` to verify drift without changing files. The catalog has 17 presets, including
+text, PDF and Office files. Preset availability does not imply support for every document
+renderer: built-in Office extraction and PDF page rendering currently belong to Terminal.
+
+The GitHub repo#number preset requires **Candidate owners** in the GitHub integration.
+Torbie probes those owners in order, uses the configured token, and distinguishes pull
+requests from issues. A missing owner or failed lookup is reported without producing an
+invalid owner-less API URL. Saved rules and custom actions are retained during catalog sync.
