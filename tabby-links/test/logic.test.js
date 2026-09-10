@@ -1115,6 +1115,12 @@ check('preset and "Add as rule" agree',
 // rather than only in the UI: exact modifiers, each gesture, and what a rule
 // does to the action a chord runs.
 
+for (const preset of allPresets) {
+    for (const name of preset.legacyNames ?? []) {
+        const rule = { ...api.newRule(), name, pattern: 'legacy edited pattern' }
+        check(`${preset.id}: recognizes legacy name`, presets.ruleIsPreset(rule, preset), true)
+    }
+}
 // File presets with the same group still have distinct extension criteria.
 for (const id of ['text-files', 'pdf-files', 'office-document-files']) {
     const preset = allPresets.find(p => p.id === id)

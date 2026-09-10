@@ -26,6 +26,7 @@ export interface RulePreset {
      * is what the test holds the preset to.
      */
     example: string
+    legacyNames?: string[]
 }
 
 export function matcherForExample (
@@ -63,7 +64,7 @@ export interface PresetIntegration {
 export function rulePresets (integrations: PresetIntegration[]): RulePreset[] {
     const out: RulePreset[] = []
     for (const entry of presetCatalog) {
-        const p = entry as { id: string, integration: string, label: string, description: string, match: LinkMatchKind, example: string, preview: boolean, pattern?: string, schemes?: readonly string[], fileTypeGroup?: LinkFileTypeGroup, extensions?: readonly string[] }
+        const p = entry as { id: string, integration: string, label: string, description: string, match: LinkMatchKind, example: string, preview: boolean, pattern?: string, schemes?: readonly string[], fileTypeGroup?: LinkFileTypeGroup, extensions?: readonly string[], legacyNames?: readonly string[] }
         const integration = integrations.find(x => x.id === p.integration)
         const matcher = integration ? matcherForExample(integration.manifest.matchers ?? [], p.match, p.example) : null
         if (p.integration && !matcher) continue
@@ -79,6 +80,7 @@ export function rulePresets (integrations: PresetIntegration[]): RulePreset[] {
             integration: p.integration,
             preview: p.preview,
             example: p.example,
+            legacyNames: [...(p.legacyNames ?? [])],
         })
     }
     return out
@@ -134,7 +136,7 @@ export function applyPreset (preset: RulePreset, rule: LinkTooltipRule = newRule
  * The pattern fallback is what still recognises a renamed rule.
  */
 export function ruleIsPreset (rule: LinkTooltipRule, preset: RulePreset): boolean {
-    if (rule.name && rule.name === preset.name) {
+    if (rule.name && (rule.name === preset.name || preset.legacyNames?.includes(rule.name))) {
         return true
     }
     if (preset.pattern) {

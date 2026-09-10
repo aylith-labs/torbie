@@ -8,7 +8,10 @@ export const presetCatalog = [
         "match": "text",
         "example": "CAB-8209",
         "preview": true,
-        "sample": "Deployed CAB-8209 to staging"
+        "sample": "Deployed CAB-8209 to staging",
+        "legacyNames": [
+            "Jira: Issue keys in output (Text)"
+        ]
     },
     {
         "id": "jira-issue-links",
@@ -17,7 +20,10 @@ export const presetCatalog = [
         "description": "Jira issue URLs, the /browse/ form",
         "match": "link",
         "example": "https://example.atlassian.net/browse/CAB-8209",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "Jira: Issue links (URL)"
+        ]
     },
     {
         "id": "github-pull-requests",
@@ -26,7 +32,10 @@ export const presetCatalog = [
         "description": "GitHub pull request URLs",
         "match": "link",
         "example": "https://github.com/aylith-labs/lintel/pull/12",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "GitHub: Pull requests & issues (URL)"
+        ]
     },
     {
         "id": "github-issues",
@@ -35,7 +44,10 @@ export const presetCatalog = [
         "description": "GitHub issue URLs",
         "match": "link",
         "example": "https://github.com/aylith-labs/lintel/issues/12",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "GitHub: Pull requests & issues (URL)"
+        ]
     },
     {
         "id": "github-commits",
@@ -44,7 +56,10 @@ export const presetCatalog = [
         "description": "GitHub commit URLs",
         "match": "link",
         "example": "https://github.com/aylith-labs/lintel/commit/c79ccc1f0a7d4e2b1c3f5a6d8e9b0c1d2e3f4a5b",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "GitHub: Commits (URL)"
+        ]
     },
     {
         "id": "github-repo-number",
@@ -54,7 +69,10 @@ export const presetCatalog = [
         "match": "text",
         "example": "terminal#18920",
         "preview": true,
-        "sample": "See terminal#18920 for the details"
+        "sample": "See terminal#18920 for the details",
+        "legacyNames": [
+            "GitHub: Pull requests & issues (repo#number)"
+        ]
     },
     {
         "id": "slack-messages",
@@ -63,7 +81,10 @@ export const presetCatalog = [
         "description": "Slack permalinks, including a link into a thread",
         "match": "link",
         "example": "https://myteam.slack.com/archives/C01234ABCD/p1712345678000100",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "Slack: Message links (URL)"
+        ]
     },
     {
         "id": "stith-session-uris",
@@ -72,7 +93,10 @@ export const presetCatalog = [
         "description": "stith:// links to an agent session",
         "match": "link",
         "example": "stith://session/1a2b3c4d-5e6f",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "Stith: Agent session links"
+        ]
     },
     {
         "id": "stith-web-links",
@@ -81,7 +105,10 @@ export const presetCatalog = [
         "description": "Links to a session on the stith web UI",
         "match": "link",
         "example": "https://stith.lvh.me/agent/1a2b3c4d-5e6f",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "Stith: Agent session links"
+        ]
     },
     {
         "id": "stith-session-ids",
@@ -91,7 +118,10 @@ export const presetCatalog = [
         "match": "text",
         "example": "ce786f3f-6fdc-4165-b9bd-20ff858844db",
         "preview": true,
-        "sample": "Resuming ce786f3f-6fdc-4165-b9bd-20ff858844db"
+        "sample": "Resuming ce786f3f-6fdc-4165-b9bd-20ff858844db",
+        "legacyNames": [
+            "Stith: Agent session ids (Text)"
+        ]
     },
     {
         "id": "shefrd-pane-ids",
@@ -101,7 +131,10 @@ export const presetCatalog = [
         "match": "text",
         "example": "w1N:p39",
         "preview": true,
-        "sample": "it also names the pane, w1N:p39, if you want to watch it work"
+        "sample": "it also names the pane, w1N:p39, if you want to watch it work",
+        "legacyNames": [
+            "shefrd: Pane ids in output (Text)"
+        ]
     },
     {
         "id": "git-commit-hashes",
@@ -113,7 +146,10 @@ export const presetCatalog = [
         "patternNote": "The lookahead demands a letter somewhere in the run. Without it every seven-digit number in the output is a commit -- PIDs, ports, byte counts, epoch seconds -- and a rule that decorates everything is a rule people turn off. The cost is an all-digit hash, a one-in-a-billion object at forty characters.",
         "example": "c79ccc1f0a7d4e2b1c3f5a6d8e9b0c1d2e3f4a5b",
         "preview": false,
-        "sample": "46100068 Record what the Settings crash actually was"
+        "sample": "46100068 Record what the Settings crash actually was",
+        "legacyNames": [
+            "Git: Commit hashes in output (Text)"
+        ]
     },
     {
         "id": "media-files",
@@ -128,7 +164,10 @@ export const presetCatalog = [
         ],
         "fileTypeGroup": "media",
         "example": "/home/steve/captures/screenshot.png",
-        "preview": true
+        "preview": true,
+        "legacyNames": [
+            "Media: Images, audio & video"
+        ]
     },
     {
         "id": "source-code-files",
