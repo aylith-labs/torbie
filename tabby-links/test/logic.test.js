@@ -274,18 +274,8 @@ const ADDITIVE = new Set(['normalize', 'suffix', 'description', 'placeholder'])
 // reconciling the new state needs, including the table below.
 const TERMINAL_REPO = process.env.TERMINAL_REPO || 'C:/Users/steve/projects/terminal'
 const TERMINAL_MANIFESTS = 'src/cascadia/TerminalSettingsModel/integrations'
-// "Give shefrd an icon, and even out the link tooltip's buttons" — the newest
-// commit there that touches a manifest, so it is the reference state itself and
-// not a HEAD that happens to sit above it. (Verified when re-pointed:
-// `git log da8e5c5b53..HEAD -- <manifests>` in that checkout is empty, which is
-// what "newest" has to mean here.)
-//
-// Re-pointed from `b9a41937a1` when the manifests moved: both forks now take
-// `stith.json` and `shefrd.json` as canonical copies from the `lintel` repo,
-// which is where the format lives. All six parity assertions that had gone red
-// come back green against this commit, which is what says the two forks really
-// did take the same thing rather than drifting in the same direction.
-const TERMINAL_REF = process.env.TERMINAL_REF || 'da8e5c5b5374fc7897bb22e6758bd39dc83882f1'
+// Pin the Terminal commit that adopted the shared catalog and Unblocked manifest.
+const TERMINAL_REF = process.env.TERMINAL_REF || '37aa9437aefb6771c90653bf3eaeffaec9be723c'
 
 function git (args) {
     return require('child_process').execFileSync('git', args,
@@ -338,6 +328,8 @@ const DIVERGENCES = {
     // Ours only: the `html` document. That fork compiles its WebView2 host but
     // ships it disabled, so the key is inert there rather than wrong.
     'stith.html': true,
+    // Terminal's host-setting normalization is additive host metadata.
+    'jira.settings': true,
 }
 function documentedDivergences (id) {
     return Object.keys(DIVERGENCES).filter(k => k.startsWith(`${id}.`)).map(k => k.slice(id.length + 1)).sort()
@@ -352,7 +344,7 @@ check('the pinned reference commit is reachable', reference !== 'no-commit', tru
 // `shefrd` joins the four: it is shipped by both forks, from the same lintel
 // copy, so leaving it out of the comparison would be the one manifest free to
 // drift — which is exactly how `icon` drifted before anyone was comparing it.
-for (const id of reference === 'ok' ? ['github', 'jira', 'shefrd', 'slack', 'stith'] : []) {
+for (const id of reference === 'ok' ? ['github', 'jira', 'shefrd', 'slack', 'stith', 'unblocked'] : []) {
     const ours = require(path.join(REPO, `tabby-links/src/integrations/${id}.json`))
     const theirs = referenceManifest(id)
     const excused = []
@@ -438,11 +430,11 @@ console.log('\n── integration logos ──')
     // yields "[object Object]" — both render as a broken image and fail
     // nothing else.
     const assetMap = loadSource('tabby-links/src/integrationIconAssets.ts').INTEGRATION_ICONS
-    for (const id of ['github', 'jira', 'slack', 'stith']) {
+    for (const id of ['github', 'jira', 'shefrd', 'slack', 'stith', 'unblocked']) {
         const manifest = require(path.join(REPO, `tabby-links/src/integrations/${id}.json`))
         const uri = icons.resolveIntegrationIcon(manifest.icon, assetMap)
         check(`${id}'s icon resolves to a PNG data URI`,
-            /^data:image\/png;base64,/.test(uri) && uri.length > 1000, true)
+            /^data:image\/png;base64,/.test(uri) && Buffer.from(uri.split(',')[1], 'base64').subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), true)
     }
 
     // A manifest naming a file nothing carries is the one failure with no
@@ -910,9 +902,9 @@ const api = loadSource('tabby-links/src/api.ts')
 const rules = loadSource('tabby-links/src/services/linkRules.service.ts')
 
 // Presets take their patterns from the manifests, so build the list the
-// settings page would: the five built-ins, shaped as the registry hands them
+// settings page would: the six built-ins, shaped as the registry hands them
 // over.
-const BUILT_IN = ['github', 'jira', 'shefrd', 'slack', 'stith'].map(id => {
+const BUILT_IN = ['github', 'jira', 'shefrd', 'slack', 'stith', 'unblocked'].map(id => {
     const manifest = require(path.join(REPO, `tabby-links/src/integrations/${id}.json`))
     return { id: manifest.id, name: manifest.name, manifest }
 })
@@ -933,6 +925,7 @@ check('every preset is offered, in order', allPresets.map(p => p.id), [
     // integration is not in the pool resolves no matcher and is not offered.
     'shefrd-pane-ids',
     'git-commit-hashes', 'media-files', 'source-code-files', 'text-files', 'pdf-files', 'office-document-files',
+    'unblocked-task-ids', 'unblocked-task-links',
 ])
 check('with no integrations, only the standalone presets remain',
     presets.rulePresets([]).map(p => p.id),
@@ -1630,6 +1623,17 @@ settingsProbe.presetSearch='UNBLOCKED'
 check('preset search case insensitive',settingsProbe.filteredPresets.map(p=>p.id),['unblocked'])
 settingsProbe.presetSearch='missing'
 check('preset search empty state',settingsProbe.filteredPresets.length,0)
+const jiraRule = presets.applyPreset(allPresets.find(p => p.id === 'jira-issue-keys'))
+const taskPreset = allPresets.find(p => p.id === 'unblocked-task-ids')
+settingsProbe.config.store.linkTooltip.rules = [jiraRule]
+settingsProbe.addRuleFromPreset(taskPreset)
+check('new Unblocked preset precedes broad Jira matcher', settingsProbe.rules[0].integration, 'unblocked')
+check('Jira rule is preserved', settingsProbe.rules[1], jiraRule)
+const targetRule = api.newRule()
+settingsProbe.config.store.linkTooltip.rules = [jiraRule, targetRule]
+settingsProbe.currentRule = targetRule
+settingsProbe.applyPresetToCurrent(taskPreset)
+check('applied Unblocked preset precedes broad Jira matcher', settingsProbe.rules[0].integration, 'unblocked')
 
 async function localPreviewTests () {
     const fs = require('node:fs/promises')

@@ -97,11 +97,12 @@ async function main () {
     check('the page rendered', opened.error, undefined)
     check('every preset reached the page', opened.presets, [
         'jira-issue-keys', 'jira-issue-links',
-        'github-pull-requests', 'github-issues', 'github-commits',
+        'github-pull-requests', 'github-issues', 'github-commits', 'github-repo-number',
         'slack-messages',
         'stith-session-uris', 'stith-web-links', 'stith-session-ids',
         'shefrd-pane-ids',
-        'git-commit-hashes', 'media-files', 'source-code-files',
+        'git-commit-hashes', 'media-files', 'source-code-files', 'text-files', 'pdf-files', 'office-document-files',
+        'unblocked-task-ids', 'unblocked-task-links',
     ])
     note(`${opened.rules} rule(s) already on this profile`)
 

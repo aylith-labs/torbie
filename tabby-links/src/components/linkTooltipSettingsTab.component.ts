@@ -16,7 +16,7 @@ import {
 import { FILE_TYPE_GROUP_LABELS } from '../fileTypes'
 import { RulePreset, applyPreset, presetForRule, presetInUse, rulePresets } from '../presets'
 import { ProbeSegment, RuleProbe, probeCaptures, probeRule, probeSegments } from '../ruleProbe'
-import { checkPattern } from '../regexGuard'
+import { checkPattern, GuardedRegex } from '../regexGuard'
 import { IntegrationRegistryService } from '../services/integrationRegistry.service'
 import { LinkClicksService } from '../services/linkClicks.service'
 import { LinkSettingsNavService, RuleTarget } from '../services/linkSettingsNav.service'
@@ -239,7 +239,9 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
     /** Add a rule already filled in, and open it — a preset is a starting point. */
     addRuleFromPreset (preset: RulePreset): void {
         const rule = applyPreset(preset)
-        this.rules.push(rule)
+        // A new task preset must not be shadowed by an existing broad ID rule.
+        const conflict = this.presetConflict(preset)
+        this.rules.splice(conflict < 0 ? this.rules.length : conflict, 0, rule)
         this.currentRule = rule
         this.patternError = checkPresetPattern(rule.pattern)
         this.seedSample(rule)
@@ -258,9 +260,21 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
             return
         }
         applyPreset(preset, this.currentRule)
+        const currentIndex = this.rules.indexOf(this.currentRule)
+        const conflict = this.presetConflict(preset)
+        if (conflict >= 0 && conflict < currentIndex) {
+            const [rule] = this.rules.splice(currentIndex, 1)
+            this.rules.splice(conflict, 0, rule)
+        }
         this.patternError = checkPresetPattern(this.currentRule.pattern)
         this.seedSample(this.currentRule)
         this.saveConfiguration()
+    }
+
+    private presetConflict (preset: RulePreset): number {
+        if (preset.match !== 'text' || !preset.example) return -1
+        return this.rules.findIndex(rule => rule.enabled && rule.match === 'text' && !!rule.pattern
+            && new GuardedRegex(rule.pattern, '', rule.name).fullMatch(preset.example))
     }
 
     /**

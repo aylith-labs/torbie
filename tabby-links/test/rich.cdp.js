@@ -1,5 +1,5 @@
 // Verifies the "rich integrations" manifest features in a running renderer:
-// the four built-ins load, detectPatterns join the scan pool, and a preview
+// the six built-ins load, detectPatterns join the scan pool, and a preview
 // carrying groups/tabs/actions renders as one.
 //
 // Launch the dev build hidden first — see README.md.
@@ -36,7 +36,7 @@ const DECORATOR = `
 async function main () {
     const cdp = await connect()
 
-    console.log('\n── the four built-ins ──')
+    console.log('\n── the six built-ins ──')
     const registry = await cdp.evaluate(`
         ${DECORATOR}
         const reg = dec.runtime.registry
@@ -52,7 +52,7 @@ async function main () {
             detect: reg.detectPatterns(),
         }
     `)
-    check('all five built-ins discovered', registry.ids, ['github', 'jira', 'shefrd', 'slack', 'stith'])
+    check('all six built-ins discovered', registry.ids, ['github', 'jira', 'shefrd', 'slack', 'stith', 'unblocked'])
     check('jira brought its field groups', registry.jiraGroups > 0, true)
     check('jira brought its tabs', registry.jiraTabs > 0, true)
     check('jira brought its choice action', registry.jiraActions > 0, true)
