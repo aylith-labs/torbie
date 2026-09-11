@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, Injector, NgZone, OnInit } from '@angular
 import { BaseTabComponent, ConfigService } from 'tabby-core'
 import { BaseTerminalTabComponent } from 'tabby-terminal'
 
+import { revealLabel } from '../fileTypes'
 import { LinkMatchKind, LinkTooltipAction } from '../api'
 import { HTML_PANE_MAX_HEIGHT } from '../htmlHost'
 import { PreviewHandlers, PreviewModel, emptyPreviewModel } from './linkPreviewView.component'
@@ -75,6 +76,7 @@ export class LinkPreviewTabComponent extends BaseTabComponent implements OnInit 
     /** Assigned by `LinkPanesService` through `TabsService.create`. */
     request: LinkPreviewRequest = emptyRequest()
 
+    readonly revealLabel = revealLabel(process.platform)
     model: PreviewModel = emptyPreviewModel()
     handlers: PreviewHandlers
     /** A page may ask for a lot more room here than it may on the card. */
@@ -188,7 +190,7 @@ export class LinkPreviewTabComponent extends BaseTabComponent implements OnInit 
         this.unclaimed = false
         this.model = { ...this.model, loading: true, allowHtml: this.request.allowHtml }
         if (this.request.integration === 'none'
-            || !this.runtime.canPreview(this.request.kind, this.request.text, this.request.integration)) {
+            || !((!this.request.integration && this.request.filePath) || this.runtime.canPreview(this.request.kind, this.request.text, this.request.integration))) {
             this.settle(generation, null, true, '')
             return
         }
@@ -196,7 +198,7 @@ export class LinkPreviewTabComponent extends BaseTabComponent implements OnInit 
         let error = ''
         try {
             preview = await this.runtime.preview(
-                this.request.kind, this.request.text, this.request.integration)
+                this.request.kind, this.request.text, this.request.integration, this.request.filePath)
         } catch (err) {
             error = `${err}`
         }

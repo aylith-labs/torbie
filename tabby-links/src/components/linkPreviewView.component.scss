@@ -378,3 +378,17 @@ a.field-text {
     line-height: 17px;
     display: inline-block;
 }
+
+.file-content { max-height: 420px; overflow: auto; }
+:host.pane .file-content { max-height: none; }
+.file-code { font: 13px/1.5 'Cascadia Mono', Consolas, monospace; color: inherit; white-space: pre; margin: 8px 0; padding: 8px; background: rgba(128,128,128,.08); }
+.file-metadata { border: 1px solid rgba(128,128,128,.4); border-radius: 5px; padding: 12px; margin: 8px 0 16px; white-space: pre-wrap; }
+.file-block { margin: 10px 0; overflow-wrap: anywhere; }
+.file-h { font-size: 1.4em; font-weight: 600; margin-top: 18px; }
+.file-quote { border-left: 3px solid rgba(128,128,128,.5); padding-left: 12px; opacity: .85; }
+.syntax-keyword { color: light-dark(#7b1fa2, #c586c0); }
+.syntax-string { color: light-dark(#a31515, #ce9178); }
+.syntax-number { color: light-dark(#096a46, #b5cea8); }
+.syntax-comment { color: light-dark(#38732b, #8cbf78); }
+.syntax-key, .syntax-markup { color: light-dark(#005a9e, #9cdcfe); }
+@media (forced-colors: active) { [class^="syntax-"] { color: CanvasText; } }

@@ -32,6 +32,7 @@ export interface InlineSpan {
 }
 
 export interface MarkdownBlock {
+    language?: string
     kind: 'p' | 'h' | 'li' | 'code' | 'quote'
     /** Heading level, 1-6. */
     level?: number
@@ -173,11 +174,12 @@ export function parseInline (line: string): InlineSpan[] {
  * Block structure: headings, list items, fenced code and quotes, with
  * consecutive plain lines joined into a paragraph.
  */
-export function parseMarkdown (source: string): MarkdownBlock[] {
+export function parseMarkdown (source: string, maxChars = MAX_BODY_CHARS, maxBlocks = MAX_BLOCKS): MarkdownBlock[] {
     const blocks: MarkdownBlock[] = []
-    const lines = truncate(source.replace(/\r/g, '')).split('\n')
+    const lines = source.replace(/\r/g, '').slice(0, maxChars).split('\n')
     let paragraph: string[] = []
     let inFence = false
+    let fenceLanguage = ''
     let fence: string[] = []
 
     const flushParagraph = () => {
@@ -188,17 +190,18 @@ export function parseMarkdown (source: string): MarkdownBlock[] {
     }
 
     for (const line of lines) {
-        if (blocks.length >= MAX_BLOCKS) {
+        if (blocks.length >= maxBlocks) {
             break
         }
         if (/^\s*```/.test(line)) {
             if (inFence) {
-                blocks.push({ kind: 'code', spans: [{ text: fence.join('\n'), code: true }] })
+                blocks.push({ kind: 'code', ...(fenceLanguage ? { language: fenceLanguage } : {}), spans: [{ text: fence.join('\n'), code: true }] })
                 fence = []
                 inFence = false
             } else {
                 flushParagraph()
                 inFence = true
+                fenceLanguage = line.trim().slice(3).trim().split(/\s/)[0]
             }
             continue
         }
@@ -237,7 +240,7 @@ export function parseMarkdown (source: string): MarkdownBlock[] {
         paragraph.push(line.trim())
     }
     if (inFence && fence.length) {
-        blocks.push({ kind: 'code', spans: [{ text: fence.join('\n'), code: true }] })
+        blocks.push({ kind: 'code', ...(fenceLanguage ? { language: fenceLanguage } : {}), spans: [{ text: fence.join('\n'), code: true }] })
     }
     flushParagraph()
     return blocks

@@ -536,7 +536,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
 
         const wantsPreview = settings.showPreview
             && settings.integration !== 'none'
-            && this.runtime.canPreview(link.kind, link.text, settings.integration)
+            && ((!settings.integration && !!target.filePath) || this.runtime.canPreview(link.kind, link.text, settings.integration))
         model.loading = wantsPreview
         // Offered only when there is something to put in a pane. For a link
         // nobody previews, a pane would show what the card already shows.
@@ -549,7 +549,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         }
         let preview: Awaited<ReturnType<IntegrationRuntimeService['preview']>> = null
         try {
-            preview = await this.runtime.preview(link.kind, link.text, settings.integration)
+            preview = await this.runtime.preview(link.kind, link.text, settings.integration, target.filePath)
         } catch (err) {
             console.warn('[tabby-links] preview failed', err)
         }

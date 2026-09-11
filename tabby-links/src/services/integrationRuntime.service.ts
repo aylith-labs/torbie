@@ -2,6 +2,7 @@
 // server produced. `any` is what that is; typing it as `unknown` would only
 // move the casts around.
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+import { readLocalPreview } from '../filePreview'
 import { Injectable } from '@angular/core'
 
 import {
@@ -402,7 +403,7 @@ export class IntegrationRuntimeService {
      */
     canPreview (kind: LinkMatchKind, text: string, hint: string): boolean {
         const match = this.findMatch(kind, text, hint)
-        return !!match && !!(match.integration.manifest.fetch ?? []).length
+        return !!match && (!!(match.integration.manifest.fetch ?? []).length || (match.integration.manifest.matchers ?? []).some(matcher => !!matcher.link))
     }
 
     /**
@@ -424,7 +425,8 @@ export class IntegrationRuntimeService {
         return this.expand(match.matcher.link, match, {}, null, false)
     }
 
-    async preview (kind: LinkMatchKind, text: string, hint: string): Promise<LinkPreview | null> {
+    async preview (kind: LinkMatchKind, text: string, hint: string, filePath = ''): Promise<LinkPreview | null> {
+        if (filePath && !hint) return readLocalPreview(filePath)
         const match = this.findMatch(kind, text, hint)
         if (!match) {
             return null

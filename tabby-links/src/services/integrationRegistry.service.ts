@@ -21,6 +21,7 @@ const BUILT_IN: IntegrationManifest[] = [
     require('../integrations/shefrd.json'),
     require('../integrations/slack.json'),
     require('../integrations/stith.json'),
+    require('../integrations/unblocked.json'),
 ]
 
 /**

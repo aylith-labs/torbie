@@ -108,6 +108,24 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
      * the shape that froze the whole window on the Integrations page.
      */
     presets: RulePreset[] = []
+    presetSearch = ''
+    get filteredPresets (): RulePreset[] {
+        const query = this.presetSearch.trim().toLowerCase()
+        return this.presets.filter(preset => `${preset.name} ${preset.description} ${preset.integration} ${preset.id}`.toLowerCase().includes(query))
+    }
+
+    duplicateRule (source: LinkTooltipRule): void {
+        const rule = JSON.parse(JSON.stringify(source)) as LinkTooltipRule
+        const base = `${source.name || 'Rule'} (copy)`
+        rule.name = base
+        let count = 2
+        while (this.rules.some(existing => existing.name === rule.name)) rule.name = `${base} ${count++}`
+        this.rules.splice(this.rules.indexOf(source) + 1, 0, rule)
+        this.currentRule = rule
+        this.patternError = checkPresetPattern(rule.pattern)
+        this.seedSample(rule)
+        this.saveConfiguration()
+    }
 
     /**
      * Fields, not methods: `*ngFor` tracks by identity, so a method handing back

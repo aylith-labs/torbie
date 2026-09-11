@@ -4,6 +4,36 @@
         img.preview-icon(*ngIf='model.preview?.icon', [src]='model.preview?.icon')
         span.preview-name(*ngIf='model.integrationName') {{model.integrationName}}
 
+    .file-preview(*ngIf='model.preview?.file')
+        ng-container(*ngIf='fileView as file')
+            .btn-group.mb-2(*ngIf='model.preview?.file?.markdown', role='group', aria-label='Markdown view')
+                button.btn.btn-sm.btn-secondary([class.active]='!fileRaw', [attr.aria-pressed]='!fileRaw', (click)='fileRaw = false', translate) Formatted
+                button.btn.btn-sm.btn-secondary([class.active]='fileRaw', [attr.aria-pressed]='fileRaw', (click)='fileRaw = true', translate) Raw
+            .text-muted(*ngIf='file.truncated', translate) Preview shortened. Open the file for the complete content.
+            .file-content
+                pre.file-code(*ngIf='fileRaw || !model.preview?.file?.markdown')
+                    span(*ngFor='let token of file.raw; trackBy: trackItem', [class]='"syntax-" + token.kind') {{token.text}}
+                ng-container(*ngIf='!fileRaw && model.preview?.file?.markdown')
+                    .file-metadata(*ngIf='file.present')
+                        strong(translate) Metadata
+                        .text-muted(*ngIf='file.error') {{file.error}}
+                        pre.file-code(*ngIf='file.error')
+                            span(*ngFor='let token of file.yamlTokens; trackBy: trackItem', [class]='"syntax-" + token.kind') {{token.text}}
+                        div(*ngFor='let row of file.rows; trackBy: trackItem', [style.padding-left.px]='row.depth > 1 ? (row.depth - 1) * 14 : 0')
+                            strong(*ngIf='row.key') {{row.key}}{{row.value ? ': ' : ''}}
+                            span {{row.value}}
+                    .file-block(*ngFor='let block of file.blocks; trackBy: trackItem', [ngClass]='"file-" + block.kind')
+                        pre.file-code(*ngIf='block.kind === "code"')
+                            span(*ngFor='let token of block.tokens; trackBy: trackItem', [class]='"syntax-" + token.kind') {{token.text}}
+                        ng-container(*ngIf='block.kind !== "code"')
+                            span(*ngIf='block.kind === "li"') •&nbsp;
+                            ng-container(*ngFor='let span of block.spans; trackBy: trackItem')
+                                a(*ngIf='span.href', href='javascript:void(0)', (click)='handlers?.htmlOpen(span.href)') {{span.text}}
+                                code(*ngIf='!span.href && span.code') {{span.text}}
+                                b(*ngIf='!span.href && !span.code && span.bold') {{span.text}}
+                                i(*ngIf='!span.href && !span.code && !span.bold && span.italic') {{span.text}}
+                                span(*ngIf='!span.href && !span.code && !span.bold && !span.italic') {{span.text}}
+
     .preview-error(*ngIf='model.preview?.error') {{model.preview?.error}}
 
     //- The plugin's own document, when it has one.
@@ -68,7 +98,7 @@
                     span {{field.value}}
                 .field-subtitle(*ngIf='field.kind === "subtitle"') {{field.value}}
                 .field-row(*ngIf='field.kind !== "title" && field.kind !== "subtitle"')
-                    .field-label {{field.label}}
+                    .field-label(*ngIf='field.label') {{field.label}}
                     .field-value
                         img.field-icon(*ngIf='field.iconUri', [src]='field.iconUri')
                         span.badge-pill(

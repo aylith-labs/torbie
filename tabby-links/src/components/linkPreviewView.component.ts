@@ -4,6 +4,7 @@ import {
     LinkPreview, PreviewAction, PreviewActionOption,
     PreviewField, PreviewGroup, PreviewTab,
 } from '../api'
+import { frontmatter, highlightSource, SourceToken } from '../filePreview'
 import { MarkdownBlock, parseMarkdown } from '../richText'
 import { HTML_DEFAULT_HEIGHT, HTML_MAX_HEIGHT, buildHtmlDocument, parseHtmlHostMessage } from '../htmlHost'
 import { badgeColor } from '../services/integrationRuntime.service'
@@ -96,6 +97,31 @@ export class LinkPreviewViewComponent implements AfterViewChecked, OnDestroy {
     private frameLoads = 0
 
     /** Which tab the user picked, when there is more than one. */
+    fileRaw = false
+    private fileKey = ''
+    private fileCacheKey = ''
+    private fileCache = { rows: [] as ReturnType<typeof frontmatter>['rows'], error: '', present: false, yamlTokens: [] as SourceToken[], blocks: [] as (MarkdownBlock & { tokens: SourceToken[] })[], raw: [] as SourceToken[], truncated: false }
+
+    get fileView (): typeof this.fileCache {
+        const file = this.model.preview?.file
+        if (this.fileKey !== this.model.key) { this.fileKey = this.model.key; this.fileRaw = false }
+        if (!file) return this.fileCache
+        const key = `${this.model.key}|${this.pane}|${file.text}`
+        if (key !== this.fileCacheKey) {
+            this.fileCacheKey = key
+            const limit = this.pane ? 262144 : 65536
+            const text = file.text.slice(0, limit)
+            const meta = file.markdown ? frontmatter(text) : { rows: [], error: '', present: false, yaml: '', body: text }
+            this.fileCache = {
+                rows: meta.rows, error: meta.error, present: meta.present,
+                yamlTokens: highlightSource(meta.yaml.slice(0, 65536), 'yaml'),
+                blocks: file.markdown ? parseMarkdown(meta.body, limit, 1000).map(block => ({ ...block, tokens: block.kind === 'code' ? highlightSource(block.spans.map(span => span.text).join(''), block.language ?? '') : [] })) : [],
+                raw: highlightSource(text, file.language), truncated: file.truncated || file.text.length > limit,
+            }
+        }
+        return this.fileCache
+    }
+
     activeTabKey = ''
     // `| undefined` on purpose: without `noUncheckedIndexedAccess` an index
     // signature reads as always-present, and the guards below — which are real —

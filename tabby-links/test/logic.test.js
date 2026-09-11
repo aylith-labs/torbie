@@ -1569,7 +1569,87 @@ async function githubReferenceTests () {
     try { await rt.resolveGitHubReference('aylith-labs', 'terminal', '1', '', async () => ({ status: 403, statusText: 'Forbidden', body: '{}' })) } catch (error) { denied = /403/.test(error.message) }
     check('reference lookup preserves permission failures', denied, true)
 }
-githubReferenceTests().then(() => {
+
+const filePreview = loadSource('tabby-links/src/filePreview.ts')
+console.log('\n── local file previews and shared catalog ──')
+check('source fragment stays C#', ft.fileTypeOf('file:///mnt/c/src/Program.cs#L194').name, 'C#')
+check('query and fragment stay TypeScript', ft.fileTypeOf('file:///src/App.TSX?raw=1#L10').name, 'TypeScript')
+check('source group matches code with a line reference', ft.matchesFileType('file:///src/Program.cs#L194', 'sourceCode', []), true)
+check('language icon is portable', ft.fileTypeOf('App.ts').icon.startsWith('data:image/svg+xml;base64,'), true)
+check('extensionless Dockerfile recognized', ft.fileTypeOf('/src/Dockerfile').name, 'Dockerfile')
+check('unrecognized type gets neutral fallback', ft.fileTypeOf('/src/data.unknown').name, 'File')
+for (const [os,label] of [['win32','Show in Explorer'],['darwin','Reveal in Finder'],['linux','Show in File Manager'],['arch','Show in File Manager'],['omarchy','Show in File Manager']]) check(`reveal label ${os}`, ft.revealLabel(os), label)
+check('one byte singular', filePreview.formatFileSize(1), '1 byte')
+check('C# file size', filePreview.formatFileSize(11409), '11.1 KiB')
+check('MiB size', filePreview.formatFileSize(1048576), '1.0 MiB')
+const metadataSource = '---\r\ntitle: Example\r\ntags: [one, two]\r\nauthor:\r\n  name: Ada\r\nsummary: |\r\n  First line\r\n  Second line\r\n---\r\n# Body\r\n'
+const metadata = filePreview.frontmatter(metadataSource)
+check('frontmatter body separated', metadata.body, '# Body\r\n')
+check('valid YAML has no error', metadata.error, '')
+check('frontmatter title', metadata.rows.some(row => row.key === 'title' && row.value === 'Example'), true)
+check('nested map value', metadata.rows.some(row => row.key === 'name' && row.value === 'Ada'), true)
+check('frontmatter array values', metadata.rows.filter(row => row.key === '•').map(row => row.value), ['one','two'])
+check('literal multiline scalar', metadata.rows.some(row => row.value === 'First line\nSecond line\n'), true)
+check('invalid YAML reports error', !!filePreview.frontmatter('---\nbad: [\n---\nBody').error, true)
+check('unclosed delimiter is regular Markdown', filePreview.frontmatter('---\ntitle: unclosed').present, false)
+check('later horizontal rule is regular Markdown', filePreview.frontmatter('# Heading\n---\nx: y\n---').present, false)
+check('BOM and YAML terminator', filePreview.frontmatter('\uFEFF---\ntitle: BOM\n...\nBody').body, 'Body')
+check('cyclic YAML aliases bounded', filePreview.frontmatter('---\na: &a\n  self: *a\n---\nBody').rows.length < 20, true)
+for (const [language,source] of [['cs','public class C { string x = "hello"; // note\n int n = 42; }'],['typescript','const x: number = 42; // hi'],['python','def f():\n  return "hi" # comment'],['yaml','title: "Example"\nenabled: true'],['json','{"count":42}'],['unknown','<script>unsafe()</script>']]) {
+    const tokens = filePreview.highlightSource(source,language)
+    check(`${language} copied source unchanged`, tokens.map(token => token.text).join(''), source)
+    if (language !== 'unknown') check(`${language} has syntax colors`, tokens.some(token => token.kind !== 'plain'), true)
+}
+const unblockedManifest = require('../src/integrations/unblocked.json')
+const unblocked = runtimeFor({ id:'unblocked', name:'Unblocked Code', enabled:true, configured:true, manifest:unblockedManifest, settings:{}, credentials:{}, iconUri:'' })
+check('Unblocked task resolves details URL', unblocked.resolveTextLink('UNB-123',''), 'https://getunblocked.com/dashboard/team/current/coding-task/UNB-123')
+check('Unblocked accepts longer task IDs', unblocked.resolveTextLink('UNB-12345',''), 'https://getunblocked.com/dashboard/team/current/coding-task/UNB-12345')
+check('Unblocked rejects malformed IDs', unblocked.resolveTextLink('UNB-123x',''), '')
+check('Unblocked can render a link-only card', unblocked.canPreview('text','UNB-123',''), true)
+check('Unblocked full URLs claimed', unblocked.canPreview('link','https://getunblocked.com/dashboard/team/current/coding-task/UNB-123',''), true)
+const settingsClass = loadSource('tabby-links/src/components/linkTooltipSettingsTab.component.ts').LinkTooltipSettingsTabComponent
+const settingsProbe = Object.create(settingsClass.prototype)
+const originalRule = api.newRule(); originalRule.name='Example'; originalRule.pattern='UNB-\\d+'; originalRule.extensions=['ts']; originalRule.actions=[{name:'Custom',command:'echo test'}]
+settingsProbe.config = { store:{linkTooltip:{rules:[originalRule]}} }
+settingsProbe.seedSample = () => {}; settingsProbe.saveConfiguration = () => {}; settingsProbe.presets=[]
+settingsProbe.duplicateRule(originalRule)
+check('duplicate inserted', settingsProbe.rules.length, 2)
+check('duplicate named and selected', settingsProbe.currentRule.name, 'Example (copy)')
+settingsProbe.currentRule.extensions.push('cs')
+check('duplicate extensions independent', originalRule.extensions, ['ts'])
+settingsProbe.currentRule.actions[0].name='Changed'
+check('duplicate actions independent', originalRule.actions[0].name, 'Custom')
+settingsProbe.duplicateRule(originalRule)
+check('duplicate names stay distinct', settingsProbe.currentRule.name, 'Example (copy) 2')
+settingsProbe.presets=[{id:'unblocked',name:'Unblocked Code',description:'Coding tasks',integration:'unblocked'},{id:'source',name:'Source code',description:'Local files',integration:''}]
+settingsProbe.presetSearch='UNBLOCKED'
+check('preset search case insensitive',settingsProbe.filteredPresets.map(p=>p.id),['unblocked'])
+settingsProbe.presetSearch='missing'
+check('preset search empty state',settingsProbe.filteredPresets.length,0)
+
+async function localPreviewTests () {
+    const fs = require('node:fs/promises')
+    const os = require('node:os')
+    const folder = await fs.mkdtemp(path.join(os.tmpdir(),'torbie-preview-'))
+    try {
+        const file = path.join(folder,'README.md')
+        await fs.writeFile(file,metadataSource)
+        const preview = await filePreview.readLocalPreview(file)
+        check('Markdown file read intact',preview.file.text,metadataSource)
+        check('Markdown mode detected',preview.file.markdown,true)
+        check('file footer uses language name',preview.fields[1].value.startsWith('Markdown · '),true)
+        await fs.writeFile(file,'# Changed')
+        check('local file refresh rereads content',(await filePreview.readLocalPreview(file)).file.text,'# Changed')
+        const binary=path.join(folder,'data.bin');await fs.writeFile(binary,Buffer.from([0,1,2]))
+        check('binary gets explicit error',!!(await filePreview.readLocalPreview(binary)).error,true)
+        check('missing file gets explicit error',!!(await filePreview.readLocalPreview(path.join(folder,'missing.md'))).error,true)
+    } finally {
+        if(!path.resolve(folder).startsWith(path.resolve(os.tmpdir())+path.sep)) throw new Error('Unsafe fixture cleanup')
+        await fs.rm(folder,{recursive:true,force:true})
+    }
+}
+
+githubReferenceTests().then(localPreviewTests).then(() => {
     console.log(`\n${passed} passed, ${failed} failed`)
     process.exit(failed ? 1 : 0)
 }).catch(error => { console.error(error); process.exit(1) })

@@ -300,13 +300,15 @@ h4.mt-4.mb-2(translate) Rules
         [title]='"Start from a preset"|translate',
     )
     .preset-menu.add-rule-presets(ngbDropdownMenu)
+        input.form-control(type='search', [(ngModel)]='presetSearch', placeholder='Search presets', aria-label='Search presets', (click)='$event.stopPropagation()')
+        .dropdown-header(*ngIf='!filteredPresets.length', translate) No presets match your search
         h6.dropdown-header(translate) Start from a preset
         //- `ngbDropdownItem` is what closes the menu on a click and makes the
         //- list navigable from the keyboard; a bare `.dropdown-item` looks the
         //- same and leaves the menu open behind the rule it just added.
         button.dropdown-item(
             ngbDropdownItem,
-            *ngFor='let preset of presets; trackBy: trackPreset',
+            *ngFor='let preset of filteredPresets; trackBy: trackPreset',
             (click)='addRuleFromPreset(preset)',
             [disabled]='presetInUse(preset)',
             [title]='presetInUse(preset) ? ("Already in your rules"|translate) : preset.description',
@@ -324,6 +326,8 @@ h4.mt-4.mb-2(translate) Rules
             .rule-name {{rule.name || ('Unnamed rule'|translate)}}
             .rule-summary(*ngIf='summary(rule)') {{summary(rule)}}
         .rule-buttons
+            button.btn.btn-sm.btn-secondary((click)='duplicateRule(rule)', [title]='"Duplicate rule"|translate', aria-label='Duplicate rule')
+                i.fas.fa-fw.fa-copy
             button.btn.btn-sm.btn-secondary((click)='editRule(rule)', [title]='"Edit rule"|translate')
                 i.fas.fa-fw.fa-pen
             button.btn.btn-sm.btn-secondary((click)='moveRule(rule, -1)', [disabled]='i === 0', [title]='"Move up"|translate')
@@ -352,9 +356,11 @@ h4.mt-4.mb-2(translate) Rules
                 i.fas.fa-fw.fa-wand-magic-sparkles.me-2
                 span(translate) Apply preset
             .preset-menu.apply-preset(ngbDropdownMenu)
+                input.form-control(type='search', [(ngModel)]='presetSearch', placeholder='Search presets', aria-label='Search presets', (click)='$event.stopPropagation()')
+                .dropdown-header(*ngIf='!filteredPresets.length', translate) No presets match your search
                 button.dropdown-item(
                     ngbDropdownItem,
-                    *ngFor='let preset of presets; trackBy: trackPreset',
+                    *ngFor='let preset of filteredPresets; trackBy: trackPreset',
                     (click)='applyPresetToCurrent(preset)',
                     [disabled]='presetInUseElsewhere(preset)',
                     [title]='presetInUseElsewhere(preset) ? ("Already in your rules"|translate) : preset.description',

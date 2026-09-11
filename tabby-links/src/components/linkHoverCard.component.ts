@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core'
 
+import { revealLabel } from '../fileTypes'
 import { LinkTooltipAction } from '../api'
 import { PreviewHandlers, PreviewModel, emptyPreviewModel } from './linkPreviewView.component'
 
@@ -98,6 +99,7 @@ export function emptyModel (): CardModel {
     styleUrls: ['./linkHoverCard.component.scss'],
 })
 export class LinkHoverCardComponent {
+    readonly revealLabel = revealLabel(process.platform)
     model: CardModel = emptyModel()
     handlers: CardHandlers | null = null
 

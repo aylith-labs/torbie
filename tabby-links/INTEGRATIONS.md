@@ -4,8 +4,8 @@ Hovering a link (or a piece of plain text that a rule recognizes) in the termina
 card with live information pulled from an external tool — a Jira issue's summary and status, a
 Slack message's author and text, a stith session's name and state. This is driven by
 **integration plugins**: small JSON manifests that describe how to recognize a match, how to
-fetch data for it, and how to display the result. Three ship built in: **Jira**, **Slack**, and
-**stith**.
+fetch data for it, and how to display the result. The built-in catalog includes **Jira**,
+**Slack**, **stith**, **GitHub**, **shefrd**, and **Unblocked Code**.
 
 The manifest format is deliberately shared with the Windows Terminal fork
 (`steven-pribilinskiy/terminal`, `doc/link-previews-and-integrations.md`). A manifest written
@@ -13,6 +13,24 @@ for one works unmodified in the other; see [Differences](#differences-from-the-w
 for the two places the apps necessarily diverge.
 
 ## What a link preview is
+
+Local text files have a built-in preview in both the hover card and preview pane.
+Markdown starts in **Formatted** mode, with a **Raw** switch that preserves the source.
+YAML frontmatter is shown as metadata, including nested values, lists and multiline text;
+invalid frontmatter is shown with its error and original YAML. Source files and fenced code
+use syntax colors. Large previews show an explicit truncation notice.
+
+The footer shows the filename, full language or file type, its icon and a readable size.
+These names, icons and extension mappings come from Lintel's `file-types.json`.
+Source locations such as `Program.cs#L194` still match the source-code file rule.
+The reveal action reads **Show in Explorer** on Windows, **Reveal in Finder** on macOS,
+and **Show in File Manager** on Linux, including Arch and Omarchy.
+
+Settings → **Link Tooltip** has searchable preset lists for adding and applying rules.
+Use a rule's **Duplicate rule** button to create an independent copy, including its actions,
+then edit it without changing the original. Lintel owns the shared preset catalog;
+see [its contribution guide](https://github.com/aylith-labs/lintel/blob/main/CONTRIBUTING.md)
+to propose a preset or create one with its interactive wizard.
 
 Hover a hyperlink (or a text match) that a plugin recognizes, and the hyperlink card grows a
 section below the link target: the plugin's name, then a small set of fields fetched from that
@@ -32,6 +50,7 @@ stays usable, just without a preview.
 | **Slack** | `https://<workspace>.slack.com/archives/<channel>/p<ts>` permalinks, including thread replies (`?thread_ts=`) | A bot token (credential) | The token needs the `channels:history`, `groups:history` and `users:read` scopes, and the bot must be a member of the channel it's reading. |
 | **stith** | `stith://session/<id>`, `stith://focus/<id>`, and `https://<server>/(s\|agent\|sessions\|embed/s)/<id>` links | Server URL (setting) | No credentials. Its fetch step allows an untrusted certificate, so a self-signed `lvh.me` cert doesn't block the preview. A [`detectPatterns`](#detectpatterns) entry claims a bare `stith://…` in plain output. |
 | **GitHub** | Issue, pull request, commit and repository links | The `gh` CLI's token when you are logged in, otherwise a stored token | Thirteen fetch steps, most of them [optional](#optional-steps), so a token without a scope loses that section rather than the whole card. |
+| **Unblocked Code** | Task IDs such as `UNB-123` and `https://getunblocked.com/dashboard/team/current/coding-task/UNB-123` | No host settings or credentials | Add the task-ID preset to open the coding-task details page from terminal output. |
 
 Jira and GitHub also carry [field groups](#field-groups) and [tabs](#tabs), and Jira a
 [choice action](#actions) that moves an issue through its workflow. Which fields, groups and tabs

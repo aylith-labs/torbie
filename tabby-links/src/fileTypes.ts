@@ -1,24 +1,22 @@
 import { LinkFileTypeGroup } from './api'
 
-/**
- * The extension lists a rule's "File type" criterion matches against. Kept
- * identical to `HyperlinkFileTypeGroups.h` in the Windows Terminal fork so a
- * rule means the same thing in both apps.
- */
-const IMAGE = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico']
-const VIDEO = ['mp4', 'mkv', 'webm', 'mov', 'avi']
-const AUDIO = ['mp3', 'wav', 'flac', 'ogg', 'm4a']
+import { fileTypeCatalog } from './fileTypes.generated'
 
-export const FILE_TYPE_GROUPS: Record<LinkFileTypeGroup, string[]> = {
-    none: [],
-    image: IMAGE,
-    video: VIDEO,
-    audio: AUDIO,
-    media: [...IMAGE, ...VIDEO, ...AUDIO],
-    sourceCode: ['cs', 'cpp', 'h', 'hpp', 'c', 'py', 'js', 'jsx', 'ts', 'tsx', 'rs', 'go', 'java', 'rb', 'ps1', 'sh'],
-    document: ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'md'],
-    archive: ['zip', '7z', 'rar', 'tar', 'gz'],
-    executable: ['exe', 'msi', 'bat', 'cmd', 'ps1'],
+export const FILE_TYPE_GROUPS: Record<LinkFileTypeGroup, string[]> = Object.fromEntries(
+    ['none','image','video','audio','media','sourceCode','document','archive','executable'].map(group => [group,
+        fileTypeCatalog.types.filter(type => (type.groups as readonly string[]).includes(group)).flatMap(type => [...type.extensions]),
+    ]),
+) as Record<LinkFileTypeGroup, string[]>
+
+export function fileTypeOf (target: string): typeof fileTypeCatalog.types[number] {
+    const extension = extensionOf(target)
+    const name = target.split(/[\\/]/).pop()?.toLowerCase() ?? ''
+    return fileTypeCatalog.types.find(type => (type.extensions as readonly string[]).includes(extension)
+        || (type.filenames as readonly string[]).some(filename => filename.toLowerCase() === name)) ?? fileTypeCatalog.types[fileTypeCatalog.types.length - 1]
+}
+
+export function revealLabel (platform: string): string {
+    return (fileTypeCatalog.revealLabels as Record<string, string>)[platform] ?? fileTypeCatalog.revealLabels.default
 }
 
 export const FILE_TYPE_GROUP_LABELS: { value: LinkFileTypeGroup, label: string }[] = [
@@ -35,7 +33,7 @@ export const FILE_TYPE_GROUP_LABELS: { value: LinkFileTypeGroup, label: string }
 
 /**
  * The extension of a path or URI, lowercased and without the dot. Empty when
- * the last segment has none — note that the dot must come *after* the last
+ * the last segment has none â€” note that the dot must come *after* the last
  * separator, or `/home/user.name/README` would report `name/README`.
  */
 export function extensionOf (target: string): string {

@@ -441,6 +441,7 @@ export interface PreviewAction {
 }
 
 export interface LinkPreview {
+    file?: { text: string, language: string, markdown: boolean, truncated: boolean }
     integrationId: string
     integrationName: string
     icon: string

@@ -240,5 +240,23 @@ export const presetCatalog = [
         ],
         "example": "/home/steve/report.docx",
         "preview": true
+    },
+    {
+        "id": "unblocked-task-ids",
+        "integration": "unblocked",
+        "label": "Coding task IDs in output",
+        "description": "Open Unblocked Code coding-task details",
+        "match": "text",
+        "example": "UNB-123",
+        "preview": true
+    },
+    {
+        "id": "unblocked-task-links",
+        "integration": "unblocked",
+        "label": "Coding task details links",
+        "description": "Open Unblocked Code coding-task details",
+        "match": "link",
+        "example": "https://getunblocked.com/dashboard/team/current/coding-task/UNB-123",
+        "preview": true
     }
 ] as const
