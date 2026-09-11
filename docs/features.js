@@ -29,7 +29,7 @@ window.FEATURES = [
   {
     id: "integration-accounts", title: "GitHub organizations and verified accounts",
     cat: "links", catLabel: "Links", dateAdded: "2026-09-11",
-    commits: ["767fa4cc"], files: 15, ins: 313, del: 27,
+    commits: ["767fa4cc", "e6175f0b"], files: 18, ins: 329, del: 34,
     desc: "Resolve repo#number through an editable, ordered list of preferred organizations. Add organizations discovered through GitHub CLI or a saved token. GitHub, Jira and Slack settings show the verified account name, avatar and connection status. Existing untouched GitHub presets migrate to match references inside prose.",
   },
 
