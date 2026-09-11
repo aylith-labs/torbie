@@ -813,8 +813,17 @@ WSL distributions are authoritative. Unknown ones are resolved by registered dis
 and asynchronous existence checks, accepting a unique match only. Never run a shell from a
 hover. Explicit Windows drive paths stay Windows paths, including mapped `Z:` drives.
 
-The new rich-content, embedded-link and path cases are part of the 709 link logic checks.
+The new rich-content, embedded-link and path cases are part of the 733 link logic checks.
 Lint/type checks and bundle compilation do not replace live hover verification after restart.
+
+GitHub account settings use `integrationAccount.ts`: CLI-first authentication for github.com,
+then a saved PAT. The same credential selection feeds repo#number previews. The ordered
+`candidateOwners` editor retains comma-separated storage and validates/deduplicates account
+names. Organization discovery includes accessible repository owners because fine-grained
+PATs may return no `/user/orgs` memberships. Discovery is opt-in from the menu and bounded to
+three pages per endpoint. Identity checks also support Jira and Slack through Lintel's
+`account.provider` metadata. Never put credentials or raw response bodies in the account UI.
+Only untouched named legacy GitHub presets migrate; custom expressions remain unchanged.
 
 
 A hover card over terminal links, a **Link Tooltip** settings page of rules that

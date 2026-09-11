@@ -26,6 +26,12 @@
 // `desc` is plain text and is escaped everywhere it is rendered. The long-form
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
+  {
+    id: "integration-accounts", title: "GitHub organizations and verified accounts",
+    cat: "links", catLabel: "Links", dateAdded: "2026-09-11",
+    commits: ["767fa4cc"], files: 15, ins: 313, del: 27,
+    desc: "Resolve repo#number through an editable, ordered list of preferred organizations. Add organizations discovered through GitHub CLI or a saved token. GitHub, Jira and Slack settings show the verified account name, avatar and connection status. Existing untouched GitHub presets migrate to match references inside prose.",
+  },
 
   {
     id: "rich-ticket-previews", title: "Rich ticket previews and nested links",

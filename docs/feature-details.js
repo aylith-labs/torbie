@@ -20,6 +20,18 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "integration-accounts": {
+    problem: "A repository name alone does not identify its organization, and a configured integration did not tell you which account was actually authenticated.",
+    how: "Preferred organizations are editable rows with add, remove and move controls. The first accessible issue wins. GitHub uses the CLI credential for github.com first, then the saved PAT, for both account checks and previews. An on-demand menu discovers organization memberships and organization owners of accessible repositories. Account checks show names and avatars for GitHub, Jira and Slack, and keep connection failures visible.",
+    steps: [
+      "Open Integrations, then GitHub. Check the displayed account and use Refresh to verify changed credentials.",
+      "Add organizations manually or choose Add identified organization. Move the organization you prefer to the top.",
+      "Hover or click a reference such as terminal#18920 inside a sentence. Untouched older copies of the shipped preset are upgraded automatically."
+    ],
+    settings: [{ key: "integrations.github.settings.candidateOwners", def: "empty", note: "The ordered editor preserves the comma-separated storage format used by older builds." }],
+    notes: ["Identity is checked before organization discovery, so opening settings does not scan every repository.", "Disabled integrations are never contacted. Credentials and raw authentication response bodies are not displayed.", "A click can resolve an uncached reference without waiting for its hover card."],
+    caveats: ["Discovery is limited to three pages of 100 memberships and three pages of 100 accessible repositories. Token permissions may hide organizations; the menu explains partial results and still permits manual additions.", "Integrations without an account adapter explicitly report that checking is unavailable.", "733 link checks, type checking and the plugin build passed. Live native account layout and hover interactions still require an app restart to verify."]
+  },
 
   "rich-ticket-previews": {
     problem: "Tables and callouts were flattened in Jira previews, ticket context disappeared behind tabs, and links inside a preview did not get the terminal buffer's hover behavior.",
