@@ -7,7 +7,7 @@ import {
     PreviewField, PreviewGroup, PreviewTab, PreviewTabItem,
 } from '../api'
 import { frontmatter, highlightSource, SourceToken } from '../filePreview'
-import { MarkdownBlock, parseMarkdown } from '../richText'
+import { InlineSpan, MarkdownBlock, parseMarkdown } from '../richText'
 import { HTML_DEFAULT_HEIGHT, HTML_MAX_HEIGHT, buildHtmlDocument, parseHtmlHostMessage } from '../htmlHost'
 import { badgeColor } from '../services/integrationRuntime.service'
 
@@ -157,6 +157,18 @@ export class LinkPreviewViewComponent implements AfterViewChecked, OnDestroy {
 
     constructor (private changeDetector: ChangeDetectorRef, private embedded: EmbeddedLinksService) {
         window.addEventListener('message', this.onFrameMessage)
+    }
+
+    private plainCache = new Map<string, InlineSpan[]>()
+
+    plainSpans (text: string): InlineSpan[] {
+        let spans = this.plainCache.get(text)
+        if (!spans) {
+            if (this.plainCache.size >= 64) this.plainCache.clear()
+            spans = this.embedded.decorate([{kind: 'p', spans: [{text}]}])[0].spans
+            this.plainCache.set(text, spans)
+        }
+        return spans
     }
 
     private closeEmbedded?: () => void

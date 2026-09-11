@@ -74,7 +74,8 @@
             //- was written by whoever opened the ticket.
             ng-container(*ngIf='activeTab?.markdown')
                 ng-container(*ngTemplateOutlet='richBody; context: { $implicit: blocksFor(activeTab!) }')
-            .tab-text(*ngIf='!activeTab?.markdown') {{activeTab?.body}}
+            .tab-text(*ngIf='!activeTab?.markdown')
+                ng-container(*ngTemplateOutlet='inlineText; context: { $implicit: plainSpans(activeTab?.body || "") }')
 
         .tab-list(*ngIf='activeTab?.kind === "list"')
             .tab-item(*ngFor='let item of activeTab?.items; trackBy: trackItem')
@@ -84,7 +85,8 @@
                         span.tab-author {{item.author}}
                         span.tab-time {{item.time}}
                 .tab-item-content
-                    .tab-item-body(*ngIf='!activeTab?.markdown') {{item.body}}
+                    .tab-item-body(*ngIf='!activeTab?.markdown')
+                        ng-container(*ngTemplateOutlet='inlineText; context: { $implicit: plainSpans(item.body) }')
                     ng-container(*ngIf='activeTab?.markdown')
                         ng-container(*ngTemplateOutlet='richBody; context: { $implicit: blocksForComment(item) }')
 
@@ -126,7 +128,7 @@
 
 ng-template(#inlineText, let-spans)
     ng-container(*ngFor='let span of spans; trackBy: trackItem')
-        a.md-link(*ngIf='span.href', href='javascript:void(0)', (click)='openLink(span.href)', (mouseenter)='hoverLink($event, span.href)') {{span.text}}
+        a.md-link(*ngIf='span.href', [class.fw-bold]='span.bold', [class.fst-italic]='span.italic', href='javascript:void(0)', (click)='openLink(span.href)', (mouseenter)='hoverLink($event, span.href)') {{span.text}}
         code.md-code(*ngIf='!span.href && span.code') {{span.text}}
         b(*ngIf='!span.href && !span.code && span.bold') {{span.text}}
         i(*ngIf='!span.href && !span.code && !span.bold && span.italic') {{span.text}}

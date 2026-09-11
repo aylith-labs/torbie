@@ -1721,6 +1721,16 @@ hostHovered=false
 parentHandlers.pointerLeave()
 check('leaving the entire preview tree closes parent',parentLeft,1)
 
+const { LinkPreviewViewComponent } = loadSource('tabby-links/src/components/linkPreviewView.component.ts')
+const plainView = Object.create(LinkPreviewViewComponent.prototype)
+plainView.embedded = embedded
+plainView.plainCache = new Map()
+const plainBody = '**literal** UNB-44\nhttps://example.org/next'
+const plainLinks = plainView.plainSpans(plainBody)
+check('plain descriptions retain literal text and newlines',plainLinks.map(s=>s.text).join(''),plainBody)
+check('plain descriptions recognize identifiers and links',plainLinks.filter(s=>s.href).map(s=>s.href),['UNB-44','https://example.org/next'])
+check('plain descriptions do not interpret Markdown',plainLinks.some(s=>s.bold),false)
+
 async function localPreviewTests () {
     const fs = require('node:fs/promises')
     const os = require('node:os')
