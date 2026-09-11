@@ -43,6 +43,10 @@ jobs:
     env:
       ARCH: ${{matrix.arch}}
       RUST_TARGET_TRIPLE: ${{matrix.rust_triple}}
+      # Same question the Windows job asks: can this repository sign, rather
+      # than is this a tag. Without it the first `v*` tag would take the signing
+      # path with an empty CSC_LINK and no Apple team to notarize against.
+      CAN_SIGN: ${{ secrets.CSC_LINK != '' }}
 
     steps:
     - name: Checkout
@@ -78,7 +82,7 @@ jobs:
 
     - name: Build and sign packages
       run: scripts/build-macos.mjs
-      if: github.event_name == 'push' && (github.ref_protected || startsWith(github.ref, 'refs/tags'))
+      if: github.event_name == 'push' && (github.ref_protected || startsWith(github.ref, 'refs/tags')) && env.CAN_SIGN == 'true'
       env:
         ARCH: ${{matrix.arch}}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,7 +96,7 @@ jobs:
 
     - name: Build packages without signing
       run: scripts/build-macos.mjs
-      if: "! (github.event_name == 'push' && startsWith(github.ref, 'refs/tags'))"
+      if: "! (github.event_name == 'push' && (github.ref_protected || startsWith(github.ref, 'refs/tags')) && env.CAN_SIGN == 'true')"
       env:
         ARCH: ${{matrix.arch}}
         # DEBUG: electron-builder,electron-builder:*
@@ -307,6 +311,20 @@ jobs:
       # Branch name that enables DigiCert signing in PR builds for debugging.
       # Change this value to match the feature branch you want to test signing on.
       SIGN_ON_BRANCH: signing-debug
+      # Whether this repository can sign at all.
+      #
+      # The two build steps below used to branch on "is this a tag", which is a
+      # question about the ref rather than about what we hold — so the first
+      # `v*` tag pushed here would take the signing path and die on
+      # `smksp_registrar.exe`, DigiCert tooling that is not on the runner,
+      # having already referenced an `SM_CLIENT_CERT_FILE` this workflow never
+      # sets. Measured: this repository has **no** Actions secrets at all, so
+      # that is every tag, not an edge case.
+      #
+      # `scripts/build-windows.mjs` already gets this right — `forceCodeSigning:
+      # !!keypair` — so the workflow now asks the same question it does, and an
+      # unsigned release is a release rather than a failed run.
+      CAN_SIGN: ${{ secrets.SM_API_KEY != '' }}
 
     steps:
     - name: Checkout
@@ -404,12 +422,12 @@ jobs:
 
     - name: Build packages without signing
       run: node scripts/build-windows.mjs
-      if: "! (github.event_name == 'push' && (startsWith(github.ref, 'refs/tags')))"
+      if: "! (github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && env.CAN_SIGN == 'true')"
       env:
         ARCH: ${{matrix.arch}}
 
     - name: Build and sign packages
-      if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags'))
+      if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && env.CAN_SIGN == 'true')
       shell: powershell
       run: |
         Get-FileHash $env:SM_CLIENT_CERT_FILE -Algorithm MD5
