@@ -21,6 +21,23 @@
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
 
+  "rich-ticket-previews": {
+    problem: "Tables and callouts were flattened in Jira previews, ticket context disappeared behind tabs, and links inside a preview did not get the terminal buffer's hover behavior.",
+    how: "ADF tables, callouts and language-tagged code retain their structure through the shared renderer. The title appears above the tabs, with status and Change status together and linked type, priority and parent metadata below. Pane comments use round 40px avatars with the timestamp below the author; popovers retain one compact line. Embedded links and recognized IDs reuse the buffer's rules, integration provider and actions, with independent child hover state.",
+    steps: [
+      "Hover a Jira issue and switch between Description and Comments; use Show in pane for the larger author layout.",
+      "Hover or focus a code block to reveal Copy. Wrap appears only when the unwrapped line is wider than the available space.",
+      "Set Maximum popover height in Link Tooltip settings. Enable nested link tooltips to preview links inside a popover; preview panes enable embedded tooltips independently.",
+      "Hover an absolute Windows or POSIX path. A known WSL source identifies its distribution; otherwise only a unique existing path among registered distributions is accepted."
+    ],
+    settings: [
+      { key: "linkTooltip.maxHeight", def: "720", note: "Maximum height of the complete scrolling popover; 0 uses available window space." },
+      { key: "linkTooltip.nested", def: "false", note: "Opt in to tooltips within popovers; at most four nesting levels." }
+    ],
+    notes: ["Type and priority links open Jira searches. Parent links open the parent issue.", "Lintel owns the field placements, link templates, path detection and Windows/WSL resolution policy used by both terminal implementations."],
+    caveats: ["Logic checks, type checking and package builds passed. Live hover placement and interaction still need confirmation after the user restarts the app.", "Whitespace separates detected bare paths; use an explicit file link for paths containing spaces. Unknown or ambiguous WSL paths are not guessed."]
+  },
+
   // ---------------------------------------------------------------- links
 
   "file-previews": {
