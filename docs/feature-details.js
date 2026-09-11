@@ -245,13 +245,19 @@ window.FEATURE_DETAILS = {
     ],
   },
 
+  "pane-hover-pinning": {
+    problem: "Hiding popovers did not update the pane, so Pane only left stale content. Reading one ticket also needed a way to return to it after checking another link.",
+    how: "Pane only sends hover changes straight to the existing pane. Pin link stores the current preview separately: another hover temporarily replaces it, and leaving restores cached content. Without a pin, the latest hover stays. Explicit Show in pane clears the pin. Repeated hovers are deduplicated and stale replies cannot overwrite a restored pin.",
+    notes: ["Zero-count fields are hidden in popovers and muted in panes. Jira uses its 48×48 avatar URL.", "Logic tests cover pin restoration, late replies, deduplication, and keeping other terminals independent. Visual interaction still needs confirmation in a restarted application."],
+  },
+
   "preview-pane": {
     problem:
       "A hover card is the right size for a status and a title and the wrong size for a description, a comment thread, or a page that wanted eight hundred pixels. It also disappears the moment you move the pointer, which is the wrong behaviour for anything you actually want to read.",
     how:
       "A button on the card opens the same preview in a real pane beside the terminal. <code>linkPreviewView.component</code> <em>is</em> the preview — groups, tab strip, markdown, comments, actions, the sandboxed frame — and the card and the pane each mount it. The only thing the pane passes that the card does not is room: a flag that swaps five CSS variables and a larger height cap for an <code>html</code> page, 4000px against the card's 320.",
     settings: [
-      { key: "linkTooltip.hideTooltipsWithPane", def: "false", note: "Silence hover cards while a preview pane is open." },
+      { key: "linkTooltip.hideTooltipsWithPane", def: "false", note: "Immediately follow hovered links in the source terminal's preview pane and suppress its hover cards. Other terminals are unaffected." },
     ],
     notes: [
       "<strong>This reverses a decision the fork had written down.</strong> <code>htmlHost.ts</code> used to say outright that \"a plugin asking for 1000px does not get the pane\", because there was no pane. Half of that still holds — the card is a hover affordance and stays clamped — and the comment now says which host each limit belongs to rather than stating a policy the code contradicts.",

@@ -27,6 +27,12 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "pane-hover-pinning", title: "Follow hovered links and pin a preview",
+    cat: "links", catLabel: "Links", dateAdded: "2026-09-12",
+    commits: ["92b49f50"], files: 8, ins: 119, del: 18,
+    desc: "Pane only immediately follows hovered links beside the source terminal. Pin a link to restore its cached content after a temporary hover, even if a network reply arrives late. Other terminals keep their hover cards. Zero counts disappear from popovers and remain muted in panes; Jira requests larger avatars.",
+  },
+  {
     id: "integration-accounts", title: "GitHub organizations and verified accounts",
     cat: "links", catLabel: "Links", dateAdded: "2026-09-11",
     commits: ["767fa4cc", "e6175f0b"], files: 18, ins: 329, del: 34,
