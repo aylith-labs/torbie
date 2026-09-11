@@ -1577,6 +1577,10 @@ check('query and fragment stay TypeScript', ft.fileTypeOf('file:///src/App.TSX?r
 check('source group matches code with a line reference', ft.matchesFileType('file:///src/Program.cs#L194', 'sourceCode', []), true)
 check('language icon is portable', ft.fileTypeOf('App.ts').icon.startsWith('data:image/svg+xml;base64,'), true)
 check('extensionless Dockerfile recognized', ft.fileTypeOf('/src/Dockerfile').name, 'Dockerfile')
+check('Dockerfile fragment matches source rule', ft.matchesFileType('file:///src/Dockerfile#L8', 'sourceCode', []), true)
+check('Makefile query matches source rule', ft.matchesFileType('file:///src/Makefile?raw#L4', 'sourceCode', []), true)
+check('hash in local filename is preserved', ft.fileTypeOf('/src/hash#name.cs').name, 'C#')
+check('unknown extensionless file stays unmatched', ft.matchesFileType('/src/unknown', 'sourceCode', []), false)
 check('unrecognized type gets neutral fallback', ft.fileTypeOf('/src/data.unknown').name, 'File')
 for (const [os,label] of [['win32','Show in Explorer'],['darwin','Reveal in Finder'],['linux','Show in File Manager'],['arch','Show in File Manager'],['omarchy','Show in File Manager']]) check(`reveal label ${os}`, ft.revealLabel(os), label)
 check('one byte singular', filePreview.formatFileSize(1), '1 byte')
@@ -1631,6 +1635,7 @@ async function localPreviewTests () {
     const fs = require('node:fs/promises')
     const os = require('node:os')
     const folder = await fs.mkdtemp(path.join(os.tmpdir(),'torbie-preview-'))
+    if(!path.resolve(folder).startsWith(path.resolve(os.tmpdir())+path.sep)) throw new Error('Unsafe fixture cleanup')
     try {
         const file = path.join(folder,'README.md')
         await fs.writeFile(file,metadataSource)
@@ -1644,7 +1649,6 @@ async function localPreviewTests () {
         check('binary gets explicit error',!!(await filePreview.readLocalPreview(binary)).error,true)
         check('missing file gets explicit error',!!(await filePreview.readLocalPreview(path.join(folder,'missing.md'))).error,true)
     } finally {
-        if(!path.resolve(folder).startsWith(path.resolve(os.tmpdir())+path.sep)) throw new Error('Unsafe fixture cleanup')
         await fs.rm(folder,{recursive:true,force:true})
     }
 }

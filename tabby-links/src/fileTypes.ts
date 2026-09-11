@@ -10,7 +10,8 @@ export const FILE_TYPE_GROUPS: Record<LinkFileTypeGroup, string[]> = Object.from
 
 export function fileTypeOf (target: string): typeof fileTypeCatalog.types[number] {
     const extension = extensionOf(target)
-    const name = target.split(/[\\/]/).pop()?.toLowerCase() ?? ''
+    const path = target.includes('://') ? target.split(/[?#]/)[0] : target
+    const name = path.split(/[\\/]/).pop()?.toLowerCase() ?? ''
     return fileTypeCatalog.types.find(type => (type.extensions as readonly string[]).includes(extension)
         || (type.filenames as readonly string[]).some(filename => filename.toLowerCase() === name)) ?? fileTypeCatalog.types[fileTypeCatalog.types.length - 1]
 }
@@ -37,7 +38,7 @@ export const FILE_TYPE_GROUP_LABELS: { value: LinkFileTypeGroup, label: string }
  * separator, or `/home/user.name/README` would report `name/README`.
  */
 export function extensionOf (target: string): string {
-    const withoutQuery = target.split(/[?#]/)[0]
+    const withoutQuery = target.includes('://') ? target.split(/[?#]/)[0] : target
     const lastSep = Math.max(withoutQuery.lastIndexOf('/'), withoutQuery.lastIndexOf('\\'))
     const lastDot = withoutQuery.lastIndexOf('.')
     if (lastDot <= lastSep + 1) {
@@ -52,10 +53,6 @@ export function matchesFileType (
     customExtensions: string[],
 ): boolean {
     const extension = extensionOf(target)
-    if (!extension) {
-        return false
-    }
-    const groupExtensions = FILE_TYPE_GROUPS[group]
     const custom = customExtensions.map(x => x.trim().replace(/^\./, '').toLowerCase()).filter(x => x)
-    return groupExtensions.includes(extension) || custom.includes(extension)
+    return (fileTypeOf(target).groups as readonly string[]).includes(group) || (!!extension && custom.includes(extension))
 }

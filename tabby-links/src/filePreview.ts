@@ -16,7 +16,7 @@ export function formatFileSize (size: number): string {
 export function frontmatter (source: string): { body: string, rows: MetadataRow[], error: string, yaml: string, present: boolean } {
     const result = { body: source, rows: [] as MetadataRow[], error: '', yaml: '', present: false }
     const match = /^\uFEFF?---[ \t]*\r?\n([\s\S]*?)^(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/m.exec(source)
-    if (!match || match.index !== 0) return result
+    if (match?.index !== 0) return result
     result.present = true
     result.yaml = match[1]
     result.body = source.slice(match[0].length)
