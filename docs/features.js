@@ -29,6 +29,14 @@ window.FEATURES = [
 
   // ---------------------------------------------------------------- links
   {
+    id: "file-previews", title: "Formatted file previews and a shared link catalog",
+    cat: "links", catLabel: "Links",
+    dateAdded: "2026-09-11",
+    commits: ["6ed5a11f","c17b9a57","62700942"],
+    files: 32, ins: 1114, del: 75,
+    desc: "Local text and source files preview in the hover card or pane. Markdown has Formatted and Raw controls, YAML metadata, and syntax colors. Lintel supplies language names, icons, mappings and platform reveal labels. Its shared preset list is searchable, includes Unblocked Code task links, and rules can be duplicated independently.",
+  },
+  {
     id: "link-tooltip", title: "Link hover cards, rules and integrations",
     cat: "links", catLabel: "Links",
     standout: true,
@@ -41,9 +49,9 @@ window.FEATURES = [
     id: "rich-integrations", title: "Field groups, tabs, actions and detected patterns",
     cat: "links", catLabel: "Links",
     dateAdded: "2026-09-04",
-    commits: ["16a21913","ca54df80","06b3b4be","f8f5f4f2"],
-    files: 41, ins: 3570, del: 160,
-    desc: "A manifest can group its fields under headings, carry a description body or a comment list behind a tab strip, offer actions that write back to the service, and name its own patterns to detect. Without these keys a manifest written for the other terminal degraded silently here — which is the real threat to \"one manifest, many terminals\". The five built-in manifests are now held key by key against that fork's copies, at a pinned commit — shefrd among them, a multiplexer pane address that becomes hoverable and opens the pane it names.",
+    commits: ["16a21913","ca54df80","06b3b4be","f8f5f4f2","7571e9e2"],
+    files: 48, ins: 3655, del: 179,
+    desc: "A manifest can group its fields under headings, carry a description body or a comment list behind a tab strip, offer actions that write back to the service, and name its own patterns to detect. Without these keys a manifest written for the other terminal degraded silently here — which is the real threat to \"one manifest, many terminals\". The six built-in manifests are now held key by key against that fork's copies, at a pinned commit — shefrd among them, a multiplexer pane address that becomes hoverable and opens the pane it names.",
   },
   {
     id: "integration-logos", title: "Integrations wear their own logos",
@@ -113,9 +121,9 @@ window.FEATURES = [
     id: "rule-presets", title: "A rule starts from a preset, not an empty regex box",
     cat: "links", catLabel: "Links",
     dateAdded: "2026-09-06",
-    commits: ["ada258df"],
-    files: 8, ins: 949, del: 5,
-    desc: "Add rule is a split button whose caret offers eleven ready-made rules, and an Apply preset dropdown rewrites the rule you have open. A preset does not own its pattern: anything an integration already matches takes the pattern from that manifest, so the two cannot drift apart.",
+    commits: ["ada258df","d74bdce2","82ab52da"],
+    files: 18, ins: 1340, del: 250,
+    desc: "Add rule is a split button whose caret offers nineteen searchable ready-made rules, and an Apply preset dropdown rewrites the rule you have open. A preset does not own its pattern: anything an integration already matches takes the pattern from that manifest, so the two cannot drift apart.",
   },
   {
     id: "slack-links", title: "A Slack-style <uri|label> is clickable all the way across",

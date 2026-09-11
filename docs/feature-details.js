@@ -23,6 +23,25 @@ window.FEATURE_DETAILS = {
 
   // ---------------------------------------------------------------- links
 
+  "file-previews": {
+    "problem": "A file link should let you read the file without leaving the terminal. Raw Markdown, unexplained extensions, and catalogs copied separately into each host made the result harder to use and maintain.",
+    "how": "The hover card and pane share a local text reader and preview component. Markdown opens in Formatted mode; Raw preserves the original source. YAML frontmatter becomes metadata, with errors shown beside the original YAML. Lintel owns the file labels, reusable icons and mappings. Its Unblocked Code preset turns <code>UNB-123</code> into the coding-task details URL, and a newly added task preset is placed before a broader conflicting ID rule.",
+    "steps": [
+        "Hover a local Markdown or source-file link, then use <strong>Show in pane</strong> for more room.",
+        "Switch between <strong>Formatted</strong> and <strong>Raw</strong> on a Markdown preview.",
+        "In <strong>Link Tooltip</strong> settings, search the preset list for <strong>Unblocked</strong>, or duplicate an existing rule and edit its copy."
+    ],
+    "notes": [
+        "Reveal labels follow the OS: Show in Explorer, Reveal in Finder, or Show in File Manager.",
+        "Contribute presets, language mappings and icons in <code>aylith-labs/lintel</code>. Its proposal form and interactive wizard do not require a terminal build."
+    ],
+    "caveats": [
+        "The local Torbie reader previews text, Markdown and source files. Unsupported binary formats display an explicit message. Large previews are capped and marked as shortened.",
+        "Syntax colors are lexical highlighting, not semantic information from a language server.",
+        "The implementations are covered by logic checks, type checking and package builds; these changes were not verified by automating a live terminal window."
+    ]
+},
+
   "link-tooltip": {
     problem:
       "A terminal prints links all day — URLs, file paths, issue keys, IP addresses — and a terminal's answer to all of them is the same: underline it, and open it if you Ctrl+click. You cannot tell where a link goes without following it, you cannot tell what a ticket key refers to without leaving the window, and Tabby could not make a file path or a bare IP clickable at all.",
@@ -63,7 +82,7 @@ window.FEATURE_DETAILS = {
     problem:
       "The manifest format is shared with a Windows Terminal fork, and the whole point of that is that one manifest works in both. That fork grew five keys; a manifest using them <strong>degraded silently here</strong> — a field group rendered as nothing, an action was ignored, a comment tab vanished — which is a far worse failure than a manifest being rejected, and a far bigger threat to the format than any cosmetic divergence.",
     how:
-      "<strong>fieldGroups</strong> gives named sets of display fields a heading on the card and a tri-state checkbox in settings; anything no group claims becomes an implicit unlabelled group shown first, so a manifest that groups only its secondary data still leads with its title. <strong>tabs</strong> carries a description body or a comment list behind a strip — Atlassian Document Format is flattened by walking the node tree, and markdown is parsed to data and never to HTML. <strong>actions</strong> is the only part of this subsystem that writes: a choice resolves its options from an earlier step, applies one, drops the cached preview and re-fetches so the badge updates in place. <strong>detectPatterns</strong> joins the scan pool as synthetic rules. Step <strong>optional</strong> records a failing step and steps over it.",
+      "<strong>fieldGroups</strong> gives named sets of display fields a heading on the card and a tri-state checkbox in settings; anything no group claims becomes an implicit unlabelled group shown first, so a manifest that groups only its secondary data still leads with its title. <strong>tabs</strong> carries a description body or a comment list behind a strip — Atlassian Document Format retains bold text, links, lists and code while converting to Markdown. Both body tabs and comment lists render that Markdown as data, never as executable HTML. <strong>actions</strong> is the only part of this subsystem that writes: a choice resolves its options from an earlier step, applies one, drops the cached preview and re-fetches so the badge updates in place. <strong>detectPatterns</strong> joins the scan pool as synthetic rules. Step <strong>optional</strong> records a failing step and steps over it.",
     settings: [
       { key: "linkTooltip.integrations.&lt;id&gt;.enabled", def: "false", note: "Whether this manifest is consulted at all." },
       { key: "linkTooltip.integrations.&lt;id&gt;.fields", def: "null", note: "Which display fields to show. <code>null</code> means the manifest's own list; <code>[]</code> means none." },
@@ -249,7 +268,7 @@ window.FEATURE_DETAILS = {
     problem:
       "Adding a Link Tooltip rule started with an empty regex box. Almost every rule anyone actually wants — a ticket key, a commit hash, a pull request, a media file — is a pattern somebody has already written, and writing it again by hand is both work and a second copy that drifts.",
     how:
-      "<strong>Add rule</strong> is a split button whose caret offers eleven ready-made rules, and an <strong>Apply preset</strong> dropdown inside the editor rewrites the rule you have open. <code>tabby-links/src/presets.ts</code> holds them. A preset does not own its pattern: anything an integration already matches takes the pattern <em>from that manifest</em>, selected by running the manifest's own matchers against a canonical example the preset names.",
+      "<strong>Add rule</strong> is a split button whose caret offers nineteen searchable ready-made rules, and an <strong>Apply preset</strong> dropdown inside the editor rewrites the rule you have open. The canonical catalog is Lintel's <code>presets.json</code>; both terminals consume generated copies. A preset does not own its pattern: anything an integration already matches takes the pattern <em>from that manifest</em>, selected by running the manifest's own matchers against a canonical example the preset names.",
     notes: [
       "<strong>The join fails safe.</strong> No matcher claims the example, or more than one does, and the preset is simply not offered — rather than falling back to a hardcoded twin that would drift.",
       "Presets are <strong>per matcher</strong>, not per subject, because that is how the manifests are written. Where the reference merges <code>pull|issues</code> into one preset, here they are separate.",
