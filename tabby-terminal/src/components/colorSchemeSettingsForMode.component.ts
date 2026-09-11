@@ -5,8 +5,19 @@ import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker'
 import { Component, Inject, Input, ChangeDetectionStrategy, ChangeDetectorRef, HostBinding } from '@angular/core'
 import { ConfigService, PlatformService, TerminalColorScheme, TranslateService } from 'tabby-core'
 import { TerminalColorSchemeProvider } from '../api/colorSchemeProvider'
+import { schemeTone } from '../colorSchemeTone'
+import {
+    SchemePreviewPosition, SchemeToneFilter,
+    getPreviewPosition, getShowSwatches, getToneFilter,
+    setPreviewPosition, setShowSwatches, setToneFilter,
+} from '../colorSchemeViewPrefs'
 
 _('Search color schemes')
+_('All')
+_('Dark')
+_('Light')
+_('Show swatches')
+_('Preview on the right')
 
 /** @hidden */
 @Component({
@@ -25,6 +36,19 @@ export class ColorSchemeSettingsForModeComponent {
     @Input() filter = ''
     @Input() editing = false
     colorIndexes = [...new Array(16).keys()]
+
+    /** How the list is shown. Remembered per machine, not in the config. */
+    toneFilter: SchemeToneFilter = getToneFilter()
+    showSwatches = getShowSwatches()
+    previewPosition: SchemePreviewPosition = getPreviewPosition()
+
+    /**
+     * The list after the tone filter and the search box, computed once per
+     * change rather than per row: this is `OnPush`, and the template used to
+     * ask `scheme.name.toLowerCase().includes(...)` for all 191 of them on
+     * every pass through a `[hidden]` binding.
+     */
+    visibleSchemes: TerminalColorScheme[] = []
 
     currentStockScheme: TerminalColorScheme|null = null
     currentCustomScheme: TerminalColorScheme|null = null
@@ -63,7 +87,47 @@ export class ColorSchemeSettingsForModeComponent {
         this.currentCustomScheme = this.findMatchingScheme(this.config.store.terminal[this.configKey], this.customColorSchemes)
         this.currentStockScheme = this.findMatchingScheme(this.config.store.terminal[this.configKey], this.stockColorSchemes)
         this.allColorSchemes = this.customColorSchemes.concat(this.stockColorSchemes)
+        this.applyFilters()
         this.changeDetector.markForCheck()
+    }
+
+    applyFilters () {
+        const needle = this.filter.trim().toLowerCase()
+        this.visibleSchemes = this.allColorSchemes.filter(scheme => {
+            if (this.toneFilter !== 'all' && schemeTone(scheme) !== this.toneFilter) {
+                return false
+            }
+            return !needle || scheme.name.toLowerCase().includes(needle)
+        })
+    }
+
+    /** Every one of these is a write the next visit has to see. */
+    setToneFilter (value: SchemeToneFilter) {
+        this.toneFilter = value
+        setToneFilter(value)
+        this.applyFilters()
+        this.changeDetector.markForCheck()
+    }
+
+    setShowSwatches (value: boolean) {
+        this.showSwatches = value
+        setShowSwatches(value)
+        this.changeDetector.markForCheck()
+    }
+
+    setPreviewPosition (value: SchemePreviewPosition) {
+        this.previewPosition = value
+        setPreviewPosition(value)
+        this.changeDetector.markForCheck()
+    }
+
+    onFilterChange () {
+        this.applyFilters()
+        this.changeDetector.markForCheck()
+    }
+
+    schemeTrackBy (_index: number, scheme: TerminalColorScheme) {
+        return scheme.name
     }
 
     editScheme () {

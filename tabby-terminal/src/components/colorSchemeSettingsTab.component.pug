@@ -71,4 +71,9 @@ ul.nav-tabs(ngbNav, #nav='ngbNav', [activeId]='defaultTab')
         ng-template(ngbNavContent)
             color-scheme-settings-for-mode(configKey='lightColorScheme')
 
+    li(ngbNavItem='pair')
+        a(ngbNavLink, translate) Pair
+        ng-template(ngbNavContent)
+            color-scheme-pairs
+
 div([ngbNavOutlet]='nav')

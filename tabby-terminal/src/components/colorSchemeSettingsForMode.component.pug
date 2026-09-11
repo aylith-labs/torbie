@@ -79,38 +79,97 @@
 
     hr.mt-3.mb-4
 
-    .input-group.mb-3
+    .input-group.mb-2
         .input-group-text
             i.fas.fa-fw.fa-search
-        input.form-control(type='search', [placeholder]='"Search color schemes"|translate', [(ngModel)]='filter')
+        input.form-control(
+            type='search',
+            [placeholder]='"Search color schemes"|translate',
+            [(ngModel)]='filter',
+            (ngModelChange)='onFilterChange()'
+        )
+
+    .scheme-controls.mb-3
+        .btn-group.btn-group-sm(role='group')
+            button.btn.btn-secondary(
+                [class.active]='toneFilter === "all"',
+                (click)='setToneFilter("all")',
+                translate
+            ) All
+            button.btn.btn-secondary(
+                [class.active]='toneFilter === "dark"',
+                (click)='setToneFilter("dark")',
+                translate
+            ) Dark
+            button.btn.btn-secondary(
+                [class.active]='toneFilter === "light"',
+                (click)='setToneFilter("light")',
+                translate
+            ) Light
+
+        .me-auto
+
+        .form-check.form-switch.mb-0.me-3
+            input.form-check-input#showSwatches(
+                type='checkbox',
+                [checked]='showSwatches',
+                (change)='setShowSwatches($event.target.checked)'
+            )
+            label.form-check-label(for='showSwatches', translate) Show swatches
+
+        .form-check.form-switch.mb-0
+            input.form-check-input#previewRight(
+                type='checkbox',
+                [checked]='previewPosition === "right"',
+                (change)='setPreviewPosition($event.target.checked ? "right" : "bottom")'
+            )
+            label.form-check-label(for='previewRight', translate) Preview on the right
+
+    .text-muted.small.mb-2(*ngIf='!visibleSchemes.length', translate) No color schemes match
 
 .body
     .list-group.list-group-light.mb-3
-        ng-container(*ngFor='let scheme of allColorSchemes')
+        ng-container(*ngFor='let scheme of visibleSchemes; trackBy: schemeTrackBy')
             .list-group-item.list-group-item-action(
-                [hidden]='filter && !scheme.name.toLowerCase().includes(filter.toLowerCase())',
                 (click)='selectScheme(scheme)',
-                [class.active]='(currentCustomScheme || currentStockScheme) === scheme'
+                [class.active]='(currentCustomScheme || currentStockScheme) === scheme',
+                [class.preview-right]='previewPosition === "right"'
             )
-                .d-flex.w-100.align-items-center
-                    i.fas.fa-fw([class.fa-check]='(currentCustomScheme || currentStockScheme) === scheme')
+                //- Bottom: the name row runs full width and the preview sits
+                //- under it. Right: the name and its swatches stack into a
+                //- column beside the preview, which is why the swatches move
+                //- below the name rather than staying inline.
+                .scheme-row
+                    .scheme-identity
+                        .d-flex.align-items-center
+                            i.fas.fa-fw([class.fa-check]='(currentCustomScheme || currentStockScheme) === scheme')
+                            .ms-2
+                            .me-auto
+                                span {{scheme.name}}
+                                .badge.text-bg-info.ms-2(*ngIf='customColorSchemes.includes(scheme)', translate) Custom
+                            .scheme-swatches(*ngIf='showSwatches && previewPosition !== "right"')
+                                .d-flex
+                                    .swatch(
+                                        *ngFor='let index of colorIndexes.slice(0, 8)',
+                                        [style.background-color]='scheme.colors[index]'
+                                    )
+                                .d-flex
+                                    .swatch(
+                                        *ngFor='let index of colorIndexes.slice(8, 16)',
+                                        [style.background-color]='scheme.colors[index]'
+                                    )
 
-                    .ms-2
+                        .scheme-swatches.mt-2(*ngIf='showSwatches && previewPosition === "right"')
+                            .d-flex
+                                .swatch(
+                                    *ngFor='let index of colorIndexes.slice(0, 8)',
+                                    [style.background-color]='scheme.colors[index]'
+                                )
+                            .d-flex
+                                .swatch(
+                                    *ngFor='let index of colorIndexes.slice(8, 16)',
+                                    [style.background-color]='scheme.colors[index]'
+                                )
 
-                    .me-auto
-                        span {{scheme.name}}
-                        .badge.text-bg-info.ms-2(*ngIf='customColorSchemes.includes(scheme)', translate) Custom
-
-                    div
-                        .d-flex
-                            .swatch(
-                                *ngFor='let index of colorIndexes.slice(0, 8)',
-                                [style.background-color]='scheme.colors[index]'
-                            )
-                        .d-flex
-                            .swatch(
-                                *ngFor='let index of colorIndexes.slice(8, 16)',
-                                [style.background-color]='scheme.colors[index]'
-                            )
-
-                color-scheme-preview([scheme]='scheme')
+                    .scheme-preview
+                        color-scheme-preview([scheme]='scheme')

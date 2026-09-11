@@ -1,0 +1,53 @@
+.head {
+    flex: none;
+}
+
+.body {
+    overflow: auto;
+    flex: auto;
+    min-height: 0;
+}
+
+.scheme-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 3px;
+    margin-bottom: 3px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .5);
+}
+
+// Two equal columns, dark then light. `min-width: 0` on the column is what
+// keeps a preview from pushing the row wider than the panel — a grid item's
+// default `min-width: auto` sizes to content, which for a terminal preview is
+// wider than the space available.
+.pair-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.pair-column {
+    min-width: 0;
+}
+
+.pair-label {
+    margin-bottom: 4px;
+}
+
+.pair-swatches {
+    margin-bottom: 6px;
+}
+
+// The preview is indented inside the single-scheme list; here it is already
+// inside its own column, so the indent would only eat width.
+.pair-column color-scheme-preview {
+    margin-left: 0;
+}

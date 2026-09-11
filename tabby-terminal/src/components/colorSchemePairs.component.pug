@@ -1,0 +1,68 @@
+.head
+    p.text-muted.mb-3(translate) Designs that ship a dark and a light scheme together. Picking one sets both, so switching mode needs nothing else.
+
+    .input-group.mb-2
+        .input-group-text
+            i.fas.fa-fw.fa-search
+        input.form-control(
+            type='search',
+            [placeholder]='"Search color scheme pairs"|translate',
+            [(ngModel)]='filter',
+            (ngModelChange)='onFilterChange()'
+        )
+
+    .scheme-controls.mb-3
+        .form-check.form-switch.mb-0
+            input.form-check-input#pairShowSwatches(
+                type='checkbox',
+                [checked]='showSwatches',
+                (change)='setShowSwatches($event.target.checked)'
+            )
+            label.form-check-label(for='pairShowSwatches', translate) Show swatches
+
+    .text-muted.small.mb-2(*ngIf='!visiblePairs.length', translate) No paired color schemes match
+
+.body
+    .list-group.list-group-light.mb-3
+        ng-container(*ngFor='let pair of visiblePairs; trackBy: pairTrackBy')
+            .list-group-item.list-group-item-action(
+                (click)='selectPair(pair)',
+                [class.active]='isActive(pair)'
+            )
+                .d-flex.align-items-center.mb-2
+                    i.fas.fa-fw([class.fa-check]='isActive(pair)')
+                    .ms-2
+                    strong.me-auto {{pair.name}}
+
+                //- Both halves side by side, in the order the tabs are in:
+                //- dark first, then light.
+                .pair-columns
+                    .pair-column
+                        .pair-label.text-muted.small {{pair.dark.name}}
+                        .pair-swatches(*ngIf='showSwatches')
+                            .d-flex
+                                .swatch(
+                                    *ngFor='let index of colorIndexes.slice(0, 8)',
+                                    [style.background-color]='pair.dark.colors[index]'
+                                )
+                            .d-flex
+                                .swatch(
+                                    *ngFor='let index of colorIndexes.slice(8, 16)',
+                                    [style.background-color]='pair.dark.colors[index]'
+                                )
+                        color-scheme-preview([scheme]='pair.dark')
+
+                    .pair-column
+                        .pair-label.text-muted.small {{pair.light.name}}
+                        .pair-swatches(*ngIf='showSwatches')
+                            .d-flex
+                                .swatch(
+                                    *ngFor='let index of colorIndexes.slice(0, 8)',
+                                    [style.background-color]='pair.light.colors[index]'
+                                )
+                            .d-flex
+                                .swatch(
+                                    *ngFor='let index of colorIndexes.slice(8, 16)',
+                                    [style.background-color]='pair.light.colors[index]'
+                                )
+                        color-scheme-preview([scheme]='pair.light')

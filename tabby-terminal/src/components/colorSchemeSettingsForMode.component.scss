@@ -17,6 +17,41 @@
     box-shadow: 0 1px 1px rgba(0, 0, 0, .5);
 }
 
+.scheme-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 .list-group-item color-scheme-preview {
     margin-left: 14px;
+}
+
+// Bottom is the original layout and stays a plain block, so its diff is nil.
+// Right turns the row into two columns: the identity — name, badge, swatches —
+// and the preview, which takes the rest and is allowed to shrink. `min-width: 0`
+// on both is what stops a long scheme name or a wide preview from pushing the
+// row past the panel and giving the list a horizontal scrollbar.
+.list-group-item.preview-right {
+    .scheme-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .scheme-identity {
+        flex: 0 0 40%;
+        max-width: 40%;
+        min-width: 0;
+    }
+
+    .scheme-preview {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    color-scheme-preview {
+        margin-left: 0;
+    }
 }

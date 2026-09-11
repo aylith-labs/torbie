@@ -40,6 +40,7 @@ const FAST = [
     'tabby-links/test/wslPath.test.js',
     'tabby-resume/test/logic.test.js',
     'tabby-terminal/test/webSearch.test.js',
+    'tabby-terminal/test/colorSchemeTone.test.js',
 ]
 
 /**
