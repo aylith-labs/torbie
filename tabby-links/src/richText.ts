@@ -16,7 +16,7 @@
  */
 
 /** Past this, a body is truncated. A card cannot show more than a screen. */
-export const MAX_BODY_CHARS = 4000
+export const MAX_BODY_CHARS = 20000
 /** ADF nests arbitrarily; this stops a pathological document from spinning. */
 const MAX_ADF_DEPTH = 24
 const MAX_BLOCKS = 120
@@ -33,7 +33,10 @@ export interface InlineSpan {
 
 export interface MarkdownBlock {
     language?: string
-    kind: 'p' | 'h' | 'li' | 'code' | 'quote'
+    kind: 'p' | 'h' | 'li' | 'code' | 'quote' | 'table' | 'callout'
+    rows?: InlineSpan[][][]
+    tone?: string
+    children?: MarkdownBlock[]
     /** Heading level, 1-6. */
     level?: number
     /** For `li`: part of a numbered list rather than a bulleted one. */
@@ -119,7 +122,19 @@ export function flattenAdf (node: any, depth = 0, markdown = false): string {
         const language = String(node.attrs?.language ?? '').replace(/[^\w#+-]/g, '')
         return '```' + language + '\n' + flattenAdf(node.content, depth + 1).trimEnd() + '\n```\n\n'
     }
+    if (markdown && type === 'table') {
+        const rows: string[][] = (Array.isArray(node.content) ? node.content : []).slice(0, 200).map(row =>
+            (Array.isArray(row?.content) ? row.content : []).slice(0, 32).map(cell =>
+                flattenAdf(cell, depth + 2, true).trim().replace(/\|/g, '\\|').replace(/\n+/g, '<br>')))
+        if (!rows.length || !rows[0].length) return ''
+        const line = (cells: string[]) => `| ${cells.join(' | ')} |`
+        return '\n' + [line(rows[0]), line(rows[0].map(() => '---')), ...rows.slice(1).map(line)].join('\n') + '\n\n'
+    }
     const inner = flattenAdf(node.content, depth + 1, markdown)
+    if (markdown && type === 'panel') {
+        const tones: Record<string, string> = { warning: 'WARNING', error: 'ERROR', success: 'SUCCESS', note: 'IMPORTANT' }
+        return `\n> [!${tones[String(node.attrs?.panelType)] ?? 'NOTE'}]\n` + inner.trim().split('\n').map(line => `> ${line}`).join('\n') + '\n\n'
+    }
     if (markdown && type === 'heading') return `${'#'.repeat(Math.max(1, Math.min(6, Number(node.attrs?.level) || 1)))} ${inner}\n\n`
     if (markdown && type === 'blockquote') return inner.trim().split('\n').map(line => `> ${line}`).join('\n') + '\n\n'
     if (type === 'listItem') {
@@ -199,12 +214,14 @@ export function parseInline (line: string): InlineSpan[] {
  * Block structure: headings, list items, fenced code and quotes, with
  * consecutive plain lines joined into a paragraph.
  */
-export function parseMarkdown (source: string, maxChars = MAX_BODY_CHARS, maxBlocks = MAX_BLOCKS): MarkdownBlock[] {
+export function parseMarkdown (source: string, maxChars = MAX_BODY_CHARS, maxBlocks = MAX_BLOCKS, depth = 0): MarkdownBlock[] {
+    if (depth > 8) return [{ kind: 'p', spans: [{ text: source.slice(0, maxChars) }] }]
     const blocks: MarkdownBlock[] = []
     const lines = source.replace(/\r/g, '').slice(0, maxChars).split('\n')
     let paragraph: string[] = []
     let inFence = false
     let fenceLanguage = ''
+    let fenceMarker = ''
     let fence: string[] = []
 
     const flushParagraph = () => {
@@ -214,11 +231,14 @@ export function parseMarkdown (source: string, maxChars = MAX_BODY_CHARS, maxBlo
         }
     }
 
-    for (const line of lines) {
+    for (let index = 0; index < lines.length; index++) {
+        const line = lines[index]
         if (blocks.length >= maxBlocks) {
             break
         }
-        if (/^\s*```/.test(line)) {
+        const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line)
+        const closesFence = marker && marker[1][0] === fenceMarker[0] && marker[1].length >= fenceMarker.length && !marker[2].trim()
+        if (marker && (!inFence || closesFence)) {
             if (inFence) {
                 blocks.push({ kind: 'code', ...(fenceLanguage ? { language: fenceLanguage } : {}), spans: [{ text: fence.join('\n'), code: true }] })
                 fence = []
@@ -226,12 +246,29 @@ export function parseMarkdown (source: string, maxChars = MAX_BODY_CHARS, maxBlo
             } else {
                 flushParagraph()
                 inFence = true
-                fenceLanguage = line.trim().slice(3).trim().split(/\s/)[0]
+                fenceMarker = marker[1]
+                fenceLanguage = marker[2].trim().split(/\s/)[0]
             }
             continue
         }
         if (inFence) {
             fence.push(line)
+            continue
+        }
+        const alert = /^\s*>\s*\[!(NOTE|INFO|TIP|SUCCESS|WARNING|CAUTION|ERROR|IMPORTANT)\]\s*$/.exec(line)
+        if (alert) {
+            flushParagraph()
+            const content: string[] = []
+            while (index + 1 < lines.length && /^\s*>/.test(lines[index + 1])) content.push(lines[++index].replace(/^\s*> ?/, ''))
+            blocks.push({ kind: 'callout', tone: alert[1].toLowerCase(), spans: [], children: parseMarkdown(content.join('\n'), maxChars, maxBlocks, depth + 1) })
+            continue
+        }
+        if (line.includes('|') && index + 1 < lines.length && tableDivider(lines[index + 1])) {
+            flushParagraph()
+            const rows = [tableCells(line)]
+            index++
+            while (index + 1 < lines.length && lines[index + 1].trim() && lines[index + 1].includes('|') && rows.length < 201) rows.push(tableCells(lines[++index]))
+            blocks.push({ kind: 'table', spans: [], rows: rows.map(row => row.slice(0, 32).map(cell => parseInline(cell.replace(/<br>/g, '\n')))) })
             continue
         }
         const heading = /^(#{1,6})\s+(.*)$/.exec(line)
@@ -269,6 +306,30 @@ export function parseMarkdown (source: string, maxChars = MAX_BODY_CHARS, maxBlo
     }
     flushParagraph()
     return blocks
+}
+
+function tableCells (line: string): string[] {
+    let text = line.trim().replace(/^\|/, '')
+    if (text.endsWith('|') && !text.endsWith('\\|')) text = text.slice(0, -1)
+    const cells: string[] = []
+    let cell = ''
+    let fence = 0
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '\\' && text[i + 1] === '|') { cell += '|'; i++ } else if (text[i] === '`') {
+            let length = 1
+            while (text[i + length] === '`') length++
+            if (!fence) fence = length
+            else if (fence === length) fence = 0
+            cell += '`'.repeat(length)
+            i += length - 1
+        } else if (text[i] === '|' && !fence) { cells.push(cell.trim()); cell = '' } else cell += text[i]
+    }
+    cells.push(cell.trim())
+    return cells
+}
+
+function tableDivider (line: string): boolean {
+    return line.includes('|') && tableCells(line).every(cell => /^:?-{3,}:?$/.test(cell))
 }
 
 /** Plain text, capped — for `format: "text"` and as the fallback everywhere. */

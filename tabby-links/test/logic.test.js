@@ -275,7 +275,7 @@ const ADDITIVE = new Set(['normalize', 'suffix', 'description', 'placeholder'])
 const TERMINAL_REPO = process.env.TERMINAL_REPO || 'C:/Users/steve/projects/terminal'
 const TERMINAL_MANIFESTS = 'src/cascadia/TerminalSettingsModel/integrations'
 // Pin the Terminal commit that adopted the shared catalog and Unblocked manifest.
-const TERMINAL_REF = process.env.TERMINAL_REF || '37aa9437aefb6771c90653bf3eaeffaec9be723c'
+const TERMINAL_REF = process.env.TERMINAL_REF || 'f372dbd4c4674fdc8d8ef9e8e40fa478912fddb0'
 
 function git (args) {
     return require('child_process').execFileSync('git', args,
@@ -568,8 +568,8 @@ check('a bare /mnt drive keeps its root',
 check('a directory called mnt is not a drive',
     fsPath('/mnt/certificates/ca.pem', 'Ubuntu', true),
     '\\\\wsl.localhost\\Ubuntu\\mnt\\certificates\\ca.pem')
-check('/mnt outside a WSL tab is not translated either',
-    fsPath('/mnt/c/Users/steve', null, true), '/mnt/c/Users/steve')
+check('/mnt drive paths resolve without a distro',
+    fsPath('/mnt/c/Users/steve', null, true), 'C:\\Users\\steve')
 
 check('a Windows path is already a path',
     fsPath('C:\\Windows\\notepad.exe', 'Ubuntu', true), 'C:\\Windows\\notepad.exe')
@@ -629,6 +629,26 @@ for (let i = 0; i < 200; i++) {
 cursor.content.push({ type: 'text', text: 'bottom' })
 check('a pathologically deep document is capped, not hung',
     typeof rich.adfToText(deep), 'string')
+
+// Preserve Jira structure all the way through the Markdown renderer.
+const jiraRichDoc = { type: 'doc', content: [
+    { type: 'panel', attrs: { panelType: 'warning' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Check this', marks: [{ type: 'strong' }] }] }] },
+    { type: 'table', content: [
+        { type: 'tableRow', content: ['Name', 'Result'].map(text => ({ type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] })) },
+        { type: 'tableRow', content: ['A|B', '422'].map(text => ({ type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] })) },
+    ] },
+    { type: 'codeBlock', attrs: { language: 'typescript' }, content: [{ type: 'text', text: 'const result = 422;' }] },
+] }
+const jiraRichBlocks = rich.parseMarkdown(rich.adfToMarkdown(jiraRichDoc))
+check('Jira panels become warning callouts', jiraRichBlocks[0].tone, 'warning')
+check('Jira callout bold survives', jiraRichBlocks[0].children[0].spans.some(span => span.bold && span.text === 'Check this'), true)
+check('Jira table retains two rows', jiraRichBlocks[1].rows.length, 2)
+check('Jira cell pipes do not split columns', jiraRichBlocks[1].rows[1].map(cell => cell.map(span => span.text).join('')), ['A|B', '422'])
+check('Jira fenced code keeps its language', jiraRichBlocks[2].language, 'typescript')
+const opaqueFence = rich.parseMarkdown('```text\n| a | b |\n| --- | --- |\n> [!WARNING]\n```')
+check('table and alert syntax inside code stays code', opaqueFence.map(block => block.kind), ['code'])
+const alignedTable = rich.parseMarkdown('| **Name** | Result |\n| :--- | ---: |\n| [ticket](https://jira.test/1) | 422 |')
+check('table cells preserve links', alignedTable[0].rows[1][0][0].href, 'https://jira.test/1')
 
 // Markdown, parsed to data. Nothing here ever becomes HTML.
 const blocks = rich.parseMarkdown('# Title\n\nSome **bold** and `code`.\n\n- one\n- two\n\n> quoted\n\n```\nraw\n```')
@@ -1656,6 +1676,50 @@ check('Markdown comments request formatting',svc.buildTabs(commentIntegration,{}
 commentIntegration.manifest.tabs[0].format='text'
 check('text comments remain plain',svc.buildTabs(commentIntegration,{}, {comments:[{body:'**literal**'}]})[0].markdown,false)
 check('malformed ADF marks ignored',rich.adfToMarkdown({type:'text',text:'safe',marks:[null,42]}),'safe')
+
+console.log('\n── embedded links and shared path resolution ──')
+const { EmbeddedLinksService } = loadSource('tabby-links/src/services/embeddedLinks.service.ts')
+const embeddedConfig = {store:{linkTooltip:{nested:false}}}
+const embeddedRules = {enabled:true,textRules:()=>[{search:new guard.GuardedRegex('UNB-\\d+', 'g', 'embedded-test')}]}
+const embedded = new EmbeddedLinksService(embeddedConfig,embeddedRules)
+check('panel links enabled independently',embedded.enabled(true,0),true)
+check('popover nesting opt-in',embedded.enabled(false,0),false)
+embeddedConfig.store.linkTooltip.nested=true
+check('popover nesting enabled explicitly',embedded.enabled(false,0),true)
+check('nested depth bounded',embedded.enabled(true,4),false)
+embeddedRules.enabled=false
+check('master off suppresses embedded tooltips',embedded.enabled(true,0),false)
+embeddedRules.enabled=true
+const linked=embedded.decorate([{kind:'p',spans:[{text:'UNB-123 /tmp/a.md Z:\\home\\x.png https://example.org/a'}]}])[0].spans
+check('embedded IDs paths and URLs recognized',linked.filter(s=>s.href).map(s=>s.href),['UNB-123','/tmp/a.md','Z:\\home\\x.png','https://example.org/a'])
+check('identifiers beyond the first text budget are recognized',embedded.decorate([{kind:'p',spans:[{text:'prefix '.repeat(100)+'UNB-321'}]}])[0].spans.find(s=>s.href)?.href,'UNB-321')
+check('existing hyperlink remains whole',embedded.decorate([{kind:'p',spans:[{text:'UNB-123',href:'https://host/item'}]}])[0].spans.length,1)
+check('nested table cell identifiers recognized',embedded.decorate([{kind:'table',spans:[],rows:[[[{text:'UNB-7'}]]]}])[0].rows[0][0][0].href,'UNB-7')
+check('code text stays literal',embedded.decorate([{kind:'code',spans:[{text:'UNB-7',code:true}]}])[0].spans[0].href,undefined)
+check('tilde fence preserves code and language',rich.parseMarkdown('~~~ts\nconst a = 1;\n~~~')[0],{kind:'code',language:'ts',spans:[{text:'const a = 1;',code:true}]})
+check('short backticks inside longer fence are literal',rich.parseMarkdown('````md\n```\n````')[0].spans[0].text,'```')
+const sharedPaths=loadSource('tabby-links/src/pathResolution.ts')
+check('unknown distro rejects ambiguous paths',sharedPaths.selectPathCandidate(sharedPaths.pathCandidates('/tmp/a.md',true,null,['Ubuntu','Debian']),[true,true]),null)
+check('drive path is unchanged by WSL context',sharedPaths.pathCandidates('Z:\\a.md',true,'Ubuntu')[0].path,'Z:\\a.md')
+
+const { LinkTooltipDecorator } = loadSource('tabby-links/src/decorator.ts')
+const hoverController = Object.create(LinkTooltipDecorator.prototype)
+let childShown = 0
+hoverController.rules = {enabled:true,resolve:()=>({showDelay:0})}
+hoverController.panes = {tooltipsSuppressed:()=>true}
+hoverController.show = () => { childShown++ }
+const hoverState = {externalAnchor:{},shownKey:'',hideTimer:null,showTimer:null}
+hoverController.onHover(hoverState,{kind:'link',text:'https://host/a',range:{start:{x:1,y:1}}})
+check('pane suppression does not disable embedded previews',childShown,1)
+let hostHovered = true, parentLeft = 0
+hoverController.onLeave = () => { parentLeft++ }
+const parentHover = {pointerInCard:true,host:{matches:()=>hostHovered}}
+const parentHandlers = hoverController.cardHandlers(parentHover)
+parentHandlers.pointerLeave()
+check('entering a child keeps parent preview alive',parentHover.pointerInCard,true)
+hostHovered=false
+parentHandlers.pointerLeave()
+check('leaving the entire preview tree closes parent',parentLeft,1)
 
 async function localPreviewTests () {
     const fs = require('node:fs/promises')

@@ -258,6 +258,7 @@ export class LinkPreviewTabComponent extends BaseTabComponent implements OnInit 
             this.unclaimed = unclaimed && !error
             this.error = error
             this.model = {
+                sourceTab: this.request.tab, depth: 0,
                 ...this.model,
                 loading: false,
                 preview,

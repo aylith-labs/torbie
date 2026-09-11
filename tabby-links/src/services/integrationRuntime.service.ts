@@ -629,7 +629,7 @@ export class IntegrationRuntimeService {
             }
         }
 
-        preview.fields = this.buildFields(integration, results, last)
+        preview.fields = this.buildFields(integration, results, last, match)
         preview.groups = this.buildGroups(integration, preview.fields)
         preview.tabs = this.buildTabs(integration, results, last)
         preview.actions = this.buildActions(integration, results, last)
@@ -1022,7 +1022,7 @@ export class IntegrationRuntimeService {
 
     // ── display fields ───────────────────────────────────────────────────────
 
-    private buildFields (integration: Integration, results: Record<string, any>, last: any): PreviewField[] {
+    private buildFields (integration: Integration, results: Record<string, any>, last: any, match: Match): PreviewField[] {
         const wanted = this.registry.visibleFieldKeys(integration)
         const out: PreviewField[] = []
         for (const field of integration.manifest.fields ?? []) {
@@ -1040,6 +1040,8 @@ export class IntegrationRuntimeService {
                 value: formatValue(raw, field.format),
                 kind: field.kind ?? 'text',
                 iconUri: valueToString(lookupPath(field.iconPath, results, last)),
+                placement: field.placement,
+                link: field.link ? this.expand(field.link, match, results, last, true) : undefined,
                 // `colorPath` first, `color` as the fallback. A manifest setting
                 // both means "the status colour this issue actually has, or this
                 // one if the response didn't carry it" — and the other fork

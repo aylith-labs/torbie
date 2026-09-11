@@ -30,6 +30,8 @@ export class LinksConfigProvider extends ConfigProvider {
             alternativeClickGesture: DEFAULT_CHORDS.alternative.gesture,
             alternativeAction: DEFAULT_CHORDS.alternative.action,
             maxWidth: 640,
+            maxHeight: 720,
+            nested: false,
             showDelay: 250,
             hideDelay: 400,
             /** The five built-in buttons: Open, Copy link, Copy path, Reveal, Show in pane. */

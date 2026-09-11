@@ -14,6 +14,26 @@ for the two places the apps necessarily diverge.
 
 ## What a link preview is
 
+Jira descriptions and comments retain tables and callouts. Comment identities use a round
+40-pixel avatar with the name above the timestamp in the pane; popovers use a compact
+single line. Code blocks have no line numbers and expose Copy and, when the line is wider
+than the viewport, Wrap on hover or keyboard focus.
+
+The ticket title stays above the tabs. Status and Change status sit together below it;
+type, priority and parent links share that header. Type and priority open Jira searches.
+Display fields can declare `placement: "header"` or `placement: "status"`, plus a `link`
+template, so other integrations can use the same layout.
+
+Embedded links and recognized identifiers use the same rules and integration provider as
+buffer links. Panes enable their tooltips; showing tooltips inside a popover is opt-in,
+with at most four nesting levels. The complete popover has a configurable maximum height.
+
+Absolute POSIX paths on Windows use the producing WSL distribution. If it is unknown,
+registered distributions are probed off the UI thread and only a unique existing match is
+accepted. Explicit drive paths such as `Z:\home\stevenp\x.png` remain Windows paths.
+Lintel owns the shared detection patterns, path policy, language mappings and icons.
+
+
 Local text files have a built-in preview in both the hover card and preview pane.
 Markdown starts in **Formatted** mode, with a **Raw** switch that preserves the source.
 YAML frontmatter is shown as metadata, including nested values, lists and multiline text;

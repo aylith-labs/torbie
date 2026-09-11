@@ -10,6 +10,7 @@ import { IntegrationsSettingsTabComponent } from './components/integrationsSetti
 import { LinkHoverCardComponent } from './components/linkHoverCard.component'
 import { LinkPreviewTabComponent } from './components/linkPreviewTab.component'
 import { LinkPreviewViewComponent } from './components/linkPreviewView.component'
+import { PreviewCodeComponent } from './components/previewCode.component'
 import { LinkTooltipSettingsTabComponent } from './components/linkTooltipSettingsTab.component'
 import { LinksConfigProvider } from './config'
 import { LinkTooltipDecorator } from './decorator'
@@ -28,6 +29,7 @@ import { LinkClicksService } from './services/linkClicks.service'
         LinkHoverCardComponent,
         LinkPreviewTabComponent,
         LinkPreviewViewComponent,
+        PreviewCodeComponent,
         LinkTooltipSettingsTabComponent,
         IntegrationsSettingsTabComponent,
     ],

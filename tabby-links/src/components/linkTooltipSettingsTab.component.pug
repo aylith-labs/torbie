@@ -62,6 +62,27 @@ div(ngbAccordion, [destroyOnHide]='false', [animation]='config.store.accessibili
 
                     .form-line
                         .header
+                            .title(translate) Maximum popover height
+                            .description(translate) Maximum total height in pixels. Content scrolls inside it. Set to 0 to fit the pane
+                        reset-to-default([proxy]='config.store.linkTooltip', key='maxHeight')
+                        input.form-control(
+                            [disabled]='!config.store.linkTooltip.enabled',
+                            type='number',
+                            min='0',
+                            max='4000',
+                            step='20',
+                            [(ngModel)]='config.store.linkTooltip.maxHeight',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line
+                        .header
+                            .title(translate) Link tooltips inside popovers
+                            .description(translate) Preview links and recognized IDs inside a popover using the same Link Tooltip rules
+                        toggle([(ngModel)]='config.store.linkTooltip.nested', (ngModelChange)='saveConfiguration()')
+
+                    .form-line
+                        .header
                             .title(translate) Delay before the link tooltip appears
                             .description(translate) In milliseconds. Set to 0 to show it immediately
                         reset-to-default([proxy]='config.store.linkTooltip', key='showDelay')

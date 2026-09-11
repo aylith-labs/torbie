@@ -1,3 +1,5 @@
+import type { BaseTerminalTabComponent } from 'tabby-terminal'
+import { EmbeddedLinksService } from '../services/embeddedLinks.service'
 import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, HostBinding, Input, OnDestroy, ViewChild } from '@angular/core'
 
 import {
@@ -18,6 +20,8 @@ import { badgeColor } from '../services/integrationRuntime.service'
  * so both can be passed straight in.
  */
 export interface PreviewModel {
+    sourceTab?: BaseTerminalTabComponent<any> | null
+    depth?: number
     text: string
     target: string
     loading: boolean
@@ -115,11 +119,23 @@ export class LinkPreviewViewComponent implements AfterViewChecked, OnDestroy {
             this.fileCache = {
                 rows: meta.rows, error: meta.error, present: meta.present,
                 yamlTokens: highlightSource(meta.yaml.slice(0, 65536), 'yaml'),
-                blocks: file.markdown ? parseMarkdown(meta.body, limit, 1000).map(block => ({ ...block, tokens: block.kind === 'code' ? highlightSource(block.spans.map(span => span.text).join(''), block.language ?? '') : [] })) : [],
+                blocks: file.markdown ? this.embedded.decorate(parseMarkdown(meta.body, limit, 1000)).map(block => ({ ...block, tokens: block.kind === 'code' ? highlightSource(block.spans.map(span => span.text).join(''), block.language ?? '') : [] })) : [],
                 raw: highlightSource(text, file.language), truncated: file.truncated || file.text.length > limit,
             }
         }
         return this.fileCache
+    }
+
+    get headerTitles (): PreviewField[] {
+        return (this.model.preview?.fields ?? []).filter(field => field.kind === 'title')
+    }
+
+    get headerFields (): PreviewField[] {
+        return (this.model.preview?.fields ?? []).filter(field => field.placement === 'header')
+    }
+
+    get statusFields (): PreviewField[] {
+        return (this.model.preview?.fields ?? []).filter(field => field.placement === 'status')
     }
 
     activeTabKey = ''
@@ -139,11 +155,25 @@ export class LinkPreviewViewComponent implements AfterViewChecked, OnDestroy {
     private markdownCache: MarkdownBlock[] = []
     private commentCache = new WeakMap<PreviewTabItem, MarkdownBlock[]>()
 
-    constructor (private changeDetector: ChangeDetectorRef) {
+    constructor (private changeDetector: ChangeDetectorRef, private embedded: EmbeddedLinksService) {
         window.addEventListener('message', this.onFrameMessage)
     }
 
+    private closeEmbedded?: () => void
+
+    hoverLink (event: MouseEvent, text: string): void {
+        if (!this.model.sourceTab || !this.embedded.enabled(this.pane, this.model.depth ?? 0)) return
+        this.closeEmbedded?.()
+        this.closeEmbedded = this.embedded.show?.(event.currentTarget as HTMLElement, text, this.model.sourceTab, (this.model.depth ?? 0) + 1)
+    }
+
+    openLink (text: string): void {
+        if (this.model.sourceTab && this.embedded.open) this.embedded.open(text, this.model.sourceTab)
+        else this.handlers?.htmlOpen(text)
+    }
+
     ngOnDestroy (): void {
+        this.closeEmbedded?.()
         window.removeEventListener('message', this.onFrameMessage)
     }
 
@@ -193,15 +223,23 @@ export class LinkPreviewViewComponent implements AfterViewChecked, OnDestroy {
         }
         if (this.markdownCacheKey !== tab.body) {
             this.markdownCacheKey = tab.body
-            this.markdownCache = parseMarkdown(tab.body)
+            this.markdownCache = this.embedded.decorate(parseMarkdown(tab.body))
         }
         return this.markdownCache
     }
 
     blocksForComment (item: PreviewTabItem): MarkdownBlock[] {
         let blocks = this.commentCache.get(item)
-        if (!blocks) { blocks = parseMarkdown(item.body); this.commentCache.set(item, blocks) }
+        if (!blocks) { blocks = this.embedded.decorate(parseMarkdown(item.body)); this.commentCache.set(item, blocks) }
         return blocks
+    }
+
+    codeText (block: MarkdownBlock): string { return block.spans.map(span => span.text).join('') }
+    calloutIcon (tone: string): string {
+        if (tone === 'warning' || tone === 'important') return '⚠'
+        if (tone === 'error' || tone === 'caution') return '⊗'
+        if (tone === 'success' || tone === 'tip') return '✓'
+        return 'ⓘ'
     }
 
     // ── actions ──────────────────────────────────────────────────────────────

@@ -237,6 +237,8 @@ export interface IntegrationDisplayField {
     path?: string
     kind?: IntegrationFieldKind
     iconPath?: string
+    placement?: 'details' | 'header' | 'status'
+    link?: string
     colorPath?: string
     color?: string
     format?: 'relativeTime' | 'date'
@@ -383,6 +385,8 @@ export interface Integration {
 
 /** One rendered row on the card. */
 export interface PreviewField {
+    placement?: 'details' | 'header' | 'status'
+    link?: string
     key: string
     label: string
     value: string

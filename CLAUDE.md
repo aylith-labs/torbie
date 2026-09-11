@@ -793,6 +793,30 @@ only a real renderer proves the mkcert cert is trusted:
 
 ## Link tooltips and integrations (`tabby-links`)
 
+### Rich content, contextual headers and embedded links
+
+Jira ADF tables and panels retain their structure through `richText.ts`. The shared preview
+component renders tables/callouts recursively; fenced code uses `PreviewCodeComponent`,
+with hover/focus Copy and an overflow-dependent Wrap control. Pane author identities use
+40px circular avatars and two lines; popovers keep their compact single-line identity.
+
+Lintel display fields can set `placement` (`header`, `status`, `details`) and a URL `link`
+template. Title, status/actions and contextual metadata stay above the tabs. Jira type and
+priority links open searches, and parent links use the same hover controller as buffer links.
+`EmbeddedLinksService` bridges into the existing decorator without a component import cycle;
+children have independent hover state and remain in the parent DOM subtree to keep it alive.
+`linkTooltip.nested` defaults false inside popovers; panes enable embedded previews. Depth is
+capped at four. `linkTooltip.maxHeight` defaults 720 and caps the complete scrolling card.
+
+`pathResolution.ts` and `pathPatterns.ts` are generated from Lintel `paths/`. Known source
+WSL distributions are authoritative. Unknown ones are resolved by registered distributions
+and asynchronous existence checks, accepting a unique match only. Never run a shell from a
+hover. Explicit Windows drive paths stay Windows paths, including mapped `Z:` drives.
+
+The new rich-content, embedded-link and path cases are part of the 706 link logic checks.
+Lint/type checks and bundle compilation do not replace live hover verification after restart.
+
+
 A hover card over terminal links, a **Link Tooltip** settings page of rules that
 customise it, and an **Integrations** page driven by declarative `integration.json`
 manifests that fetch a preview for what a link refers to. Ported from the Windows

@@ -1,3 +1,4 @@
+import { pathCandidates, pathKind, selectPathCandidate } from '../pathResolution'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Injectable } from '@angular/core'
@@ -124,23 +125,8 @@ export function filesystemPath (input: string, distro: string | null, onWindows:
         }
     }
 
-    if (distro !== null && onWindows && candidate.startsWith('/')) {
-        // A Windows drive mounted into the distro is reachable as itself. The
-        // share would resolve it too, but that is the 9p server answering for a
-        // file sitting on the local disk.
-        const mount = /^\/mnt\/([a-zA-Z])(?=\/|$)/.exec(candidate)
-        if (mount) {
-            return `${mount[1].toUpperCase()}:${backslashes(candidate.substring(mount[0].length)) || '\\'}`
-        }
-        // A POSIX path printed by something running inside WSL is not a Windows
-        // path, but Windows can reach it through the distro's UNC share. Without
-        // this, Copy path and Show in folder are simply wrong for every WSL tab.
-        if (distro) {
-            return `\\\\wsl.localhost\\${distro}${backslashes(candidate)}`
-        }
-    }
-
-    return isRooted(candidate) ? candidate : ''
+    const candidates = pathCandidates(candidate, onWindows, distro)
+    return candidates[0]?.path ?? (isRooted(candidate) ? candidate : '')
 }
 
 @Injectable({ providedIn: 'root' })
@@ -202,15 +188,19 @@ export class LinkTargetService {
         converted: string,
         tab: BaseTerminalTabComponent<any> | null,
     ): Promise<ResolvedTarget> {
-        const candidate = filesystemPath(
-            converted || text,
-            this.distroHost(tab),
-            this.hostApp.platform === Platform.Windows,
-        )
-        if (!candidate || !await this.exists(candidate)) {
-            // Still a link — just not one we can offer a path for.
-            return { link: text, filePath: '', display: '' }
+        const onWindows = this.hostApp.platform === Platform.Windows
+        // A bare path is literal; URI decoding belongs only to file:// inputs.
+        const input = pathKind(text) !== 'none' ? text : (converted || text)
+        const candidatePath = filesystemPath(input, this.distroHost(tab), onWindows)
+        const candidates = pathCandidates(candidatePath, onWindows, this.distroHost(tab),
+            onWindows && pathKind(candidatePath) === 'posix' ? this.registeredDistros() : [])
+        const presence = await Promise.all(candidates.map(candidate => this.exists(candidate.path)))
+        const selected = selectPathCandidate(candidates, presence)
+        if (!selected) {
+            const ambiguous = presence.filter(Boolean).length > 1
+            return { link: text, filePath: '', display: ambiguous ? 'Path exists in multiple WSL distributions; use a path naming the distribution.' : '' }
         }
+        const candidate = selected.path
         return {
             link: text,
             filePath: candidate,
@@ -251,6 +241,16 @@ export class LinkTargetService {
         }
         this.defaultDistro = name
         return name
+    }
+
+    private registeredDistros (): string[] {
+        try {
+            const wnr = require('windows-native-registry')
+            const base = 'Software\\Microsoft\\Windows\\CurrentVersion\\Lxss'
+            return wnr.listRegistrySubkeys(wnr.HK.CU, base).slice(0, 32)
+                .map(key => wnr.getRegistryKey(wnr.HK.CU, `${base}\\${key}`)?.DistributionName?.value)
+                .filter(name => typeof name === 'string' && name.length > 0)
+        } catch { return [] }
     }
 
     private async exists (p: string): Promise<boolean> {

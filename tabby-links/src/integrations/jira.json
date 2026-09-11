@@ -50,7 +50,7 @@
             "id": "issue",
             "type": "http",
             "method": "GET",
-            "url": "https://{{settings.host}}/rest/api/3/issue/{{key}}?fields=summary,status,resolution,assignee,priority,issuetype,updated,reporter,description,comment",
+            "url": "https://{{settings.host}}/rest/api/3/issue/{{key}}?fields=summary,status,resolution,assignee,priority,issuetype,updated,reporter,description,comment,parent",
             "auth": {
                 "type": "basic",
                 "user": "{{credentials.email}}",
@@ -123,6 +123,7 @@
                 "assignee",
                 "priority",
                 "type",
+                "parent",
                 "reporter",
                 "updated"
             ]
@@ -153,6 +154,7 @@
         },
         {
             "key": "status",
+            "placement": "status",
             "label": "Status",
             "path": "issue:/fields/status/name",
             "kind": "badge",
@@ -176,19 +178,32 @@
         },
         {
             "key": "priority",
+            "placement": "header",
+            "link": "https://{{settings.host}}/issues/?jql=priority%3D{{issue:/fields/priority/id}}",
             "label": "Priority",
             "path": "issue:/fields/priority/name",
             "kind": "text",
             "iconPath": "issue:/fields/priority/iconUrl",
-            "default": false
+            "default": true
         },
         {
             "key": "type",
+            "placement": "header",
+            "link": "https://{{settings.host}}/issues/?jql=issuetype%3D{{issue:/fields/issuetype/id}}",
             "label": "Type",
             "path": "issue:/fields/issuetype/name",
             "kind": "text",
             "iconPath": "issue:/fields/issuetype/iconUrl",
-            "default": false
+            "default": true
+        },
+        {
+            "key": "parent",
+            "placement": "header",
+            "label": "Parent",
+            "path": "issue:/fields/parent/key",
+            "link": "https://{{settings.host}}/browse/{{issue:/fields/parent/key}}",
+            "kind": "text",
+            "default": true
         },
         {
             "key": "reporter",
@@ -295,7 +310,7 @@
     "actions": [
         {
             "key": "transition",
-            "label": "Move to",
+            "label": "Change status",
             "kind": "choice",
             "optionsPath": "transitions:/transitions",
             "optionIdPath": "/id",

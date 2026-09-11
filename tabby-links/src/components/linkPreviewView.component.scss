@@ -192,6 +192,27 @@ code.md-code {
     margin-left: auto;
 }
 
+.tab-identity { display: flex; flex: 1; gap: 6px; }
+:host(.pane) {
+    .tab-item { padding: 14px 0; }
+    .tab-item-head { opacity: 1; gap: 12px; align-items: flex-start; }
+    .tab-avatar { width: 40px; height: 40px; object-fit: cover; }
+    .tab-identity { flex-direction: column; gap: 2px; }
+    .tab-author { font-size: 16px; }
+    .tab-time { margin-left: 0; font-size: 12px; opacity: .7; }
+    .tab-item-content { margin-left: 52px; margin-top: 10px; }
+}
+.md.md-code { padding: 0; background: none; }
+.md-table-scroll { overflow-x: auto; margin: 10px 0; }
+.md-table-scroll table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.md-table-scroll th, .md-table-scroll td { border: 1px solid #80808050; padding: 8px; vertical-align: top; white-space: pre-wrap; }
+.md-table-scroll th { background: #80808025; font-weight: 600; }
+.md-callout { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; padding: 12px; border-radius: 4px; background: #4182e628; margin: 10px 0; }
+.md-callout[data-tone=warning], .md-callout[data-tone=important] { background: #dcaf0028; }
+.md-callout[data-tone=error], .md-callout[data-tone=caution] { background: #dc412d28; }
+.md-callout[data-tone=success], .md-callout[data-tone=tip] { background: #28aa5f28; }
+.callout-icon { font-size: 20px; line-height: 1.2; }
+
 .tab-item-body {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -392,3 +413,16 @@ a.field-text {
 .syntax-comment { color: light-dark(#38732b, #8cbf78); }
 .syntax-key, .syntax-markup { color: light-dark(#005a9e, #9cdcfe); }
 @media (forced-colors: active) { [class^="syntax-"] { color: CanvasText; } }
+
+.ticket-header { margin: 6px 0; }
+.ticket-title { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; margin-bottom: 6px; }
+.ticket-status, .ticket-metadata { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ticket-metadata { margin-top: 6px; }
+.ticket-metadata a { display: inline-flex; align-items: center; gap: 4px; }
+.ticket-status .integration-actions { margin: 0; padding: 0; border: 0; }
+.ticket-status .integration-action { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ticket-status select { width: auto; }
+.field-value { position: relative; padding-left: 22px; }
+.field-value > .field-icon { position: absolute; left: 0; top: 2px; }
+:host:not(.pane) { --preview-body-max: none; }
+:host:not(.pane) .file-content { max-height: none; }

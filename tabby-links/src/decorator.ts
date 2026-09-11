@@ -1,3 +1,5 @@
+import { EmbeddedLinksService } from './services/embeddedLinks.service'
+import { pathPatterns } from './pathPatterns'
 import { ApplicationRef, ComponentRef, createComponent, EnvironmentInjector, Inject, Injectable, NgZone, Optional } from '@angular/core'
 import { ConfigService } from 'tabby-core'
 import { LinkHandler } from 'tabby-linkifier'
@@ -62,6 +64,9 @@ interface HoveredLink {
 }
 
 interface TabState {
+    externalAnchor?: HTMLElement
+    depth?: number
+    disposeExternal?: () => void
     tab: BaseTerminalTabComponent<any>
     xterm: any
     core: any
@@ -95,6 +100,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
 
     constructor (
         private config: ConfigService,
+        private embedded: EmbeddedLinksService,
         private zone: NgZone,
         private appRef: ApplicationRef,
         private injector: EnvironmentInjector,
@@ -108,6 +114,13 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         @Optional() @Inject(LinkHandler) private handlers: LinkHandler[] | null,
     ) {
         super()
+        this.embedded.show = (anchor, text, tab, depth) => this.showEmbedded(anchor, text, tab, depth)
+        this.embedded.open = (text, tab) => {
+            const state = this.states.get(tab)
+            if (!state) return
+            const link = this.embeddedLink(text)
+            void this.openLink(state, link, this.rules.resolve(link.kind, text, '', link.rule))
+        }
         if (!this.handlers?.length) {
             // Resolution of `tabby-linkifier` happens through NODE_PATH rather
             // than a node_modules symlink on Windows, and a miss there produces
@@ -115,6 +128,47 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             // of silently linkifying nothing.
             console.warn('[tabby-links] No LinkHandler providers found — links will not be detected.')
         }
+    }
+
+    private embeddedLink (text: string): HoveredLink {
+        const matched = this.rules.textRules().find(({ search }) => search?.execAll(text).some(match => match.index === 0 && match[0].length === text.length))
+        return { kind: matched ? 'text' : 'link', clickKind: 'detected', text,
+            range: { start: { x: 1, y: 1 }, end: { x: 1, y: 1 } }, handlerIndex: -1, rule: matched?.rule ?? null }
+    }
+
+    private showEmbedded (anchor: HTMLElement, text: string, tab: BaseTerminalTabComponent<any>, depth: number): () => void {
+        const base = this.states.get(tab)
+        if (!base || !this.rules.enabled || depth > 4) return () => undefined
+        const componentRef = createComponent(LinkHoverCardComponent, { environmentInjector: this.injector })
+        this.appRef.attachView(componentRef.hostView)
+        const host = componentRef.location.nativeElement as HTMLElement
+        host.classList.add('xterm-hover', 'link-hover-card-host')
+        Object.assign(host.style, { position: 'fixed', left: '0', top: '0', zIndex: String(20 + depth), display: 'none' })
+        // Keep the child in the parent's DOM subtree so traversing into it keeps
+        // the parent hovered, even when the child paints outside its rectangle.
+        ;(anchor.closest('.link-hover-card-host') ?? anchor.closest('link-preview-view') ?? base.screen).appendChild(host)
+        this.swallowPointerEvents(host)
+        const state: TabState = { ...base, componentRef, host, showTimer: null, hideTimer: null,
+            shownKey: '', generation: 0, pointerInCard: false, hovered: null, settings: null,
+            disposables: [], externalAnchor: anchor, depth }
+        let disposed = false
+        const leave = () => this.onLeave(state)
+        const dispose = () => {
+            if (disposed) return
+            disposed = true
+            state.generation++
+            clearTimeout(state.showTimer); clearTimeout(state.hideTimer)
+            anchor.removeEventListener('mouseleave', leave)
+            this.appRef.detachView(componentRef.hostView)
+            componentRef.destroy(); host.remove()
+        }
+        state.disposeExternal = dispose
+        anchor.addEventListener('mouseleave', leave)
+        componentRef.instance.handlers = this.cardHandlers(state)
+        host.addEventListener('mouseenter', () => componentRef.instance.handlers?.pointerEnter())
+        host.addEventListener('mouseleave', () => componentRef.instance.handlers?.pointerLeave())
+        this.onHover(state, this.embeddedLink(text))
+        return dispose
     }
 
     attach (tab: BaseTerminalTabComponent<any>): void {
@@ -162,6 +216,8 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             settings: null,
         }
         componentRef.instance.handlers = this.cardHandlers(state)
+        host.addEventListener('mouseenter', () => componentRef.instance.handlers?.pointerEnter())
+        host.addEventListener('mouseleave', () => componentRef.instance.handlers?.pointerLeave())
         this.states.set(tab, state)
 
         const registration = xterm.registerLinkProvider({
@@ -296,6 +352,18 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             }))
         }
 
+        // Lintel owns absolute path recognition in both terminals.
+        for (const pattern of [pathPatterns.windows, pathPatterns.posix]) {
+            const regex = new RegExp(pattern, 'g')
+            let count = 0
+            for (const match of window.text.matchAll(regex)) {
+                if (++count > 64) break
+                consider(match.index!, match[0].length, 9, range => ({
+                    kind: 'link', clickKind: 'detected', text: match[0], range, handlerIndex: -1, rule: null,
+                }))
+            }
+        }
+
         // Then each link handler separately, so we know which one matched and
         // can honour its priority and its own convert/verify/handle.
         const handlers = this.handlers ?? []
@@ -424,7 +492,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         // nothing at all: no timer, no `convert`, no rule resolution. Detection
         // and clicking are unaffected — the link is still underlined, and the
         // pane is where its details are.
-        if (this.panes.tooltipsSuppressed()) {
+        if (!state.externalAnchor && this.panes.tooltipsSuppressed()) {
             return
         }
         const key = `${link.kind}:${link.text}:${link.range.start.y}:${link.range.start.x}`
@@ -519,6 +587,8 @@ export class LinkTooltipDecorator extends TerminalDecorator {
 
         const model = emptyModel()
         model.text = link.text
+        model.sourceTab = state.tab
+        model.depth = state.depth ?? 0
         model.target = target.display
         // The card's identity, so the html frame is written once per link
         // rather than on every re-ask. Same key the hover path dedupes on.
@@ -645,6 +715,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         state.settings = null
         state.generation++
         state.host.style.display = 'none'
+        state.disposeExternal?.()
     }
 
     // ── positioning ──────────────────────────────────────────────────────────
@@ -672,7 +743,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         // Measured once, before anything writes a style: the cap below would
         // otherwise cost a second layout to read the same box back.
         const screen = state.screen.getBoundingClientRect()
-        const bounds = paneBounds(screen)
+        const bounds = state.externalAnchor ? { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight } : paneBounds(screen)
 
         // Cap the card before it is measured. Clamping where an edge lands does
         // nothing once the card is already wider than the pane — `maxWidth`
@@ -682,6 +753,9 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         const available = Math.max(0, bounds.right - bounds.left - CARD_MARGIN * 2)
         const cap = configured > 0 ? Math.min(configured, available) : available
         host.style.setProperty('--link-card-max-width', `${Math.round(cap)}px`)
+        const maxHeight = this.config.store.linkTooltip.maxHeight ?? 720
+        const availableHeight = Math.max(1, bounds.bottom - bounds.top - CARD_MARGIN * 2)
+        host.style.setProperty('--link-card-max-height', `${maxHeight > 0 ? Math.min(maxHeight, availableHeight) : availableHeight}px`)
 
         host.style.transform = 'translate(0px, 0px)'
         const origin = host.getBoundingClientRect()
@@ -690,9 +764,10 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         const row = range.start.y - 1 - viewportY
         const column = range.start.x - 1
 
-        const cellLeft = screen.left + column * cell.width
-        const cellTop = screen.top + row * cell.height
-        const cellBottom = cellTop + cell.height
+        const anchor = state.externalAnchor?.getBoundingClientRect()
+        const cellLeft = anchor?.left ?? screen.left + column * cell.width
+        const cellTop = anchor?.top ?? screen.top + row * cell.height
+        const cellBottom = anchor?.bottom ?? cellTop + cell.height
 
         const minX = bounds.left + CARD_MARGIN
         const minY = bounds.top + CARD_MARGIN
@@ -801,6 +876,9 @@ export class LinkTooltipDecorator extends TerminalDecorator {
                 clearTimeout(state.hideTimer)
             },
             pointerLeave: () => {
+                // A nested card is a sibling of the scrolling card surface but
+                // remains a descendant of this host. Keep its parent alive.
+                if (state.host.matches(':hover')) return
                 state.pointerInCard = false
                 this.onLeave(state)
             },

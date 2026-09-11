@@ -1,4 +1,18 @@
 .preview(*ngIf='showPreviewSection')
+    .ticket-header(*ngIf='!model.preview?.error && !showHtml')
+        .ticket-title(*ngFor='let field of headerTitles; trackBy: trackField') {{field.value}}
+        .ticket-status
+            span.badge-pill(*ngFor='let field of statusFields; trackBy: trackField', [style.background]='badgeBackground(field)') {{field.value}}
+            ng-container(*ngTemplateOutlet='headerActions')
+        .ticket-metadata
+            ng-container(*ngFor='let field of headerFields; trackBy: trackField')
+                a(*ngIf='field.link', href='javascript:void(0)', [title]='field.label', (click)='openLink(field.link!)', (mouseenter)='hoverLink($event, field.link!)')
+                    img.field-icon(*ngIf='field.iconUri', [src]='field.iconUri')
+                    span {{field.value}}
+                span(*ngIf='!field.link', [title]='field.label')
+                    img.field-icon(*ngIf='field.iconUri', [src]='field.iconUri')
+                    span {{field.value}}
+
     .preview-head
         i.fas.fa-fw.fa-circle-notch.fa-spin.spinner(*ngIf='model.loading')
         img.preview-icon(*ngIf='model.preview?.icon', [src]='model.preview?.icon')
@@ -22,17 +36,7 @@
                         div(*ngFor='let row of file.rows; trackBy: trackItem', [style.padding-left.px]='row.depth > 1 ? (row.depth - 1) * 14 : 0')
                             strong(*ngIf='row.key') {{row.key}}{{row.value ? ': ' : ''}}
                             span {{row.value}}
-                    .file-block(*ngFor='let block of file.blocks; trackBy: trackItem', [ngClass]='"file-" + block.kind')
-                        pre.file-code(*ngIf='block.kind === "code"')
-                            span(*ngFor='let token of block.tokens; trackBy: trackItem', [class]='"syntax-" + token.kind') {{token.text}}
-                        ng-container(*ngIf='block.kind !== "code"')
-                            span(*ngIf='block.kind === "li"') {{block.ordered ? block.ordinal + '.' : '•'}}&nbsp;
-                            ng-container(*ngFor='let span of block.spans; trackBy: trackItem')
-                                a(*ngIf='span.href', href='javascript:void(0)', (click)='handlers?.htmlOpen(span.href)') {{span.text}}
-                                code(*ngIf='!span.href && span.code') {{span.text}}
-                                b(*ngIf='!span.href && !span.code && span.bold') {{span.text}}
-                                i(*ngIf='!span.href && !span.code && !span.bold && span.italic') {{span.text}}
-                                span(*ngIf='!span.href && !span.code && !span.bold && !span.italic') {{span.text}}
+                    ng-container(*ngTemplateOutlet='richBody; context: { $implicit: file.blocks }')
 
     .preview-error(*ngIf='model.preview?.error') {{model.preview?.error}}
 
@@ -69,32 +73,20 @@
             //- Markdown is rendered from parsed data, never as HTML: this text
             //- was written by whoever opened the ticket.
             ng-container(*ngIf='activeTab?.markdown')
-                .md(*ngFor='let block of blocksFor(activeTab!); trackBy: trackItem', [ngClass]='"md-" + block.kind')
-                    span.bullet(*ngIf='block.kind === "li"') {{block.ordered ? block.ordinal + '.' : '•'}}&nbsp;
-                    ng-container(*ngFor='let span of block.spans; trackBy: trackItem')
-                        a.md-link(*ngIf='span.href', href='javascript:void(0)', (click)='handlers?.htmlOpen(span.href)') {{span.text}}
-                        code.md-code(*ngIf='!span.href && span.code') {{span.text}}
-                        b(*ngIf='!span.href && !span.code && span.bold') {{span.text}}
-                        i(*ngIf='!span.href && !span.code && !span.bold && span.italic') {{span.text}}
-                        span(*ngIf='!span.href && !span.code && !span.bold && !span.italic') {{span.text}}
+                ng-container(*ngTemplateOutlet='richBody; context: { $implicit: blocksFor(activeTab!) }')
             .tab-text(*ngIf='!activeTab?.markdown') {{activeTab?.body}}
 
         .tab-list(*ngIf='activeTab?.kind === "list"')
             .tab-item(*ngFor='let item of activeTab?.items; trackBy: trackItem')
                 .tab-item-head
                     img.tab-avatar(*ngIf='item.avatarUri', [src]='item.avatarUri')
-                    span.tab-author {{item.author}}
-                    span.tab-time {{item.time}}
-                .tab-item-body(*ngIf='!activeTab?.markdown') {{item.body}}
-                ng-container(*ngIf='activeTab?.markdown')
-                    .md(*ngFor='let block of blocksForComment(item); trackBy: trackItem', [ngClass]='"md-" + block.kind')
-                        span.bullet(*ngIf='block.kind === "li"') {{block.ordered ? block.ordinal + '.' : '•'}}&nbsp;
-                        ng-container(*ngFor='let span of block.spans; trackBy: trackItem')
-                            a.md-link(*ngIf='span.href', href='javascript:void(0)', (click)='handlers?.htmlOpen(span.href)') {{span.text}}
-                            code.md-code(*ngIf='!span.href && span.code') {{span.text}}
-                            b(*ngIf='!span.href && !span.code && span.bold') {{span.text}}
-                            i(*ngIf='!span.href && !span.code && !span.bold && span.italic') {{span.text}}
-                            span(*ngIf='!span.href && !span.code && !span.bold && !span.italic') {{span.text}}
+                    .tab-identity
+                        span.tab-author {{item.author}}
+                        span.tab-time {{item.time}}
+                .tab-item-content
+                    .tab-item-body(*ngIf='!activeTab?.markdown') {{item.body}}
+                    ng-container(*ngIf='activeTab?.markdown')
+                        ng-container(*ngTemplateOutlet='richBody; context: { $implicit: blocksForComment(item) }')
 
     .preview-fields(*ngIf='!model.preview?.error && !showHtml')
         //- Grouped, when the manifest says so. A single unlabelled group is the
@@ -102,11 +94,8 @@
         ng-container(*ngFor='let group of model.preview?.groups; trackBy: trackGroup')
             .group-label(*ngIf='group.label') {{group.label}}
             ng-container(*ngFor='let field of group.fields; trackBy: trackField')
-                .field-title(*ngIf='field.kind === "title"')
-                    img.field-icon(*ngIf='field.iconUri', [src]='field.iconUri')
-                    span {{field.value}}
                 .field-subtitle(*ngIf='field.kind === "subtitle"') {{field.value}}
-                .field-row(*ngIf='field.kind !== "title" && field.kind !== "subtitle"')
+                .field-row(*ngIf='field.kind !== "title" && field.kind !== "subtitle" && field.placement !== "header" && field.placement !== "status"')
                     .field-label(*ngIf='field.label') {{field.label}}
                     .field-value
                         img.field-icon(*ngIf='field.iconUri', [src]='field.iconUri')
@@ -125,7 +114,7 @@
                         a.field-text(
                             *ngIf='field.kind === "link"',
                             href='javascript:void(0)',
-                            (click)='handlers?.htmlOpen(field.value)',
+                            (click)='openLink(field.value)', (mouseenter)='hoverLink($event, field.value)',
                         ) {{field.value}}
                         span.field-text(
                             *ngIf='field.kind !== "badge" && field.kind !== "image" && field.kind !== "link"',
@@ -134,23 +123,40 @@
 
     //- Things the card can *do* to the thing behind the link, as opposed to
     //- everything above, which only reads it.
+
+ng-template(#inlineText, let-spans)
+    ng-container(*ngFor='let span of spans; trackBy: trackItem')
+        a.md-link(*ngIf='span.href', href='javascript:void(0)', (click)='openLink(span.href)', (mouseenter)='hoverLink($event, span.href)') {{span.text}}
+        code.md-code(*ngIf='!span.href && span.code') {{span.text}}
+        b(*ngIf='!span.href && !span.code && span.bold') {{span.text}}
+        i(*ngIf='!span.href && !span.code && !span.bold && span.italic') {{span.text}}
+        span(*ngIf='!span.href && !span.code && !span.bold && !span.italic') {{span.text}}
+
+ng-template(#richBody, let-blocks)
+    .md(*ngFor='let block of blocks; trackBy: trackItem', [ngClass]='"md-" + block.kind')
+        preview-code(*ngIf='block.kind === "code"', [text]='codeText(block)', [language]='block.language || ""')
+        .md-table-scroll(*ngIf='block.kind === "table"')
+            table
+                tr(*ngFor='let row of block.rows; let header = first; trackBy: trackItem')
+                    ng-container(*ngFor='let cell of row; trackBy: trackItem')
+                        th(*ngIf='header', scope='col')
+                            ng-container(*ngTemplateOutlet='inlineText; context: { $implicit: cell }')
+                        td(*ngIf='!header')
+                            ng-container(*ngTemplateOutlet='inlineText; context: { $implicit: cell }')
+        .md-callout(*ngIf='block.kind === "callout"', [attr.data-tone]='block.tone')
+            span.callout-icon([attr.aria-label]='block.tone') {{calloutIcon(block.tone)}}
+            div
+                ng-container(*ngTemplateOutlet='richBody; context: { $implicit: block.children }')
+        ng-container(*ngIf='block.kind !== "code" && block.kind !== "table" && block.kind !== "callout"')
+            span.bullet(*ngIf='block.kind === "li"') {{block.ordered ? block.ordinal + '.' : '•'}}&nbsp;
+            ng-container(*ngTemplateOutlet='inlineText; context: { $implicit: block.spans }')
+
+ng-template(#headerActions)
     .integration-actions(*ngIf='!showHtml && model.preview?.actions?.length')
         .integration-action(*ngFor='let action of model.preview?.actions; trackBy: trackIntegrationAction')
-            .action-label {{action.label}}
-
-            .action-options(*ngIf='action.kind === "choice"')
-                button.option(
-                    *ngFor='let option of action.options; trackBy: trackItem',
-                    [class.selected]='option.id === chosen[action.key]',
-                    (click)='chooseOption(action, option.id)',
-                )
-                    span.option-label {{option.label}}
-                    //- The state this option leads to, the way the far end's
-                    //- own menu shows it.
-                    span.option-badge(
-                        *ngIf='option.badge',
-                        [style.background]='optionBadgeBackground(option)',
-                    ) {{option.badge}}
+            select.form-select.form-select-sm(*ngIf='action.kind === "choice"', [ngModel]='chosen[action.key] || ""', (ngModelChange)='chooseOption(action, $event)', [attr.aria-label]='action.label')
+                option(value='', disabled) {{action.label || 'Change status'}}
+                option(*ngFor='let option of action.options; trackBy: trackItem', [value]='option.id') {{option.label}}{{option.badge ? ' → ' + option.badge : ''}}
 
             //- Only what the chosen option actually demands.
             .action-fields(*ngIf='requiredFields(action).length')
