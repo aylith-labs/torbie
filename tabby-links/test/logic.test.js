@@ -275,7 +275,7 @@ const ADDITIVE = new Set(['normalize', 'suffix', 'description', 'placeholder'])
 const TERMINAL_REPO = process.env.TERMINAL_REPO || 'C:/Users/steve/projects/terminal'
 const TERMINAL_MANIFESTS = 'src/cascadia/TerminalSettingsModel/integrations'
 // Pin the Terminal commit that adopted the shared catalog and Unblocked manifest.
-const TERMINAL_REF = process.env.TERMINAL_REF || '8314be3f386870e9cb526dca4214abfafdca6604'
+const TERMINAL_REF = process.env.TERMINAL_REF || 'f44d11a0fe13815f984f1bc885db1f0a4356c386'
 
 function git (args) {
     return require('child_process').execFileSync('git', args,

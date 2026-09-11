@@ -100,11 +100,11 @@ div(*ngIf='current')
             .text-danger(*ngIf='ownerError') {{ownerError}}
             .d-flex.gap-2.mt-2
                 button.btn.btn-secondary((click)='addOwner()', translate) Add organization
-                .dropdown(ngbDropdown)
-                    button.btn.btn-secondary(ngbDropdownToggle, (click)='refreshAccount(true)', [disabled]='discoveringOrganizations || !current.enabled', translate) Add identified organization
+                .dropdown(ngbDropdown, container='body', (openChange)='$event && refreshAccount(true)')
+                    button.btn.btn-secondary(ngbDropdownToggle, [disabled]='!current.enabled', translate) Add identified organization
                     .dropdown-menu(ngbDropdownMenu)
                         .dropdown-item-text(*ngIf='discoveringOrganizations', translate) Finding organizations…
-                        button.dropdown-item(*ngFor='let org of availableOrganizations()', (click)='addOwner(org.login)')
+                        button.dropdown-item(ngbDropdownItem, *ngFor='let org of availableOrganizations()', (click)='addOwner(org.login)')
                             img.me-2(*ngIf='org.avatar', [src]='org.avatar', width='24', height='24', alt='')
                             span {{org.login}}
                         .dropdown-item-text(*ngIf='!discoveringOrganizations && !availableOrganizations().length', translate) No additional organizations found

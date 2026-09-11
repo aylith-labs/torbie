@@ -1,5 +1,5 @@
 import { Integration } from '../api'
-import { httpRequest, runCommand } from './httpFetch'
+import { httpRequest } from './httpFetch'
 
 export interface AccountIdentity {
     state: 'connected' | 'disabled' | 'unconfigured' | 'unsupported' | 'error'
@@ -23,7 +23,16 @@ export function preferredOwners (value: string): string[] {
     })
 }
 
-export async function githubAuthentication (fallback: string, command = runCommand): Promise<{token: string, source: string}> {
+function runGitHubToken (_commandLine: string, _stdin: string, timeoutMs: number): Promise<{stdout: string, stderr: string}> {
+    return new Promise(resolve => {
+        const { execFile } = require('child_process')
+        execFile('gh', ['auth', 'token', '--hostname', 'github.com'], { windowsHide: true, timeout: timeoutMs, maxBuffer: 65536 }, (error: Error | null, stdout: string) => {
+            resolve({ stdout: error ? '' : stdout, stderr: '' })
+        })
+    })
+}
+
+export async function githubAuthentication (fallback: string, command = runGitHubToken): Promise<{token: string, source: string}> {
     try {
         const result = await command('gh auth token --hostname github.com', '', 4000)
         const token = result.stdout.trim()
@@ -33,7 +42,7 @@ export async function githubAuthentication (fallback: string, command = runComma
 }
 
 /** Read-only account checks. Tokens never enter the result or error messages. */
-export async function checkIntegrationAccount (integration: Integration, request = httpRequest, command = runCommand, includeOrganizations = false): Promise<AccountIdentity> {
+export async function checkIntegrationAccount (integration: Integration, request = httpRequest, command = runGitHubToken, includeOrganizations = false): Promise<AccountIdentity> {
     const result: AccountIdentity = { state: 'error', message: '', organizations: [] }
     if (!integration.enabled) return { ...result, state: 'disabled', message: 'Integration disabled' }
     if (!integration.configured) return { ...result, state: 'unconfigured', message: 'Complete the required settings and credentials' }
