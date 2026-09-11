@@ -13,6 +13,7 @@ import {
 import { GuardedRegex } from '../regexGuard'
 import { adfToMarkdown, plainText } from '../richText'
 import { httpRequest, runCommand } from './httpFetch'
+import { githubAuthentication, preferredOwners } from './integrationAccount'
 import { IntegrationRegistryService } from './integrationRegistry.service'
 
 /** Errors are cached briefly so a bad token does not retry on every hover. */
@@ -356,8 +357,8 @@ function errorText (err: any): string {
 
 /** Resolve the owner-less preset before expanding the canonical fetch pipeline. */
 export async function resolveGitHubReference (candidates: string, repo: string, number: string, token: string, request = httpRequest): Promise<{ owner: string, pull: boolean, link: string }> {
-    const owners = [...new Set(candidates.split(/[\s,]+/).filter(x => /^[A-Za-z0-9-]+$/.test(x)))].slice(0, 8)
-    if (!owners.length) throw new Error('Configure candidate owners to preview repo#number references')
+    const owners = preferredOwners(candidates)
+    if (!owners.length) throw new Error('Add preferred organizations to preview repo#number references')
     const deadline = Date.now() + 8000
     for (const owner of owners) {
         const response = await request({
@@ -423,6 +424,12 @@ export class IntegrationRuntimeService {
             return ''
         }
         return this.expand(match.matcher.link, match, {}, null, false)
+    }
+
+    async resolveTextLinkForAction (text: string, hint: string): Promise<string> {
+        const cached = this.resolveTextLink(text, hint)
+        if (cached) return cached
+        return (await this.preview('text', text, hint))?.link || ''
     }
 
     async preview (kind: LinkMatchKind, text: string, hint: string, filePath = ''): Promise<LinkPreview | null> {
@@ -574,10 +581,11 @@ export class IntegrationRuntimeService {
             data: {},
         }
 
+        const githubAuth = integration.id === 'github' ? await githubAuthentication(integration.credentials.token ?? '') : null
         if (integration.id === 'github' && match.vars.repo && match.vars.number && !match.vars.owner) {
             try {
-                const resolved = await resolveGitHubReference(integration.settings.candidateOwners ?? '', match.vars.repo, match.vars.number, integration.credentials.token ?? '')
-                match = { ...match, vars: { ...match.vars, owner: resolved.owner, ispull: resolved.pull ? 'pull' : '' } }
+                const resolved = await resolveGitHubReference(integration.settings.candidateOwners ?? '', match.vars.repo, match.vars.number, githubAuth?.token ?? '')
+                match = { ...match, vars: { ...match.vars, owner: resolved.owner, ispull: resolved.pull ? 'pull' : '', isissue: resolved.pull ? '' : 'issues' } }
                 preview.link = resolved.link
             } catch (error) {
                 preview.error = `GitHub: ${errorText(error)}`
@@ -588,6 +596,9 @@ export class IntegrationRuntimeService {
         let last: any = null
 
         for (const step of integration.manifest.fetch ?? []) {
+            if (githubAuth && step.id === 'ghtoken') {
+                results[step.id] = { token: githubAuth.token }; last = results[step.id]; continue
+            }
             // `when`/`unless` are presence tests on the expanded text, which
             // works because an unknown template name expands to ''.
             if (step.when !== undefined && !this.expand(step.when, match, results, last, false)) {

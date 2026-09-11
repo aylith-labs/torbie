@@ -1,4 +1,4 @@
-import { Component, Optional } from '@angular/core'
+import { Component, Optional, OnDestroy } from '@angular/core'
 import { ConfigService, NotificationsService, PlatformService } from 'tabby-core'
 import { SettingsTabComponent } from 'tabby-settings'
 
@@ -6,6 +6,7 @@ import {
     Integration, IntegrationDisplayField, IntegrationField, IntegrationMatcher,
     LinkTooltipRule, newRule,
 } from '../api'
+import { AccountIdentity, checkIntegrationAccount, preferredOwners } from '../services/integrationAccount'
 import { IntegrationCredentialsService } from '../services/integrationCredentials.service'
 import { IntegrationRegistryService, isSecretField, normalizeSettingValue } from '../services/integrationRegistry.service'
 
@@ -32,7 +33,19 @@ interface CredentialRow {
     templateUrl: './integrationsSettingsTab.component.pug',
     styleUrls: ['./integrationsSettingsTab.component.scss'],
 })
-export class IntegrationsSettingsTabComponent {
+export class IntegrationsSettingsTabComponent implements OnDestroy {
+    account: AccountIdentity | null = null
+    checkingAccount = false
+    discoveringOrganizations = false
+    organizations: { login: string, avatar?: string }[] = []
+    discoveryMessage = ''
+    owners: {value: string}[] = []
+    ownerError = ''
+    private accountGeneration = 0
+    private ownerValue = ''
+    private subscription: {unsubscribe: () => void}
+
+    ngOnDestroy (): void { this.accountGeneration++; this.subscription.unsubscribe() }
     integrations: Integration[] = []
     current: Integration | null = null
     credentialRows: CredentialRow[] = []
@@ -65,7 +78,7 @@ export class IntegrationsSettingsTabComponent {
         @Optional() private settingsTab: SettingsTabComponent | null,
     ) {
         this.userDirectory = registry.userDirectory()
-        registry.integrations$.subscribe(list => {
+        this.subscription = registry.integrations$.subscribe(list => {
             this.integrations = list
             if (this.current) {
                 this.current = list.find(x => x.id === this.current!.id) ?? null
@@ -79,20 +92,30 @@ export class IntegrationsSettingsTabComponent {
     }
 
     async select (integration: Integration | null): Promise<void> {
+        this.accountGeneration++
+        this.account = null
+        this.organizations = []
+        this.discoveryMessage = ''
+        this.ownerValue = ''
+        this.owners = []
         this.current = integration
         this.addedRuleName = ''
         this.deriveCurrent()
         await this.loadCredentialRows()
+        void this.refreshAccount()
     }
 
     /** Everything about the selection the template iterates over. */
     private deriveCurrent (): void {
+        const value = this.current ? this.settingValue(this.current, 'candidateOwners') : ''
+        if (value !== this.ownerValue) { this.owners = preferredOwners(value).map(value => ({value})); this.ownerValue = value }
         this.currentGroups = this.current ? this.fieldGroups(this.current) : []
         this.currentMatchers = this.current ? this.suggestedMatchers(this.current) : []
     }
 
     setEnabled (integration: Integration, enabled: boolean): void {
         this.registry.setEnabled(integration.id, enabled)
+        if (this.current?.id === integration.id) { this.current = {...integration, enabled}; void this.refreshAccount() }
     }
 
     settingValue (integration: Integration, key: string): string {
@@ -118,6 +141,43 @@ export class IntegrationsSettingsTabComponent {
         if (normalized !== current) {
             this.registry.setSetting(integration.id, field.key, normalized)
         }
+    }
+
+    async refreshAccount (discover = false): Promise<void> {
+        const integration = this.current
+        const generation = ++this.accountGeneration
+        if (!integration) return
+        if (discover) this.discoveringOrganizations = true
+        else this.checkingAccount = true
+        const result = await checkIntegrationAccount(integration, undefined, undefined, discover)
+        if (generation !== this.accountGeneration || this.current?.id !== integration.id) return
+        this.account = result
+        this.checkingAccount = this.discoveringOrganizations = false
+        if (discover) { this.organizations = result.organizations; this.discoveryMessage = result.discoveryMessage || result.message }
+    }
+
+    availableOrganizations (): {login: string, avatar?: string}[] {
+        const chosen = new Set(this.owners.map(x => x.value.toLowerCase()))
+        return this.organizations.filter(x => !chosen.has(x.login.toLowerCase()))
+    }
+
+    addOwner (value = ''): void { this.owners.push({value}); if (value) this.saveOwners() }
+    moveOwner (index: number, direction: number): void {
+        const next = index + direction
+        if (next < 0 || next >= this.owners.length) return
+        ;[this.owners[index], this.owners[next]] = [this.owners[next], this.owners[index]]
+        this.saveOwners()
+    }
+    removeOwner (index: number): void { this.owners.splice(index, 1); this.saveOwners() }
+    saveOwners (): void {
+        if (!this.current) return
+        const raw = this.owners.map(x => x.value.trim()).filter(Boolean)
+        if (raw.some(x => preferredOwners(x).length !== 1 || preferredOwners(x)[0] !== x)) { this.ownerError = 'Enter one GitHub organization or account per row'; return }
+        const value = preferredOwners(raw.join(',')).join(',')
+        if (preferredOwners(value).length !== raw.length) { this.ownerError = 'Each organization can appear only once'; return }
+        this.ownerError = ''
+        this.ownerValue = value
+        this.setSetting(this.current, 'candidateOwners', value)
     }
 
     // ── credentials ──────────────────────────────────────────────────────────
@@ -160,6 +220,7 @@ export class IntegrationsSettingsTabComponent {
                 row.pending = ''
             }
             await this.registry.rebuild()
+            void this.refreshAccount()
         } catch (err) {
             this.notifications.error(`${err}`)
         }
@@ -174,6 +235,7 @@ export class IntegrationsSettingsTabComponent {
         row.pending = ''
         row.hint = ''
         await this.registry.rebuild()
+        void this.refreshAccount()
     }
 
     // ── display fields ───────────────────────────────────────────────────────

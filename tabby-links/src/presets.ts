@@ -160,3 +160,17 @@ export function presetForRule (rule: LinkTooltipRule, presets: RulePreset[]): Ru
 export function presetInUse (preset: RulePreset, rules: LinkTooltipRule[]): boolean {
     return rules.some(rule => ruleIsPreset(rule, preset))
 }
+
+/** Upgrade only untouched shipped repo references; customized rules are preserved. */
+export function migrateGitHubReferenceRules (rules: LinkTooltipRule[]): boolean {
+    const names = ['GitHub: GitHub pull requests and issues (repo#number)', 'GitHub: Pull requests & issues (repo#number)', 'GitHub: Pull requests and issues (repo#number)']
+    let changed = false
+    for (const rule of rules) {
+        if (rule.integration === 'github' && rule.match === 'text' && names.includes(rule.name) && rule.pattern === '^(?<repo>[A-Za-z0-9_.-]+)#(?<number>\\d+)') {
+            rule.pattern = require('./integrations/github.json').matchers.find((x: any) => x.kind === 'text').pattern
+            rule.name = names[2]
+            changed = true
+        }
+    }
+    return changed
+}

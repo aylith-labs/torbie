@@ -65,13 +65,14 @@ export const presetCatalog = [
         "id": "github-repo-number",
         "integration": "github",
         "label": "Pull requests and issues as repo#number",
-        "description": "Matches repo#number in output and resolves it against the candidate owners",
+        "description": "Resolves repo#number using your preferred organizations, in order",
         "match": "text",
         "example": "terminal#18920",
         "preview": true,
         "sample": "See terminal#18920 for the details",
         "legacyNames": [
-            "GitHub: Pull requests & issues (repo#number)"
+            "GitHub: Pull requests & issues (repo#number)",
+            "GitHub: GitHub pull requests and issues (repo#number)"
         ]
     },
     {

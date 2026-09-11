@@ -165,3 +165,8 @@
 .field-checks.grouped {
     padding-left: 14px;
 }
+
+.account-avatar { width: 48px; height: 48px; border-radius: 50%; margin-right: 12px; }
+.owner-setting { flex-wrap: wrap; }
+.preferred-owners { width: 100%; margin-top: 12px; }
+.owner-row { display: flex; gap: 8px; margin-bottom: 6px; }

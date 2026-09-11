@@ -160,6 +160,7 @@ export interface LinkMatch {
 // ── Integration manifests ───────────────────────────────────────────────────
 
 export interface IntegrationField {
+    editor?: 'text' | 'github-owners'
     key: string
     label?: string
     placeholder?: string
@@ -319,6 +320,7 @@ export interface IntegrationAction {
 }
 
 export interface IntegrationManifest {
+    account?: { provider: 'github' | 'jira' | 'slack' }
     id: string
     name?: string
     icon?: string

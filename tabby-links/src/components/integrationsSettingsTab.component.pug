@@ -47,6 +47,15 @@ div(*ngIf='current')
             span(translate) All integrations
         h4.mb-0.ms-2 {{current.name}}
 
+    .account-status.form-line
+        img.account-avatar(*ngIf='account?.avatar', [src]='account?.avatar', alt='')
+        .header
+            .title {{account?.name || (checkingAccount ? "Checking connection…" : "Account")}}
+            .description(*ngIf='account?.login') {{account?.login}}
+            .description {{checkingAccount ? "Checking connection…" : account?.message}}
+            .description(*ngIf='account?.source') {{account?.source}}
+        button.btn.btn-secondary((click)='refreshAccount()', [disabled]='checkingAccount || !current.enabled', translate) Refresh
+
     .alert.alert-warning.py-2(*ngIf='!current.configured')
         strong(translate) Not configured
         div(translate) Fill in the required settings and credentials below. Until then, this integration is never contacted.
@@ -68,11 +77,12 @@ div(*ngIf='current')
 
     h5.mt-4.mb-2(*ngIf='current.manifest.settings?.length', translate) Settings
 
-    .form-line(*ngFor='let field of current.manifest.settings')
+    .form-line(*ngFor='let field of current.manifest.settings', [class.owner-setting]='field.editor === "github-owners"')
         .header
             .title {{field.label || field.key}}
             .description(*ngIf='field.description') {{field.description}}
         input.form-control(
+            *ngIf='field.editor !== "github-owners"',
             type='text',
             spellcheck='false',
             [placeholder]='field.placeholder || ""',
@@ -80,6 +90,25 @@ div(*ngIf='current')
             (ngModelChange)='setSetting(current, field.key, $event)',
             (blur)='normalizeSetting(current, field)',
         )
+
+        .preferred-owners(*ngIf='field.editor === "github-owners"')
+            .owner-row(*ngFor='let owner of owners; let i = index')
+                input.form-control([(ngModel)]='owner.value', (blur)='saveOwners()', placeholder='Organization or account', [attr.aria-label]='"Preferred organization " + (i + 1)')
+                button.btn.btn-secondary((click)='moveOwner(i, -1)', [disabled]='i === 0', aria-label='Move organization up') ↑
+                button.btn.btn-secondary((click)='moveOwner(i, 1)', [disabled]='i === owners.length - 1', aria-label='Move organization down') ↓
+                button.btn.btn-secondary((click)='removeOwner(i)', aria-label='Remove organization') ×
+            .text-danger(*ngIf='ownerError') {{ownerError}}
+            .d-flex.gap-2.mt-2
+                button.btn.btn-secondary((click)='addOwner()', translate) Add organization
+                .dropdown(ngbDropdown)
+                    button.btn.btn-secondary(ngbDropdownToggle, (click)='refreshAccount(true)', [disabled]='discoveringOrganizations || !current.enabled', translate) Add identified organization
+                    .dropdown-menu(ngbDropdownMenu)
+                        .dropdown-item-text(*ngIf='discoveringOrganizations', translate) Finding organizations…
+                        button.dropdown-item(*ngFor='let org of availableOrganizations()', (click)='addOwner(org.login)')
+                            img.me-2(*ngIf='org.avatar', [src]='org.avatar', width='24', height='24', alt='')
+                            span {{org.login}}
+                        .dropdown-item-text(*ngIf='!discoveringOrganizations && !availableOrganizations().length', translate) No additional organizations found
+            .text-muted.mt-2 {{discoveryMessage}}
 
     h5.mt-4.mb-2(*ngIf='credentialRows.length', translate) Credentials
 

@@ -275,7 +275,7 @@ const ADDITIVE = new Set(['normalize', 'suffix', 'description', 'placeholder'])
 const TERMINAL_REPO = process.env.TERMINAL_REPO || 'C:/Users/steve/projects/terminal'
 const TERMINAL_MANIFESTS = 'src/cascadia/TerminalSettingsModel/integrations'
 // Pin the Terminal commit that adopted the shared catalog and Unblocked manifest.
-const TERMINAL_REF = process.env.TERMINAL_REF || 'f372dbd4c4674fdc8d8ef9e8e40fa478912fddb0'
+const TERMINAL_REF = process.env.TERMINAL_REF || '8314be3f386870e9cb526dca4214abfafdca6604'
 
 function git (args) {
     return require('child_process').execFileSync('git', args,
@@ -1576,7 +1576,7 @@ async function githubReferenceTests () {
     const issue = await rt.resolveGitHubReference('aylith-labs', 'terminal', '9', '', async () => ({ status: 200, statusText: 'OK', body: '{}' }))
     check('repo#number distinguishes issues', issue.link, 'https://github.com/aylith-labs/terminal/issues/9')
     let missing = false
-    try { await rt.resolveGitHubReference('', 'terminal', '1', '', async () => { throw new Error('must not fetch') }) } catch (error) { missing = /Configure candidate owners/.test(error.message) }
+    try { await rt.resolveGitHubReference('', 'terminal', '1', '', async () => { throw new Error('must not fetch') }) } catch (error) { missing = /Add preferred organizations/.test(error.message) }
     check('missing candidate owners produce an actionable error', missing, true)
     let denied = false
     try { await rt.resolveGitHubReference('aylith-labs', 'terminal', '1', '', async () => ({ status: 403, statusText: 'Forbidden', body: '{}' })) } catch (error) { denied = /403/.test(error.message) }
@@ -1753,7 +1753,49 @@ async function localPreviewTests () {
     }
 }
 
-githubReferenceTests().then(localPreviewTests).then(() => {
+
+async function accountTests () {
+    const accounts = loadSource('tabby-links/src/services/integrationAccount.ts')
+    check('preferred owners preserve order and deduplicate case-insensitively', accounts.preferredOwners('Second,First second invalid/name -bad'), ['Second','First'])
+    check('GitHub token remains optional for CLI authentication',reg.isConfigured({credentials:[{key:'token',required:false}]},{},{}),true)
+    const cli = async () => ({stdout:'test_cli_fixture',stderr:''})
+    const absent = async () => { throw new Error('not installed') }
+    check('GitHub CLI takes precedence', (await accounts.githubAuthentication('test_pat_fixture',cli)).source,'GitHub CLI')
+    check('PAT is used when CLI is absent',(await accounts.githubAuthentication('test_pat_fixture',absent)).source,'Personal access token')
+    const integration = { id:'github', enabled:true, configured:true, settings:{}, credentials:{token:'test_pat_fixture'}, manifest:{account:{provider:'github'}} }
+    const requests=[]
+    const request = async x => {
+        requests.push(x)
+        if(x.url==='https://api.github.com/user') return {status:200,body:JSON.stringify({login:'person',name:'Test Person',avatar_url:'https://example.org/avatar.png'})}
+        if(x.url.includes('/user/orgs')) return {status:200,body:'[]'}
+        return {status:200,body:JSON.stringify([{owner:{login:'VisibleOrg',type:'Organization'}},{owner:{login:'person',type:'User'}}])}
+    }
+    const identity = await accounts.checkIntegrationAccount(integration,request,cli)
+    check('opening GitHub settings identifies the account',identity.name,'Test Person')
+    check('account check does not eagerly scan repositories',requests.length,1)
+    check('account check uses the same CLI credential',requests[0].headers.authorization,'Bearer test_cli_fixture')
+    const discovered = await accounts.checkIntegrationAccount(integration,request,absent,true)
+    check('fine-grained token discovery uses accessible repository owners',discovered.organizations.map(x=>x.login),['VisibleOrg'])
+    check('account identity is connected despite empty org memberships',discovered.state,'connected')
+    const disabled = await accounts.checkIntegrationAccount({...integration,enabled:false},()=>{throw new Error('must not request')},cli)
+    check('disabled integrations are never contacted',disabled.state,'disabled')
+    const denied = await accounts.checkIntegrationAccount(integration,async()=>({status:401,body:'test_pat_fixture'}),absent)
+    check('authentication failure is visible',denied.state,'error')
+    check('failure messages never expose credentials',JSON.stringify(denied).includes('test_pat_fixture'),false)
+    const partial = await accounts.checkIntegrationAccount(integration,async x => x.url.endsWith('/user') ? request(x) : {status:403,body:'denied'},cli,true)
+    check('organization permission failure does not hide verified identity',partial.state,'connected')
+    check('limited discovery is explained',!!partial.discoveryMessage,true)
+    const jira = await accounts.checkIntegrationAccount({...integration,id:'jira',manifest:{account:{provider:'jira'}},settings:{host:'example.atlassian.net'},credentials:{email:'test@example.org',token:'fixture'}}, async()=>({status:200,body:JSON.stringify({accountId:'123',displayName:'Jira Person',avatarUrls:{'48x48':'https://example.org/jira.png'}})}),absent)
+    check('Jira account uses display name',jira.name,'Jira Person')
+    check('Jira account avatar is retained',jira.avatar,'https://example.org/jira.png')
+    const legacy={name:'GitHub: GitHub pull requests and issues (repo#number)',match:'text',integration:'github',pattern:'^(?<repo>[A-Za-z0-9_.-]+)#(?<number>\\d+)'}
+    const custom={...legacy,pattern:'^custom#(?<number>\\d+)'}
+    check('old shipped GitHub rule migrates',presets.migrateGitHubReferenceRules([legacy,custom]),true)
+    check('migrated rule matches inside prose',new RegExp(legacy.pattern).exec('See terminal#18920 for the details')?.[0],'terminal#18920')
+    check('custom rule survives migration',custom.pattern,'^custom#(?<number>\\d+)')
+    check('GitHub rule migration is idempotent',presets.migrateGitHubReferenceRules([legacy]),false)
+}
+githubReferenceTests().then(accountTests).then(localPreviewTests).then(() => {
     console.log(`\n${passed} passed, ${failed} failed`)
     process.exit(failed ? 1 : 0)
 }).catch(error => { console.error(error); process.exit(1) })

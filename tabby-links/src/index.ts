@@ -1,3 +1,4 @@
+import { migrateGitHubReferenceRules } from './presets'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -64,7 +65,10 @@ export default class LinksModule {
         // nothing and then overwrites the chords at the next launch. This way it
         // keeps working, as a shorthand: it takes effect at once, and springs
         // back to "No modifier" because the setting has moved.
-        const migrate = () => clicks.migrateLegacyModifier()
+        const migrate = () => {
+            clicks.migrateLegacyModifier()
+            if (migrateGitHubReferenceRules(config.store.linkTooltip?.rules ?? [])) config.save()
+        }
         config.ready$.subscribe(() => {
             apply()
             migrate()

@@ -97,5 +97,8 @@
             "color": "#c0392b",
             "default": true
         }
-    ]
+    ],
+    "account": {
+        "provider": "slack"
+    }
 }

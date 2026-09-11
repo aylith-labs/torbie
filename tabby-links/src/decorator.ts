@@ -1149,7 +1149,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             return
         }
         if (actionId === 'copyLink') {
-            const uri = this.linkUri(link, settings.integration)
+            const uri = link.kind === 'text' ? await this.runtime.resolveTextLinkForAction(link.text, settings.integration) || link.text : this.linkUri(link, settings.integration)
             if (uri) {
                 this.actions.copy(uri)
             }
@@ -1186,7 +1186,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         if (link.kind === 'text') {
             // `settings.integration` already *is* the matched rule's, because
             // `resolve` copies it across — no second fallback needed here.
-            const resolved = this.runtime.resolveTextLink(link.text, settings.integration)
+            const resolved = await this.runtime.resolveTextLinkForAction(link.text, settings.integration)
             if (resolved) {
                 await this.actions.open(resolved, '')
             }

@@ -57,7 +57,7 @@ export function isConfigured (
         }
     }
     for (const field of manifest.credentials ?? []) {
-        if (!credentials[field.key]) {
+        if (field.required !== false && !credentials[field.key]) {
             return false
         }
     }

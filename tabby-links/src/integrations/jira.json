@@ -334,5 +334,8 @@
             },
             "timeoutMs": 8000
         }
-    ]
+    ],
+    "account": {
+        "provider": "jira"
+    }
 }
