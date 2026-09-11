@@ -30,7 +30,7 @@ window.FEATURES = [
   {
     id: "rich-ticket-previews", title: "Rich ticket previews and nested links",
     cat: "links", catLabel: "Links", dateAdded: "2026-09-11",
-    commits: ["0c08381d"], files: 21, ins: 624, del: 100,
+    commits: ["0c08381d", "92aaa65a"], files: 24, ins: 652, del: 104,
     desc: "Jira tables and callouts retain their structure. Ticket titles, status controls and parent links stay above the tabs; pane comments use larger round avatars. Code blocks offer Copy and Wrap on hover. Links and recognized IDs inside previews share buffer rules, with nested popovers opt-in. Lintel also resolves plain Windows and WSL paths consistently.",
   },
 

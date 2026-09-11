@@ -813,7 +813,7 @@ WSL distributions are authoritative. Unknown ones are resolved by registered dis
 and asynchronous existence checks, accepting a unique match only. Never run a shell from a
 hover. Explicit Windows drive paths stay Windows paths, including mapped `Z:` drives.
 
-The new rich-content, embedded-link and path cases are part of the 706 link logic checks.
+The new rich-content, embedded-link and path cases are part of the 709 link logic checks.
 Lint/type checks and bundle compilation do not replace live hover verification after restart.
 
 
