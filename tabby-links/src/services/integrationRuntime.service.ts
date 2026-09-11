@@ -11,7 +11,7 @@ import {
     PreviewTab, PreviewTabItem,
 } from '../api'
 import { GuardedRegex } from '../regexGuard'
-import { adfToText, plainText } from '../richText'
+import { adfToMarkdown, plainText } from '../richText'
 import { httpRequest, runCommand } from './httpFetch'
 import { IntegrationRegistryService } from './integrationRegistry.service'
 
@@ -306,7 +306,7 @@ export function lookupIn (value: any, pointer: string | undefined): any {
 /** A tab body, read according to the format the manifest declared. */
 export function readTabBody (value: any, format: string | undefined): string {
     if (format === 'adf') {
-        return adfToText(value)
+        return adfToMarkdown(value)
     }
     // `markdown` is not parsed here: the card does that, so the parsed form
     // never has to survive the cache or a structured clone.
@@ -957,7 +957,7 @@ export class IntegrationRuntimeService {
                     })
                 }
                 if (rows.length) {
-                    out.push({ key, label: tab.label ?? key, kind, body: '', markdown: false, items: rows })
+                    out.push({ key, label: tab.label ?? key, kind, body: '', markdown: tab.format === 'markdown' || tab.format === 'adf', items: rows })
                 }
                 continue
             }
@@ -968,7 +968,7 @@ export class IntegrationRuntimeService {
                     label: tab.label ?? key,
                     kind: 'body',
                     body,
-                    markdown: tab.format === 'markdown',
+                    markdown: tab.format === 'markdown' || tab.format === 'adf',
                     items: [],
                 })
             }

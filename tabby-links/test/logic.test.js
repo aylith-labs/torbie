@@ -1635,6 +1635,28 @@ settingsProbe.currentRule = targetRule
 settingsProbe.applyPresetToCurrent(taskPreset)
 check('applied Unblocked preset precedes broad Jira matcher', settingsProbe.rules[0].integration, 'unblocked')
 
+console.log('\n── formatted Jira comments ──')
+const commentDoc = { type: 'doc', content: [
+    { type: 'paragraph', content: [{type:'text',text:'Picked up',marks:[{type:'strong'}]}, {type:'text',text:' via '}, {type:'text',text:'AT-51',marks:[{type:'link',attrs:{href:'https://example.atlassian.net/browse/AT-51'}}]}] },
+    { type: 'paragraph', content: [{type:'text',text:'**Existing Markdown** and `code`'}] },
+    { type: 'orderedList', attrs:{order:3}, content:[{type:'listItem',content:[{type:'paragraph',content:[{type:'text',text:'First item'}]}]}] },
+    { type: 'codeBlock', attrs:{language:'typescript'}, content:[{type:'text',text:'const count = 1;'}] },
+] }
+const commentIntegration = { manifest:{tabs:[{key:'comments',kind:'list',path:'/comments',format:'adf',itemBodyPath:'/body',default:true}]} }
+const commentTabs = svc.buildTabs(commentIntegration,{}, {comments:[{body:commentDoc}]})
+check('ADF comments request formatted rendering',commentTabs[0].markdown,true)
+const commentBlocks = rich.parseMarkdown(commentTabs[0].items[0].body)
+check('ADF bold retained',commentBlocks.flatMap(b=>b.spans).some(s=>s.bold && s.text==='Picked up'),true)
+check('ADF link retained',commentBlocks.flatMap(b=>b.spans).some(s=>s.href==='https://example.atlassian.net/browse/AT-51' && s.text==='AT-51'),true)
+check('Markdown embedded in ADF rendered',commentBlocks.flatMap(b=>b.spans).some(s=>s.bold && s.text==='Existing Markdown'),true)
+check('ordered comment list retains numbering',commentBlocks.find(b=>b.ordered)?.ordinal,3)
+check('ADF code fence retains language',commentBlocks.find(b=>b.kind==='code')?.language,'typescript')
+commentIntegration.manifest.tabs[0].format='markdown'
+check('Markdown comments request formatting',svc.buildTabs(commentIntegration,{}, {comments:[{body:'**Hello**'}]})[0].markdown,true)
+commentIntegration.manifest.tabs[0].format='text'
+check('text comments remain plain',svc.buildTabs(commentIntegration,{}, {comments:[{body:'**literal**'}]})[0].markdown,false)
+check('malformed ADF marks ignored',rich.adfToMarkdown({type:'text',text:'safe',marks:[null,42]}),'safe')
+
 async function localPreviewTests () {
     const fs = require('node:fs/promises')
     const os = require('node:os')

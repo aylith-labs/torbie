@@ -38,6 +38,7 @@ export interface MarkdownBlock {
     level?: number
     /** For `li`: part of a numbered list rather than a bulleted one. */
     ordered?: boolean
+    ordinal?: number
     spans: InlineSpan[]
 }
 
@@ -62,7 +63,7 @@ const ADF_BLOCKS = new Set([
  * because the format grows and a node we have never heard of usually still has
  * readable text underneath it.
  */
-export function flattenAdf (node: any, depth = 0): string {
+export function flattenAdf (node: any, depth = 0, markdown = false): string {
     if (node === null || node === undefined || depth > MAX_ADF_DEPTH) {
         return ''
     }
@@ -70,7 +71,7 @@ export function flattenAdf (node: any, depth = 0): string {
         return node
     }
     if (Array.isArray(node)) {
-        return node.map(x => flattenAdf(x, depth + 1)).join('')
+        return node.map(x => flattenAdf(x, depth + 1, markdown)).join('')
     }
     if (typeof node !== 'object') {
         return ''
@@ -78,7 +79,15 @@ export function flattenAdf (node: any, depth = 0): string {
 
     const type = typeof node.type === 'string' ? node.type : ''
     if (type === 'text') {
-        return typeof node.text === 'string' ? node.text : ''
+        const text = typeof node.text === 'string' ? node.text : ''
+        if (!markdown || !text) return text
+        const marks = Array.isArray(node.marks) ? node.marks.filter(mark => mark && typeof mark === 'object') : []
+        if (marks.some(mark => mark.type === 'code')) return '`' + text + '`'
+        let styled = text
+        if (marks.some(mark => mark.type === 'strong')) styled = `**${styled}**`
+        if (marks.some(mark => mark.type === 'em')) styled = `_${styled}_`
+        const link = marks.find(mark => mark.type === 'link' && typeof mark.attrs?.href === 'string')
+        return link ? `[${styled}](${link.attrs.href})` : styled
     }
     if (type === 'hardBreak') {
         return '\n'
@@ -101,12 +110,23 @@ export function flattenAdf (node: any, depth = 0): string {
         return '\n———\n'
     }
 
-    const inner = flattenAdf(node.content, depth + 1)
+    if (markdown && (type === 'bulletList' || type === 'orderedList')) {
+        const start = Number.isInteger(node.attrs?.order) ? node.attrs.order : 1
+        return (Array.isArray(node.content) ? node.content : []).map((item, index) =>
+            `${type === 'orderedList' ? `${start + index}.` : '-'} ${flattenAdf(item, depth + 1, true).trim()}\n`).join('') + '\n'
+    }
+    if (markdown && type === 'codeBlock') {
+        const language = String(node.attrs?.language ?? '').replace(/[^\w#+-]/g, '')
+        return '```' + language + '\n' + flattenAdf(node.content, depth + 1).trimEnd() + '\n```\n\n'
+    }
+    const inner = flattenAdf(node.content, depth + 1, markdown)
+    if (markdown && type === 'heading') return `${'#'.repeat(Math.max(1, Math.min(6, Number(node.attrs?.level) || 1)))} ${inner}\n\n`
+    if (markdown && type === 'blockquote') return inner.trim().split('\n').map(line => `> ${line}`).join('\n') + '\n\n'
     if (type === 'listItem') {
-        return `• ${inner.trim()}\n`
+        return markdown ? inner : `• ${inner.trim()}\n`
     }
     if (ADF_BLOCKS.has(type)) {
-        return `${inner}\n`
+        return `${inner}${markdown ? '\n\n' : '\n'}`
     }
     return inner
 }
@@ -120,6 +140,11 @@ export function adfToText (value: any): string {
         .replace(/\n{3,}/g, '\n\n')
         .trim()
     return truncate(text)
+}
+
+/** Preserve Jira's rich text while keeping the renderer's input as data, never HTML. */
+export function adfToMarkdown (value: any): string {
+    return truncate(flattenAdf(value, 0, true).replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim())
 }
 
 // ── Markdown ────────────────────────────────────────────────────────────────
@@ -221,10 +246,10 @@ export function parseMarkdown (source: string, maxChars = MAX_BODY_CHARS, maxBlo
             blocks.push({ kind: 'li', spans: parseInline(bullet[1]) })
             continue
         }
-        const ordered = /^\s*\d+[.)]\s+(.*)$/.exec(line)
+        const ordered = /^\s*(\d+)[.)]\s+(.*)$/.exec(line)
         if (ordered) {
             flushParagraph()
-            blocks.push({ kind: 'li', ordered: true, spans: parseInline(ordered[1]) })
+            blocks.push({ kind: 'li', ordered: true, ordinal: Number(ordered[1]), spans: parseInline(ordered[2]) })
             continue
         }
         const quote = /^\s*>\s?(.*)$/.exec(line)

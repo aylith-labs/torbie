@@ -269,7 +269,7 @@ export interface IntegrationTab {
     path?: string
     /**
      * How to read the body text. `adf` is Atlassian Document Format, a JSON
-     * document flattened to text.
+     * document converted to Markdown with its marks and block structure retained.
      */
     format?: 'markdown' | 'adf' | 'text'
     /** `list` only, and relative to *each element* of the array. */
@@ -411,9 +411,9 @@ export interface PreviewTab {
     key: string
     label: string
     kind: 'body' | 'list'
-    /** For `body`. Already flattened from markdown or ADF to text. */
+    /** For `body`. ADF has already been converted to Markdown. */
     body: string
-    /** Whether `body` should be drawn with the small markdown renderer. */
+    /** Whether body and comment items use the Markdown renderer. */
     markdown: boolean
     items: PreviewTabItem[]
 }

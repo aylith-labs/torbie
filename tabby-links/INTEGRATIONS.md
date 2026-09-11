@@ -20,6 +20,9 @@ YAML frontmatter is shown as metadata, including nested values, lists and multil
 invalid frontmatter is shown with its error and original YAML. Source files and fenced code
 use syntax colors. Large previews show an explicit truncation notice.
 
+Jira comments and descriptions retain ADF formatting, and Markdown comments render as
+formatted content in both the hover card and pane. Plain-text tabs remain plain text.
+
 The footer shows the filename, full language or file type, its icon and a readable size.
 These names, icons and extension mappings come from Lintel's `file-types.json`.
 Source locations such as `Program.cs#L194` still match the source-code file rule.

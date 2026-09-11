@@ -26,7 +26,7 @@
                         pre.file-code(*ngIf='block.kind === "code"')
                             span(*ngFor='let token of block.tokens; trackBy: trackItem', [class]='"syntax-" + token.kind') {{token.text}}
                         ng-container(*ngIf='block.kind !== "code"')
-                            span(*ngIf='block.kind === "li"') •&nbsp;
+                            span(*ngIf='block.kind === "li"') {{block.ordered ? block.ordinal + '.' : '•'}}&nbsp;
                             ng-container(*ngFor='let span of block.spans; trackBy: trackItem')
                                 a(*ngIf='span.href', href='javascript:void(0)', (click)='handlers?.htmlOpen(span.href)') {{span.text}}
                                 code(*ngIf='!span.href && span.code') {{span.text}}
@@ -70,7 +70,7 @@
             //- was written by whoever opened the ticket.
             ng-container(*ngIf='activeTab?.markdown')
                 .md(*ngFor='let block of blocksFor(activeTab!); trackBy: trackItem', [ngClass]='"md-" + block.kind')
-                    span.bullet(*ngIf='block.kind === "li"') •&nbsp;
+                    span.bullet(*ngIf='block.kind === "li"') {{block.ordered ? block.ordinal + '.' : '•'}}&nbsp;
                     ng-container(*ngFor='let span of block.spans; trackBy: trackItem')
                         a.md-link(*ngIf='span.href', href='javascript:void(0)', (click)='handlers?.htmlOpen(span.href)') {{span.text}}
                         code.md-code(*ngIf='!span.href && span.code') {{span.text}}
@@ -85,7 +85,16 @@
                     img.tab-avatar(*ngIf='item.avatarUri', [src]='item.avatarUri')
                     span.tab-author {{item.author}}
                     span.tab-time {{item.time}}
-                .tab-item-body {{item.body}}
+                .tab-item-body(*ngIf='!activeTab?.markdown') {{item.body}}
+                ng-container(*ngIf='activeTab?.markdown')
+                    .md(*ngFor='let block of blocksForComment(item); trackBy: trackItem', [ngClass]='"md-" + block.kind')
+                        span.bullet(*ngIf='block.kind === "li"') {{block.ordered ? block.ordinal + '.' : '•'}}&nbsp;
+                        ng-container(*ngFor='let span of block.spans; trackBy: trackItem')
+                            a.md-link(*ngIf='span.href', href='javascript:void(0)', (click)='handlers?.htmlOpen(span.href)') {{span.text}}
+                            code.md-code(*ngIf='!span.href && span.code') {{span.text}}
+                            b(*ngIf='!span.href && !span.code && span.bold') {{span.text}}
+                            i(*ngIf='!span.href && !span.code && !span.bold && span.italic') {{span.text}}
+                            span(*ngIf='!span.href && !span.code && !span.bold && !span.italic') {{span.text}}
 
     .preview-fields(*ngIf='!model.preview?.error && !showHtml')
         //- Grouped, when the manifest says so. A single unlabelled group is the

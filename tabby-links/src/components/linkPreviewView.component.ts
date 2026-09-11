@@ -2,7 +2,7 @@ import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, HostBinding
 
 import {
     LinkPreview, PreviewAction, PreviewActionOption,
-    PreviewField, PreviewGroup, PreviewTab,
+    PreviewField, PreviewGroup, PreviewTab, PreviewTabItem,
 } from '../api'
 import { frontmatter, highlightSource, SourceToken } from '../filePreview'
 import { MarkdownBlock, parseMarkdown } from '../richText'
@@ -137,6 +137,7 @@ export class LinkPreviewViewComponent implements AfterViewChecked, OnDestroy {
     private undoTarget: { actionKey: string, stateId: string } | null = null
     private markdownCacheKey = ''
     private markdownCache: MarkdownBlock[] = []
+    private commentCache = new WeakMap<PreviewTabItem, MarkdownBlock[]>()
 
     constructor (private changeDetector: ChangeDetectorRef) {
         window.addEventListener('message', this.onFrameMessage)
@@ -195,6 +196,12 @@ export class LinkPreviewViewComponent implements AfterViewChecked, OnDestroy {
             this.markdownCache = parseMarkdown(tab.body)
         }
         return this.markdownCache
+    }
+
+    blocksForComment (item: PreviewTabItem): MarkdownBlock[] {
+        let blocks = this.commentCache.get(item)
+        if (!blocks) { blocks = parseMarkdown(item.body); this.commentCache.set(item, blocks) }
+        return blocks
     }
 
     // ── actions ──────────────────────────────────────────────────────────────
