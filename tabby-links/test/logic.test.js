@@ -274,8 +274,8 @@ const ADDITIVE = new Set(['normalize', 'suffix', 'description', 'placeholder'])
 // reconciling the new state needs, including the table below.
 const TERMINAL_REPO = process.env.TERMINAL_REPO || 'C:/Users/steve/projects/terminal'
 const TERMINAL_MANIFESTS = 'src/cascadia/TerminalSettingsModel/integrations'
-// Pin the Terminal commit that adopted the shared catalog and Unblocked manifest.
-const TERMINAL_REF = process.env.TERMINAL_REF || 'f44d11a0fe13815f984f1bc885db1f0a4356c386'
+// Pin the Terminal commit that requests Jira's larger avatar images.
+const TERMINAL_REF = process.env.TERMINAL_REF || 'cfee4dd78ec14b9e1a57cf9518de638353872d21'
 
 function git (args) {
     return require('child_process').execFileSync('git', args,
@@ -1795,7 +1795,48 @@ async function accountTests () {
     check('custom rule survives migration',custom.pattern,'^custom#(?<number>\\d+)')
     check('GitHub rule migration is idempotent',presets.migrateGitHubReferenceRules([legacy]),false)
 }
-githubReferenceTests().then(accountTests).then(localPreviewTests).then(() => {
+async function panePinTests () {
+    const { LinkPreviewTabComponent } = loadSource('tabby-links/src/components/linkPreviewTab.component.ts')
+    const { LinkPanesService } = loadSource('tabby-links/src/services/linkPanes.service.ts')
+    const pane = Object.create(LinkPreviewTabComponent.prototype)
+    const request = { text: 'AT-51', uri: 'https://host/AT-51', integration: 'jira', filePath: '', allowHtml: true, kind: 'text' }
+    const original = { text: request.text, key: 'original', loading: false, preview: { integrationName: 'Jira' } }
+    let finish, loads = 0
+    Object.assign(pane, {
+        request, model: original, generation: 0, alive: true, linkPinned: false,
+        error: '', unclaimed: false, changeDetector: {detectChanges() {}}, zone: {run: fn => fn()}, setTitle() {},
+        runtime: {canPreview: () => true, preview: () => { loads++; return new Promise(resolve => { finish = resolve }) }},
+    })
+    pane.togglePin()
+    const source = {}, other = {}
+    const panes = Object.create(LinkPanesService.prototype)
+    Object.assign(panes, {bySource: new Map([[source,pane]]),open:new Set([pane]),config:{store:{linkTooltip:{hideTooltipsWithPane:false}}}})
+    check('pin follows hover with popovers enabled',panes.followsHover(source),true)
+    check('another terminal does not overwrite the pin',panes.followsHover(other),false)
+    panes.hover({...request,text:'AT-144'},source)
+    check('hover immediately changes pane target',pane.request.text,'AT-144')
+    panes.hover({...request,text:'AT-144'},source)
+    check('repeated hover does not refetch',loads,1)
+    panes.leave(source)
+    check('leaving restores pinned request immediately',pane.request.text,'AT-51')
+    check('leaving restores cached content',pane.model,original)
+    finish({integrationName:'late reply'})
+    await new Promise(resolve => setImmediate(resolve))
+    check('late hover response cannot overwrite pin',pane.model,original)
+    pane.unpin()
+    check('unpin disables following when pane-only is off',panes.followsHover(source),false)
+    panes.config.store.linkTooltip.hideTooltipsWithPane=true
+    check('pane-only follows without a pin',panes.followsHover(source),true)
+    check('pane-only does not suppress other terminals',panes.tooltipsSuppressed(other),false)
+    panes.hover({...request,text:'AT-198'},source)
+    panes.leave(source)
+    check('without a pin the last hovered target stays',pane.request.text,'AT-198')
+    finish({integrationName:'Jira'})
+    await new Promise(resolve => setImmediate(resolve))
+    check('unpinned hover can finish after leaving',pane.model.text,'AT-198')
+}
+
+githubReferenceTests().then(accountTests).then(localPreviewTests).then(panePinTests).then(() => {
     console.log(`\n${passed} passed, ${failed} failed`)
     process.exit(failed ? 1 : 0)
 }).catch(error => { console.error(error); process.exit(1) })

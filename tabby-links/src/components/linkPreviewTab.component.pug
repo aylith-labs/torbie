@@ -56,5 +56,7 @@
     //- The switch the pane exists to offer: while one is open, hovering a link
     //- in a terminal need not also throw a card over it.
     .pane-foot
-        .pane-toggle-label(translate) Hide link tooltips while a preview pane is open
+        button.btn.btn-secondary.mb-2([class.active]='linkPinned', [attr.aria-pressed]='linkPinned', (click)='togglePin()', title='Keep this link. Other hovered links appear temporarily.')
+            span(translate) Pin link
+        .pane-toggle-label(translate) Pane only — follow hovered links here
         toggle([(ngModel)]='hideTooltips')

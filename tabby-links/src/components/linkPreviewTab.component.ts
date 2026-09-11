@@ -89,6 +89,42 @@ export class LinkPreviewTabComponent extends BaseTabComponent implements OnInit 
     /** Bumped per load, so a slow fetch cannot paint over a newer one. */
     private generation = 0
     private alive = true
+    linkPinned = false
+    private pin: { request: LinkPreviewRequest, model: PreviewModel, error: string, unclaimed: boolean } | null = null
+
+    unpin (): void {
+        this.linkPinned = false
+        this.pin = null
+    }
+
+    togglePin (): void {
+        if (this.linkPinned) { this.unpin(); return }
+        this.linkPinned = true
+        this.rememberPin()
+    }
+
+    private rememberPin (): void {
+        this.pin = { request: this.request, model: this.model, error: this.error, unclaimed: this.unclaimed }
+    }
+
+    hover (request: LinkPreviewRequest): void {
+        if (request.text === this.request.text && request.integration === this.request.integration && request.filePath === this.request.filePath) return
+        this.request = request
+        this.setTitle(request.text || 'Preview')
+        void this.load()
+    }
+
+    endHover (): void {
+        if (!this.pin || this.request === this.pin.request) return
+        ++this.generation
+        this.request = this.pin.request
+        this.model = this.pin.model
+        this.error = this.pin.error
+        this.unclaimed = this.pin.unclaimed
+        this.setTitle(this.request.text || 'Preview')
+        this.changeDetector.detectChanges()
+        if (this.model.loading) void this.load()
+    }
 
     constructor (
         injector: Injector,
@@ -272,6 +308,7 @@ export class LinkPreviewTabComponent extends BaseTabComponent implements OnInit 
                 // re-run the page.
                 key: `pane:${this.request.text}:${generation}`,
             }
+            if (this.pin?.request === this.request) this.rememberPin()
             this.changeDetector.detectChanges()
         })
     }

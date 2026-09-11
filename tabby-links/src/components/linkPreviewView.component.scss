@@ -426,3 +426,5 @@ a.field-text {
 .field-value > .field-icon { position: absolute; left: 0; top: 2px; }
 :host:not(.pane) { --preview-body-max: none; }
 :host:not(.pane) .file-content { max-height: none; }
+
+.field-row.zero-value { opacity: 0.45; }

@@ -173,7 +173,7 @@
             "label": "Assignee",
             "path": "issue:/fields/assignee/displayName",
             "kind": "text",
-            "iconPath": "issue:/fields/assignee/avatarUrls/24x24",
+            "iconPath": "issue:/fields/assignee/avatarUrls/48x48",
             "default": true
         },
         {
@@ -210,7 +210,7 @@
             "label": "Reporter",
             "path": "issue:/fields/reporter/displayName",
             "kind": "text",
-            "iconPath": "issue:/fields/reporter/avatarUrls/24x24",
+            "iconPath": "issue:/fields/reporter/avatarUrls/48x48",
             "default": false
         },
         {
@@ -301,7 +301,7 @@
             "path": "issue:/fields/comment/comments",
             "format": "adf",
             "itemAuthorPath": "/author/displayName",
-            "itemAvatarPath": "/author/avatarUrls/24x24",
+            "itemAvatarPath": "/author/avatarUrls/48x48",
             "itemBodyPath": "/body",
             "itemTimePath": "/created",
             "default": false

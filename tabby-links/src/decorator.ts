@@ -488,13 +488,6 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         if (!this.rules.enabled) {
             return
         }
-        // Asked here rather than in `show()`, so a suppressed hover costs
-        // nothing at all: no timer, no `convert`, no rule resolution. Detection
-        // and clicking are unaffected — the link is still underlined, and the
-        // pane is where its details are.
-        if (!state.externalAnchor && this.panes.tooltipsSuppressed()) {
-            return
-        }
         const key = `${link.kind}:${link.text}:${link.range.start.y}:${link.range.start.x}`
         clearTimeout(state.hideTimer)
         if (state.shownKey === key) {
@@ -514,7 +507,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         const settings = this.rules.resolve(link.kind, link.text, '', link.rule)
         clearTimeout(state.showTimer)
         const show = () => this.show(state, link, settings, key)
-        if (settings.showDelay > 0) {
+        if (settings.showDelay > 0 && (state.externalAnchor || !this.panes.followsHover(state.tab))) {
             state.showTimer = setTimeout(show, settings.showDelay)
         } else {
             show()
@@ -523,6 +516,11 @@ export class LinkTooltipDecorator extends TerminalDecorator {
 
     private onLeave (state: TabState): void {
         clearTimeout(state.showTimer)
+        if (!state.externalAnchor && this.panes.followsHover(state.tab)) {
+            ++state.generation // Invalidate a path lookup or fetch still in flight.
+            state.shownKey = ''
+            this.zone.run(() => this.panes.leave(state.tab))
+        }
         // Prefer the answer `show` arrived at: it knew the link's kind and its
         // resolved path, so a rule keyed on either has already been applied.
         // Falling back re-resolves without them, which is all that is available
@@ -612,6 +610,13 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         // nobody previews, a pane would show what the card already shows.
         model.showInPane = settings.showInPane && wantsPreview
 
+        if (!state.externalAnchor && this.panes.followsHover(state.tab)) {
+            this.zone.run(() => this.panes.hover(this.paneRequest(state, link, target.filePath, settings.integration, model), state.tab))
+            if (this.panes.tooltipsSuppressed(state.tab)) {
+                state.host.style.display = 'none'
+                return
+            }
+        }
         this.render(state, model, link, target.filePath, settings.integration)
 
         if (!wantsPreview) {

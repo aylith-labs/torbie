@@ -38,8 +38,21 @@ export class LinkPanesService {
      * want both. Closing the last pane restores hovers without touching the
      * setting, which is what makes the switch safe to leave on.
      */
-    tooltipsSuppressed (): boolean {
-        return this.open.size > 0 && this.config.store.linkTooltip?.hideTooltipsWithPane === true
+    tooltipsSuppressed (source?: BaseTabComponent): boolean {
+        return (source ? this.bySource.has(source) : this.open.size > 0) && this.config.store.linkTooltip?.hideTooltipsWithPane === true
+    }
+
+    followsHover (source: BaseTabComponent): boolean {
+        const pane = this.bySource.get(source)
+        return !!pane && (pane.linkPinned || this.tooltipsSuppressed(source))
+    }
+
+    hover (request: LinkPreviewRequest, source: BaseTabComponent): void {
+        if (this.followsHover(source)) this.bySource.get(source)?.hover(request)
+    }
+
+    leave (source: BaseTabComponent): void {
+        this.bySource.get(source)?.endHover()
     }
 
     /**
@@ -51,6 +64,7 @@ export class LinkPanesService {
     async show (request: LinkPreviewRequest, source: BaseTabComponent | null): Promise<LinkPreviewTabComponent> {
         const existing = source ? this.bySource.get(source) : undefined
         if (existing) {
+            existing.unpin()
             existing.request = request
             existing.setTitle(request.text || 'Preview')
             await existing.load()

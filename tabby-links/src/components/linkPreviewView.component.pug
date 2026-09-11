@@ -97,7 +97,7 @@
             .group-label(*ngIf='group.label') {{group.label}}
             ng-container(*ngFor='let field of group.fields; trackBy: trackField')
                 .field-subtitle(*ngIf='field.kind === "subtitle"') {{field.value}}
-                .field-row(*ngIf='field.kind !== "title" && field.kind !== "subtitle" && field.placement !== "header" && field.placement !== "status"')
+                .field-row(*ngIf='field.kind !== "title" && field.kind !== "subtitle" && field.placement !== "header" && field.placement !== "status" && (pane || field.value !== "0")', [class.zero-value]='field.value === "0"')
                     .field-label(*ngIf='field.label') {{field.label}}
                     .field-value
                         img.field-icon(*ngIf='field.iconUri', [src]='field.iconUri')
