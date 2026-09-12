@@ -51,3 +51,7 @@ visit. External session links explain the demo boundary instead of navigating.
 Review covers scenario switching, terminal keyboard input, real pane count,
 plugin activation through both controls, theme propagation, page overflow and
 absence of external requests/runtime errors at desktop and mobile widths.
+
+Font Awesome **Free** is fetched from the public npm registry. The preview's
+`.npmrc` pins that scope so a developer's private Font Awesome registry cannot
+leak into this public build's lockfile. CI needs no npm authentication.

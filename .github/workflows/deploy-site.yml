@@ -2,9 +2,9 @@ name: Deploy site
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'docs/**', 'app/src/**', 'app/assets/**', 'app/index.pug', 'tabby-core/**', 'tabby-terminal/**', 'tabby-settings/**', 'tabby-web/**', 'tabby-claude/**', 'locale/**', '.github/workflows/deploy-site.yml']
+    paths: ['site/**', 'docs/**', 'app/src/**', 'app/assets/**', 'app/index.pug', 'tabby-core/**', 'tabby-terminal/**', 'tabby-settings/**', 'tabby-web/**', 'tabby-claude/**', 'locale/**', 'tabby-local/**', 'tsconfig.json', '.github/workflows/deploy-site.yml']
   pull_request:
-    paths: ['site/**', 'docs/**', 'app/src/**', 'app/assets/**', 'app/index.pug', 'tabby-core/**', 'tabby-terminal/**', 'tabby-settings/**', 'tabby-web/**', 'tabby-claude/**', 'locale/**', '.github/workflows/deploy-site.yml']
+    paths: ['site/**', 'docs/**', 'app/src/**', 'app/assets/**', 'app/index.pug', 'tabby-core/**', 'tabby-terminal/**', 'tabby-settings/**', 'tabby-web/**', 'tabby-claude/**', 'locale/**', 'tabby-local/**', 'tsconfig.json', '.github/workflows/deploy-site.yml']
   release:
     types: [published]
   workflow_dispatch:
