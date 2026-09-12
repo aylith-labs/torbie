@@ -36,5 +36,6 @@ export default class ClaudeModule { } // eslint-disable-line @typescript-eslint/
 export * from './api'
 export { ClaudeActionsService, ClaudeSessionAction, ResumeCommandOptions } from './services/claudeActions.service'
 export { ClaudeSessionsService } from './services/claudeSessions.service'
+export { HerdrService, HerdrPane, FocusOutcome } from './services/herdr.service'
 export { StithService } from './services/stith.service'
 export { TranscriptMetricsService } from './services/transcriptMetrics.service'

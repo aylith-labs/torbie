@@ -4,6 +4,7 @@ import { ConfigService, MenuItemOptions, PlatformService, ProfilesService, Trans
 import { ClaudeSession } from '../api'
 import { sessionTitle } from '../format'
 import { ClaudeSessionsService } from './claudeSessions.service'
+import { HerdrService } from './herdr.service'
 import { StithService } from './stith.service'
 
 /** Actions offered for a session, by config id. */
@@ -45,6 +46,7 @@ export interface ResumeCommandOptions {
 export class ClaudeActionsService {
     constructor (
         private config: ConfigService,
+        private herdr: HerdrService,
         private platform: PlatformService,
         private profiles: ProfilesService,
         private sessions: ClaudeSessionsService,
@@ -57,11 +59,22 @@ export class ClaudeActionsService {
      * details view is the panel's own state, not something this service owns.
      */
     buildMenu (session: ClaudeSession, onDetails: () => void): MenuItemOptions[] {
-        const canFocus = this.sessions.hasTabFor(session)
+        // Which of the three places this session is, from the cache rather than
+        // over the network: building a context menu is synchronous on a click,
+        // and awaiting here would cost the menu. The cache only decides the
+        // *label* — the entry stays enabled whenever focusing can do anything
+        // at all, so a cold cache reads "Focus" and still works, instead of
+        // greying out an action the row click would have performed.
+        const hasTab = this.sessions.hasTabFor(session)
+        const pane = !hasTab && this.herdr.enabled ? this.herdr.cachedPaneFor(session.sessionId) : null
         return [
             {
-                label: this.translate.instant('Focus tab'),
-                enabled: canFocus,
+                label: hasTab
+                    ? this.translate.instant('Focus tab')
+                    : pane
+                        ? this.translate.instant('Focus pane in shefrd')
+                        : this.translate.instant('Focus'),
+                enabled: hasTab || this.herdr.enabled,
                 click: () => this.run('focus', session, onDetails),
             },
             {
@@ -119,13 +132,36 @@ export class ClaudeActionsService {
                 break
             // 'focus', and anything unrecognised.
             default:
-                // Falling back to stith rather than doing nothing: a session on
-                // another machine, or in another Tabby window, has no tab here.
-                if (!this.sessions.revealTab(session)) {
-                    void this.platform.openExternal(`${this.stith.baseURL}/s/${session.sessionId}`)
-                }
+                void this.focusSession(session)
                 break
         }
+    }
+
+    /**
+     * Put the session in front of the user, wherever it is actually running.
+     *
+     * Three places, tried nearest first, because each is strictly more
+     * disruptive than the one before it:
+     *
+     * 1. **A tab in this window.** Free, instant, and what "focus" means when
+     *    it can mean that.
+     * 2. **A herdr / shefrd pane.** Most sessions on this machine run in a
+     *    multiplexer inside WSL, where there is no Torbie tab to select and
+     *    the only thing that can raise the pane is shefrd itself. Before this
+     *    every one of them fell through to the browser, which is why clicking
+     *    a row so often did something other than what it said.
+     * 3. **stith in a browser**, which is the honest answer for a session on
+     *    another machine — there is nothing here to focus.
+     */
+    async focusSession (session: ClaudeSession): Promise<'tab' | 'pane' | 'stith'> {
+        if (this.sessions.revealTab(session)) {
+            return 'tab'
+        }
+        if (this.herdr.enabled && await this.herdr.focus(session.sessionId) === 'focused') {
+            return 'pane'
+        }
+        void this.platform.openExternal(`${this.stith.baseURL}/s/${session.sessionId}`)
+        return 'stith'
     }
 
     /**
