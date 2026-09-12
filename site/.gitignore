@@ -1,0 +1,8 @@
+node_modules/
+.svelte-kit/
+build/
+static/media/
+static/favicon.svg
+.review/
+
+!package-lock.json
