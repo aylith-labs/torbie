@@ -1,5 +1,7 @@
+import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker'
+
 import { Component, Optional, OnDestroy } from '@angular/core'
-import { ConfigService, NotificationsService, PlatformService } from 'tabby-core'
+import { ConfigService, NotificationsService, PlatformService, TranslateService } from 'tabby-core'
 import { SettingsTabComponent } from 'tabby-settings'
 
 import {
@@ -7,8 +9,23 @@ import {
     LinkTooltipRule, newRule,
 } from '../api'
 import { AccountIdentity, checkIntegrationAccount, preferredOwners } from '../services/integrationAccount'
+import { IntegrationAccountsService } from '../services/integrationAccounts.service'
 import { IntegrationCredentialsService } from '../services/integrationCredentials.service'
 import { IntegrationRegistryService, isSecretField, normalizeSettingValue } from '../services/integrationRegistry.service'
+
+/**
+ * What a row says when the check did not end in an account.
+ *
+ * Marked for extraction, and worded as an answer rather than as the state's
+ * own name: "unsupported" describes the code, "No account to check" describes
+ * what the reader is looking at.
+ */
+const ROW_LABELS: Record<string, string> = {
+    disabled: _('Off'),
+    unconfigured: _('Needs setting up'),
+    unsupported: _('No account to check'),
+    error: _('Not connecting'),
+}
 
 /** A manifest field group, resolved to the fields it actually claims. */
 interface FieldGroup {
@@ -72,9 +89,11 @@ export class IntegrationsSettingsTabComponent implements OnDestroy {
     constructor (
         public config: ConfigService,
         public registry: IntegrationRegistryService,
+        public accounts: IntegrationAccountsService,
         private credentials: IntegrationCredentialsService,
         private platform: PlatformService,
         private notifications: NotificationsService,
+        private translate: TranslateService,
         @Optional() private settingsTab: SettingsTabComponent | null,
     ) {
         this.userDirectory = registry.userDirectory()
@@ -85,10 +104,51 @@ export class IntegrationsSettingsTabComponent implements OnDestroy {
                 this.deriveCurrent()
                 void this.loadCredentialRows()
             }
+            // Every row gets a verdict, not just the one you happen to click
+            // into. Cached and deduplicated in the service, so the list
+            // re-emitting — which it does on every settings save — does not
+            // become a burst of requests.
+            void this.accounts.checkAll(list)
         })
         void this.credentials.isAvailable().then(available => {
             this.encryptionAvailable = available
         })
+    }
+
+    /** Ask every integration again, from the list's own Re-check button. */
+    recheckAll (): void {
+        void this.accounts.checkAll(this.integrations, true)
+    }
+
+    /**
+     * The badge for a row: one word, and the tooltip carries the detail.
+     *
+     * `null` while the first check is still out, so a row shows a spinner
+     * rather than claiming a state it does not have yet.
+     */
+    rowState (integration: Integration): string | null {
+        return this.accounts.get(integration.id)?.state ?? null
+    }
+
+    rowLabel (integration: Integration): string {
+        const identity = this.accounts.get(integration.id)
+        if (!identity) {
+            return ''
+        }
+        // The account name is the useful half of a successful check — "it
+        // works" is worth much less than "it works, as you".
+        if (identity.state === 'connected') {
+            return identity.login ?? identity.name ?? this.translate.instant('Connected')
+        }
+        return this.translate.instant(ROW_LABELS[identity.state] ?? identity.state)
+    }
+
+    rowTooltip (integration: Integration): string {
+        const identity = this.accounts.get(integration.id)
+        if (!identity) {
+            return ''
+        }
+        return [identity.name, identity.message, identity.source].filter(Boolean).join(' — ')
     }
 
     async select (integration: Integration | null): Promise<void> {
@@ -141,6 +201,10 @@ export class IntegrationsSettingsTabComponent implements OnDestroy {
         if (normalized !== current) {
             this.registry.setSetting(integration.id, field.key, normalized)
         }
+        // Blur is the "done typing" signal, and the only safe place to drop the
+        // cached verdict: `setSetting` runs per keystroke, and invalidating
+        // there would make the list's check fire on every one of them.
+        this.accounts.invalidate(integration.id)
     }
 
     async refreshAccount (discover = false): Promise<void> {
@@ -149,7 +213,13 @@ export class IntegrationsSettingsTabComponent implements OnDestroy {
         if (!integration) return
         if (discover) this.discoveringOrganizations = true
         else this.checkingAccount = true
-        const result = await checkIntegrationAccount(integration, undefined, undefined, discover)
+        // Organization discovery is a different, heavier request and is not
+        // what the list shows, so it stays direct. A plain check goes through
+        // the service, or the badge on the row behind this view and the panel
+        // in front of it would be two answers to the same question.
+        const result = discover
+            ? await checkIntegrationAccount(integration, undefined, undefined, true)
+            : await this.accounts.check(integration, true)
         if (generation !== this.accountGeneration || this.current?.id !== integration.id) return
         this.account = result
         this.checkingAccount = this.discoveringOrganizations = false

@@ -38,6 +38,7 @@ const FAST = [
     'scripts/dev/cdp.test.cjs',
     'tabby-claude/test/herdr.test.js',
     'tabby-links/test/delimitedLinks.test.js',
+    'tabby-links/test/integrationAccounts.test.js',
     'tabby-links/test/wslPath.test.js',
     'tabby-resume/test/logic.test.js',
     'tabby-terminal/test/webSearch.test.js',

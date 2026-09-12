@@ -52,6 +52,22 @@
     white-space: nowrap;
 }
 
+// The verdict for one row. Colour carries it, but never alone: each state has
+// its own icon as well, so the list still reads without it.
+.integration-account {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.state-connected { color: var(--bs-success); }
+    &.state-error { color: var(--bs-danger); }
+    &.state-pending,
+    &.state-disabled,
+    &.state-unconfigured,
+    &.state-unsupported { opacity: .5; }
+}
+
 .integration-toggle {
     flex: none;
 }

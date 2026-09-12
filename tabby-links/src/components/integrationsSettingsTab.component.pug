@@ -3,7 +3,16 @@ h3.mb-3(translate) Integrations
 // ── The list ────────────────────────────────────────────────────────────────
 
 div(*ngIf='!current')
-    .text-muted.mb-3(translate) Integrations teach the terminal what a link or a piece of output refers to, so hovering it can show a live preview. Enable the ones you use and fill in what they need.
+    .d-flex.align-items-start.mb-3
+        .text-muted.me-3(translate) Integrations teach the terminal what a link or a piece of output refers to, so hovering it can show a live preview. Enable the ones you use and fill in what they need.
+        //- The list verifies itself when it opens, so a row whose saved token
+        //- was revoked last week no longer looks exactly like one that works.
+        button.btn.btn-sm.btn-secondary.ms-auto.flex-shrink-0(
+            (click)='recheckAll()',
+            [disabled]='accounts.busy'
+        )
+            i.fas.fa-fw.fa-circle-notch.fa-spin.me-1(*ngIf='accounts.busy')
+            span(translate) Re-check all
 
     .alert.alert-warning.py-2(*ngIf='!encryptionAvailable')
         i.fas.fa-fw.fa-triangle-exclamation.me-2
@@ -19,6 +28,19 @@ div(*ngIf='!current')
                 .integration-name
                     span {{integration.name}}
                     span.badge.bg-secondary.ms-2(*ngIf='!integration.configured', translate) Not configured
+                //- One line per row saying who the service thinks you are, or
+                //- why it will not say. The account name is the useful half of
+                //- a successful check: "it works" is worth much less than "it
+                //- works, as you".
+                .integration-account(
+                    [ngClass]='"state-" + (rowState(integration) || "pending")',
+                    [title]='rowTooltip(integration)'
+                )
+                    i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='accounts.checking(integration.id) || !rowState(integration)')
+                    i.fas.fa-fw.fa-check-circle(*ngIf='!accounts.checking(integration.id) && rowState(integration) === "connected"')
+                    i.fas.fa-fw.fa-triangle-exclamation(*ngIf='!accounts.checking(integration.id) && rowState(integration) === "error"')
+                    i.fas.fa-fw.fa-minus-circle(*ngIf='!accounts.checking(integration.id) && (rowState(integration) === "disabled" || rowState(integration) === "unconfigured" || rowState(integration) === "unsupported")')
+                    span.ms-1 {{accounts.checking(integration.id) || !rowState(integration) ? ('Checking…'|translate) : rowLabel(integration)}}
                 .integration-source {{integration.source}}
             .integration-toggle((click)='$event.stopPropagation()')
                 toggle(
