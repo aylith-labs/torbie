@@ -3,9 +3,7 @@ import { Observable, defer, from, map, of } from 'rxjs'
 import { Injectable, Inject } from '@angular/core'
 import { Logger, LogService, PlatformService, BOOTSTRAP_DATA, BootstrapData, PluginInfo } from 'tabby-core'
 import { PLUGIN_BLACKLIST } from '../../../app/src/pluginBlacklist'
-import { AvailablePluginInfo, arrangeAvailable, matchRank, queryTerms } from '../pluginSearch'
-
-const OFFICIAL_NPM_ACCOUNT = 'eugenepankov'
+import { AvailablePluginInfo, RegistrySearchObject, arrangeAvailable, fromRegistry, matchRank, queryTerms } from '../pluginSearch'
 
 /**
  * The search endpoint's largest page. Search runs over the whole catalogue now
@@ -17,22 +15,6 @@ const REGISTRY_PAGE_SIZE = 250
 const REGISTRY_MAX_PAGES = 8
 /** Reopening the page within this long reuses the list rather than asking again. */
 const CATALOGUE_TTL_MS = 5 * 60 * 1000
-
-/** The parts of a registry search result that are read here. */
-interface RegistrySearchObject {
-    package: {
-        name: string
-        version: string
-        description?: string
-        keywords?: string[]
-        date?: string
-        links?: { homepage?: string }
-        maintainers?: { username?: string }[]
-        publisher?: { username?: string }
-    }
-    searchScore?: number
-    downloads?: { monthly?: number }
-}
 
 
 @Injectable({ providedIn: 'root' })
@@ -131,31 +113,8 @@ export class PluginManagerService {
             }
         }
 
-        const plugins = objects
-            // The keywords are on the package, not on the search result. This read
-            // `item.keywords`, which the registry never sends, so the guard never
-            // applied. No package carries the keyword as of 2026-09-12.
-            .filter(item => !item.package.keywords?.includes('tabby-dummy-transition-plugin'))
-            .map((item): AvailablePluginInfo => ({
-                name: item.package.name.substring(namePrefix.length),
-                packageName: item.package.name,
-                description: item.package.description ?? '',
-                version: item.package.version,
-                homepage: item.package.links?.homepage,
-                author: item.package.maintainers?.[0]?.username ?? '',
-                isOfficial: item.package.publisher?.username === OFFICIAL_NPM_ACCOUNT,
-                isBuiltin: false,
-                isLegacy: namePrefix === 'terminus-',
-                searchScore: item.searchScore,
-                keywords: item.package.keywords ?? [],
-                monthlyDownloads: item.downloads?.monthly ?? 0,
-                published: item.package.date ?? null,
-            }))
-            .filter(plugin => plugin.packageName.startsWith(namePrefix))
-            .filter(plugin => !PLUGIN_BLACKLIST.includes(plugin.packageName))
-
         const versions: Record<string, AvailablePluginInfo[]> = {}
-        for (const plugin of plugins) {
+        for (const plugin of fromRegistry(objects, namePrefix, PLUGIN_BLACKLIST)) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             versions[plugin.name] ??= []
             versions[plugin.name].push(plugin)

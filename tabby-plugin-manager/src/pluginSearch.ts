@@ -1,7 +1,9 @@
 import { PluginInfo } from 'tabby-core'
 
 /**
- * Searching and ordering the Plugins page's two lists.
+ * Searching and ordering the Plugins page's two lists, and turning a registry
+ * search result into the plugins they list. Pure: the network stays in the
+ * service, so all of this runs in `test/pluginSearch.test.js` with no app.
  *
  * Search happens here, on the client, because the registry does not do it.
  * `-/v1/search?text=keywords:tabby-plugin tmux` returns the same 149 packages
@@ -20,6 +22,56 @@ export interface AvailablePluginInfo extends PluginInfo {
     monthlyDownloads: number
     /** When the listed version was published, ISO 8601, or null. */
     published: string|null
+}
+
+/** The npm account upstream Tabby's official plugins are published from. */
+export const OFFICIAL_NPM_ACCOUNT = 'eugenepankov'
+
+/** The parts of a registry search result that are read. */
+export interface RegistrySearchObject {
+    package: {
+        name: string
+        version: string
+        description?: string
+        keywords?: string[]
+        date?: string
+        links?: { homepage?: string }
+        maintainers?: { username?: string }[]
+        publisher?: { username?: string }
+    }
+    searchScore?: number
+    downloads?: { monthly?: number }
+}
+
+/**
+ * One keyword's search results as plugins, in the registry's order: placeholder
+ * packages dropped, the prefix taken off each name, and anything named for
+ * another prefix or on the blacklist left out. Several versions of one name are
+ * not collapsed here; the service does that, since it needs semver.
+ */
+export function fromRegistry (objects: readonly RegistrySearchObject[], namePrefix: string, blacklist: readonly string[]): AvailablePluginInfo[] {
+    return objects
+        // The keywords are on the package, not on the search result. This used
+        // to read `item.keywords`, which the registry never sends, so the guard
+        // never applied. No package carries the keyword as of 2026-09-12.
+        .filter(item => !item.package.keywords?.includes('tabby-dummy-transition-plugin'))
+        .map((item): AvailablePluginInfo => ({
+            name: item.package.name.substring(namePrefix.length),
+            packageName: item.package.name,
+            description: item.package.description ?? '',
+            version: item.package.version,
+            homepage: item.package.links?.homepage,
+            author: item.package.maintainers?.[0]?.username ?? '',
+            isOfficial: item.package.publisher?.username === OFFICIAL_NPM_ACCOUNT,
+            isBuiltin: false,
+            isLegacy: namePrefix === 'terminus-',
+            searchScore: item.searchScore,
+            keywords: item.package.keywords ?? [],
+            monthlyDownloads: item.downloads?.monthly ?? 0,
+            published: item.package.date ?? null,
+        }))
+        .filter(plugin => plugin.packageName.startsWith(namePrefix))
+        .filter(plugin => !blacklist.includes(plugin.packageName))
 }
 
 /**
