@@ -110,9 +110,23 @@
 
 .click-kinds {
     display: flex;
+    justify-content: flex-end;
+}
+
+.click-kinds-list {
+    display: flex;
     flex-wrap: wrap;
     gap: 4px 18px;
-    justify-content: flex-end;
+    // Shrink to the widest line, then left-align inside that. This is the half
+    // that fixes the ragged checkbox column: `justify-content: flex-end` on the
+    // wrapping box aligns each *line*, not the items across lines.
+    justify-content: flex-start;
+
+    .form-check {
+        // Bootstrap's inline modifier adds a right margin that the gap already
+        // provides, and it would push the last item off the group's right edge.
+        margin-right: 0;
+    }
 }
 
 .action-card {

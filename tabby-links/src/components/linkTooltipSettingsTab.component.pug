@@ -203,18 +203,27 @@ div(ngbAccordion, [destroyOnHide]='false', [animation]='config.store.accessibili
                         .header
                             .title(translate) Which links a click reaches
                             .description(translate) The kinds left unticked stay hoverable and previewable — they just do not respond to a click
+                        //- Two boxes, not one. The outer one right-aligns the
+                        //- group against the page's right edge like every other
+                        //- control here; the inner one is what wraps, so every
+                        //- line starts at the same x and the checkboxes share a
+                        //- left edge. With one box doing both, each wrapped line
+                        //- is right-aligned on its own and the boxes land
+                        //- wherever that line's label happens to end — measured
+                        //- at 847 / 861 / 820, a 41px ragged edge.
                         .click-kinds
-                            .form-check.form-check-inline(*ngFor='let kind of clickKinds')
-                                input.form-check-input(
-                                    [disabled]='!config.store.linkTooltip.clickable',
-                                    type='checkbox',
-                                    [id]='"click-kind-" + kind.value',
-                                    [checked]='hasKind(kind.value)',
-                                    (change)='toggleKind(kind.value)',
-                                )
-                                label.form-check-label(
-                                    [for]='"click-kind-" + kind.value',
-                                ) {{kind.label|translate}}
+                            .click-kinds-list
+                                .form-check.form-check-inline(*ngFor='let kind of clickKinds')
+                                    input.form-check-input(
+                                        [disabled]='!config.store.linkTooltip.clickable',
+                                        type='checkbox',
+                                        [id]='"click-kind-" + kind.value',
+                                        [checked]='hasKind(kind.value)',
+                                        (change)='toggleKind(kind.value)',
+                                    )
+                                    label.form-check-label(
+                                        [for]='"click-kind-" + kind.value',
+                                    ) {{kind.label|translate}}
 
                     .form-line
                         .header
