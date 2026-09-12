@@ -7,7 +7,9 @@ import { ConfigService } from 'tabby-core'
 
 import { BuildGitInfo, BuildKind, TabbyBuild } from '../api'
 import { fs } from '../nodeFs'
-import { PRODUCT_NAMES, SOURCE_PACKAGE_NAMES, executableNames } from '../productNames'
+import {
+    PRODUCT_NAMES, SOURCE_PACKAGE_NAMES, executableNames, productFromExecutable, productFromPackageName,
+} from '../productNames'
 import { normalize } from './buildProcesses.service'
 
 /** Directory names never worth descending into while looking for checkouts. */
@@ -44,6 +46,7 @@ interface SlotBuildInfo {
 interface Seed {
     kind: BuildKind
     name: string
+    product: string | null
     root: string
     extraPaths: string[]
     executable: string | null
@@ -69,6 +72,7 @@ function installerSeed (full: string, name: string, tree: string | null): Seed {
     return {
         kind: 'installer',
         name,
+        product: productFromPackageName(INSTALLER_PATTERN.exec(name)?.[1]),
         root: full,
         extraPaths: [],
         executable: null,
@@ -292,6 +296,7 @@ export class BuildScannerService {
             seeds.push({
                 kind: 'installed',
                 name: candidate.product,
+                product: candidate.product,
                 root: candidate.root,
                 extraPaths: [],
                 executable: candidate.executable,
@@ -447,6 +452,7 @@ export class BuildScannerService {
         return {
             kind: portable ? 'portable' : 'packaged',
             name: info?.commit ? `slot ${info.commit.slice(0, 8)}` : path.basename(dir),
+            product: productFromExecutable(executable),
             root: dir,
             extraPaths: [],
             executable,
@@ -492,13 +498,19 @@ export class BuildScannerService {
      */
     private async describeSourceTree (tree: string): Promise<Seed[]> {
         const seeds: Seed[] = []
-        const name = path.basename(tree)
+        // Named after the product, not the directory. This checkout is cloned
+        // into a folder called `tabby`, and a Torbie build labelled
+        // `tabby (win-unpacked)` read as upstream Tabby in the one place it
+        // mattered: a dialog offering to switch to it.
+        const product = productFromPackageName((await readJSON(path.join(tree, 'app', 'package.json')))?.name)
+        const label = product ?? path.basename(tree)
 
         const appDist = path.join(tree, 'app', 'dist')
         if (await exists(path.join(appDist, 'bundle.js'))) {
             seeds.push({
                 kind: 'source',
-                name: `${name} (source)`,
+                name: `${label} (source)`,
+                product,
                 root: appDist,
                 extraPaths: await this.buildOutputDirs(tree),
                 executable: await firstExisting([
@@ -526,9 +538,11 @@ export class BuildScannerService {
                 if (!executable) {
                     continue
                 }
+                const entryProduct = productFromExecutable(executable) ?? product
                 seeds.push({
                     kind: 'packaged',
-                    name: `${name} (${entry.name})`,
+                    name: `${entryProduct ?? label} (${entry.name})`,
+                    product: entryProduct,
                     root: full,
                     extraPaths: [],
                     executable,
@@ -588,6 +602,7 @@ export class BuildScannerService {
             id,
             kind: seed.kind,
             name: seed.name,
+            product: seed.product,
             root: seed.root,
             extraPaths: seed.extraPaths,
             executable: seed.executable,

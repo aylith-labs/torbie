@@ -4,12 +4,10 @@ import { Observable, Subject } from 'rxjs'
 import { ConfigService, HostWindowService, NotificationsService, PlatformService, TranslateService } from 'tabby-core'
 
 import { TabbyBuild } from '../api'
+import { mayDeleteOnSwitch, newerBuild } from '../newBuildChoice'
 import { BuildActionsService } from './buildActions.service'
 import { normalize } from './buildProcesses.service'
 import { BuildScannerService } from './buildScanner.service'
-
-/** Kinds that can replace a running build. An installer is not a build to switch to. */
-const SWITCHABLE = new Set(['portable', 'packaged', 'installed'])
 
 /**
  * Notices when a newer build than this one appears on the machine, and offers
@@ -18,7 +16,8 @@ const SWITCHABLE = new Set(['portable', 'packaged', 'installed'])
  * The fork is developed in place, so a fresh slot gets cut while an older one
  * is running with a day's work in its tabs. Nothing announced that, and
  * "which build am I on and is there a newer one?" was a question you had to
- * remember to ask.
+ * remember to ask. What counts as newer, and what may be deleted on the way
+ * out, is decided in `newBuildChoice.ts`.
  */
 @Injectable({ providedIn: 'root' })
 export class NewBuildWatcherService {
@@ -87,12 +86,7 @@ export class NewBuildWatcherService {
         }
         this.current = current
 
-        const candidates = builds
-            .filter(x => SWITCHABLE.has(x.kind) && !!x.executable && !!x.builtAt)
-            .filter(x => normalize(x.root) !== normalize(current.root))
-            .filter(x => (x.builtAt ?? 0) > (current.builtAt ?? 0))
-            .sort((a, b) => (b.builtAt ?? 0) - (a.builtAt ?? 0))
-        const newer: TabbyBuild | null = candidates.length ? candidates[0] : null
+        const newer = newerBuild(current, builds)
 
         const was = this.available?.id ?? null
         this.available = newer
@@ -116,7 +110,7 @@ export class NewBuildWatcherService {
             return
         }
         const current = this.current
-        const canDelete = !!current && !current.isActive
+        const canDelete = !!current && mayDeleteOnSwitch(current, this.isActive(current))
         const buttons = [
             this.translate.instant('Not now'),
             this.translate.instant('Switch'),
@@ -139,7 +133,9 @@ export class NewBuildWatcherService {
                 this.translate.instant('Switching starts the new build and closes this window. Anything running in it — terminals, SSH sessions, agents — goes with it.'),
                 canDelete
                     ? this.translate.instant('Deleting removes this build from disk once this window has exited.')
-                    : this.translate.instant('This build is the active one, so it cannot be deleted; make another active first.'),
+                    : current?.kind === 'portable'
+                        ? this.translate.instant('This build is the active one, so it cannot be deleted; make another active first.')
+                        : this.translate.instant('Only a build slot is deleted from here. Remove this one from Settings → Builds.'),
             ].join('\n'),
             buttons,
             defaultId: 0,
@@ -210,6 +206,18 @@ export class NewBuildWatcherService {
             windowsHide: true,
         })
         child.unref()
+    }
+
+    /**
+     * Whether a build is the active one, asked of config rather than of the
+     * build. `scan()` leaves `isActive` false for everything, since only the
+     * Builds page resolves it, so reading the flag made every build look
+     * deletable, the active one included. An unset `activeExecutable` counts as
+     * active: a build nobody has shown to be expendable is not deleted.
+     */
+    private isActive (build: TabbyBuild): boolean {
+        const active: string = this.config.store?.builds?.activeExecutable ?? ''
+        return !active || !build.executable || normalize(build.executable) === normalize(active)
     }
 
     /** Never offer this one again, even on a later scan. */

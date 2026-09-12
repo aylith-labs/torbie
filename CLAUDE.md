@@ -2086,6 +2086,40 @@ one.
   `build/windows/icon.ico` in the checkout — the target there is `electron.exe`,
   whose icon is Electron's.
 
+### Offering a newer build
+
+`newBuildWatcher.service.ts` offers to switch when a newer build turns up, and
+`newBuildChoice.ts` decides what counts, as pure logic. The first version
+compared build times and nothing else, so an installed 1.0.0 opened on a dialog
+offering `tabby (win-unpacked)`, this checkout's electron-builder output, with
+a button that would have deleted the install.
+
+- **An installed build is offered nothing.** It is a release, and the next
+  release replaces it; the watcher is for the in-place loop where a slot is cut
+  while an older one runs.
+- **A switch lands only on a portable or installed build of the same product.**
+  Build times cannot say whether an upstream Tabby should replace a Torbie.
+  `packaged` is excluded because an unpacked directory with no `data\` shares
+  `%APPDATA%\<name>` with the installed app, and the single-instance lock is
+  keyed on that directory: launching it while the installed app runs hands the
+  launch back to the running process, and the switch then closes this window
+  with nothing left open. It is also what `make-slot.mjs` copies into a slot,
+  and the slot is the build to switch to.
+- **Only a slot that is not the active build may be deleted on the way out.**
+  `scan()` leaves `isActive` false for every build, since only the Builds page
+  resolves it, so the old `!current.isActive` offered deletion for everything,
+  the active build included. The watcher now asks `builds.activeExecutable`,
+  and an unset one counts as active. An installed build goes through its
+  uninstaller, never a directory removal; a source build is more than its
+  `root`.
+- **Builds are named after their product, not their folder.** This checkout
+  lives in a directory called `tabby`, so its builds read `tabby (source)` and
+  `tabby (win-unpacked)`, which is upstream's name. They read `Torbie (…)` now:
+  `TabbyBuild.product` comes from the executable, the checkout's
+  `app/package.json` or the installer's file name.
+- `tabby-builds/test/newBuildChoice.test.js` (fast tier) holds each rule as a
+  case, the reported dialog first.
+
 ## The jump list wears the profiles' own icons
 
 Right-clicking Tabby in the taskbar or the Start menu offers your profiles.

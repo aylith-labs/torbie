@@ -55,6 +55,23 @@ export function isUpstreamBuild (nameOrPath: string): boolean {
 }
 
 /**
+ * The product an executable belongs to, read off its file name: `Torbie.exe`,
+ * `torbie` and `Torbie.app/Contents/MacOS/Torbie` all answer Torbie. Null for
+ * anything else, `electron.exe` included, which names no product; a source
+ * build asks its checkout instead.
+ */
+export function productFromExecutable (file: string): string | null {
+    const stem = (file.split(/[\\/]/).pop() ?? '').replace(/\.exe$/i, '').toLowerCase()
+    return PRODUCT_NAMES.find(name => name.toLowerCase() === stem) ?? null
+}
+
+/** The product a `package.json` name, or an artifact's name prefix, belongs to. */
+export function productFromPackageName (name: string | null | undefined): string | null {
+    const lower = (name ?? '').toLowerCase()
+    return PRODUCT_NAMES.find(product => product.toLowerCase() === lower) ?? null
+}
+
+/**
  * Is this the title a window carries before it has opened a tab?
  *
  * A booted window is named after its active tab; one still on the splash is

@@ -56,6 +56,13 @@ export interface TabbyBuild {
     kind: BuildKind
     name: string
     /**
+     * Which app this is, Torbie or upstream Tabby, read off the build itself:
+     * its executable, its checkout's `package.json`, its installer's name.
+     * Never the directory it sits in, which is named by whoever cloned it.
+     * Null when nothing on disk says.
+     */
+    product: string | null
+    /**
      * The directory (or file) that *is* this build — what gets sized, revealed
      * and deleted. Deliberately never the repo root for a source build: that
      * would make "delete" mean "delete the checkout".
