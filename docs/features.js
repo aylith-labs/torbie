@@ -27,6 +27,36 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "color-scheme-pairs", title: "Every dark and light pair, one search, and tabs that keep their own tone",
+    cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
+    commits: ["31c44dcc", "151f1ca4"], files: 12, ins: 1004, del: 216,
+    desc: "The Pair tab found six designs and now finds fourteen, in twenty-one rows: names are split where words run together, a plain name counts as a half, and a family with more variants keeps its lead pair. The colours decide which half is which, never the name alone. Pair is the first tab, one search above the tabs serves all three, and each mode tab opens on its own tone.",
+  },
+  {
+    id: "plugins-search", title: "Plugin search filters, and the list sorts",
+    cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
+    commits: ["b94ae54f"], files: 5, ins: 571, del: 139,
+    desc: "Typing into the Plugins search reordered the list and never shortened it, because the npm registry ignores a search term sent beside a keyword qualifier. The catalogue is fetched once and searched locally, with four sorts for available plugins and three for installed ones, and a refused request shows an error with Retry instead of a spinner that never stops.",
+  },
+  {
+    id: "integrations-folder", title: "The integrations folder button opens a folder",
+    cat: "links", catLabel: "Links", dateAdded: "2026-09-12",
+    commits: ["b4af3d7c"], files: 5, ins: 281, del: 17,
+    desc: "The button beside the folder for your own integrations did nothing on a fresh profile, because the folder did not exist and the shell's error was thrown away. It creates the folder first, and says so when it cannot.",
+  },
+  {
+    id: "preset-menus", title: "Preset menus are grouped and searchable from the keyboard",
+    cat: "links", catLabel: "Links", dateAdded: "2026-09-12",
+    commits: ["cbda7aff"], files: 6, ins: 537, del: 51,
+    desc: "Both rule preset menus list presets under the integration or family they belong to, focus their search box as they open and clear it as they close, and let ArrowDown carry on into the list. A rule made from a preset keeps its old name, so existing rules are still recognised.",
+  },
+  {
+    id: "settings-nav-sections", title: "The settings nav is in labelled sections",
+    cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
+    commits: ["700511d3"], files: 8, ins: 929, del: 12,
+    desc: "Nineteen settings pages sit under eight labelled sections instead of four favourites and an alphabetical run. One table places every page by id, so no provider file changed, and a plugin page that knows nothing about sections lands under Plugins rather than disappearing.",
+  },
+  {
     id: "integration-self-check", title: "The Integrations list verifies itself",
     cat: "links", catLabel: "Links", dateAdded: "2026-09-12",
     commits: ["0daf0e55"], files: 6, ins: 353, del: 3,

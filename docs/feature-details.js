@@ -20,6 +20,84 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "color-scheme-pairs": {
+    problem:
+      "The Pair tab listed six designs from a catalogue that holds many more. The search box sat inside each tab, so switching tabs lost it; the page opened on whichever mode the OS was in; and a tone filter chosen on the Light mode tab was still selected on the Dark one.",
+    how:
+      "Pairing finds the design from the name and lets the colours decide the halves. Names split at separators and where lower case turns to upper, with case and accents folded, and variant words such as <em>moon</em>, <em>storm</em>, <em>dawn</em> and <em>mocha</em> come out the same way <em>dark</em> and <em>light</em> do. A design pairs when it has a scheme that measures dark and one that measures light, and a scheme whose name claims the other tone from its colours is never a half. The page now owns a single search above the tabs, opens on Pair, and each mode tab sets its own tone every time it is opened.",
+    notes: [
+      "The old rule is transcribed into the fast test, which asserts its six pairs are all still found and then pins the full list of twenty-one rows.",
+      "<em>morning</em> and <em>evening</em> are deliberately not tone words. Base2Tone ships Morning and Evening as two designs, and taking the words out would pair a design nobody drew.",
+      "A longer name joins a design only when it also carries a tone word, so Tomorrow Night Eighties joins Tomorrow and Solarized Darcula does not join Solarized.",
+      "The Pair titles moved onto the scheme names' edge. The check mark used to sit in a fixed-width slot in front of every title, empty or not.",
+    ],
+    caveats: [
+      "Deliberately left unpaired, and asserted: Atom with AtomOneLight, whose palettes are unrelated; Spring with Tomorrow; the two Base2Tone designs; and families where only one half is bundled, such as Gruvbox and GitHub.",
+      "A tone word fused into a name with no case change or separator is not split. Nothing bundled is named that way.",
+      "The tone filter override is deliberately not remembered, and a previously stored value is ignored rather than deleted.",
+    ],
+  },
+
+  "plugins-search": {
+    problem:
+      "Typing into Search plugins turned the search icon into a spinner and left the list exactly as it was, which reads as search being broken, because it was.",
+    how:
+      "Two faults. The npm registry does not filter by a term sent alongside a <code>keywords:</code> qualifier: <code>keywords:tabby-plugin tmux</code> and a nonsense term both return the same 149 packages, re-ranked. And a refused request still carries a JSON body, so reading the package list off it threw inside the stream, which ended it and left the spinner turning. The catalogue is now fetched once, paged and cached, and searched locally: every typed word has to match the name, package name, keywords, description or author.",
+    sample: {
+      label: "Measured, before and after",
+      text: "registry requests on page load   6 -> 2\nregistry requests per pause      4 -> 0\n\"tmux\" on the Available tab   144 -> 4 items",
+    },
+    notes: [
+      "Relevance with no query keeps the registry's own order, so the default view is unchanged. The other sorts are the ones the data actually varies on: Most downloaded, Recently published and Name for available plugins, and Name, Third-party first and Disabled first for installed ones.",
+      "Dependents and the score breakdown were left out, because they were identical across all 180 packages the registry returned.",
+      "The sort choice is view state and lives in localStorage.",
+    ],
+    caveats: [
+      "The stuck spinner in the original report was reproduced with an injected 429 response, not observed from the registry itself.",
+      "Third-party first has only run on a profile with no third-party plugins, where it matches Name.",
+    ],
+  },
+
+  "integrations-folder": {
+    problem:
+      "On a fresh profile, the button that opens the folder for your own integrations did nothing when clicked, and said nothing either.",
+    how:
+      "The folder does not exist until someone makes it, <code>shell.openPath</code> answers a missing path with an error string rather than a rejection, and <code>PlatformService.openPath</code> threw that string away. The button now creates the folder first, and a failure it can see raises a notification naming the path.",
+    caveats: [
+      "A failure after the folder exists is still invisible, because <code>PlatformService.openPath</code> returns nothing. Surfacing it means changing that platform API.",
+      "The suite stubs the open call, so it proves the folder is created and handed over, not that Explorer appears.",
+    ],
+  },
+
+  "preset-menus": {
+    problem:
+      "Both preset menus on the Link Tooltip page were one flat list carrying its grouping as a name prefix, with a search box flush against the menu edge that nothing focused.",
+    how:
+      "Presets carry a menu label and a group built from the integration that owns them; presets that belong to none go under Files or their own label prefix. Opening a menu focuses its search one task later, because ng-bootstrap emits its open event before it focuses its own toggle and before the menu is shown. Closing clears the search, and ArrowDown from the box moves to the first preset that can be picked.",
+    notes: [
+      "A rule made from a preset keeps the prefixed name, because that name is how the rule is recognised later and is already sitting in people's rule lists.",
+      "Search requires every typed word to appear somewhere in the preset, which still finds everything the old single-substring filter found.",
+    ],
+    caveats: [
+      "Git's group is read from its catalogue label's prefix, because the preset catalogue has no group field.",
+    ],
+  },
+
+  "settings-nav-sections": {
+    problem:
+      "The settings nav was four prioritized pages and then an alphabetical run of nineteen, so related pages were scattered and nothing said what belonged together.",
+    how:
+      "Eight labelled sections: General, Terminal, Connections, Links &amp; integrations, Claude, Plugins, Development and Configuration. One table in <code>settingsGroups.ts</code> places pages by provider id, so no provider file in any package was edited, and <code>SettingsTabProvider</code> gains an optional <code>group</code>, add-only.",
+    notes: [
+      "A plugin page that names no section lands under Plugins, and so does one naming a section that does not exist. The suite proves it with a stand-in plugin loaded from a scratch profile.",
+      "Labels are headings rather than pages: they are not links, not focusable, and the arrow keys step over them.",
+    ],
+    caveats: [
+      "A plugin's <code>prioritized</code> now only moves its page earlier within its section.",
+      "The eight labels have no translations yet, and screen readers do not announce them as group names.",
+    ],
+  },
+
   "integration-accounts": {
     problem: "A repository name alone does not identify its organization, and a configured integration did not tell you which account was actually authenticated.",
     how: "Preferred organizations are editable rows with add, remove and move controls. The first accessible issue wins. GitHub uses the CLI credential for github.com first, then the saved PAT, for both account checks and previews. An on-demand menu discovers organization memberships and organization owners of accessible repositories. Account checks show names and avatars for GitHub, Jira and Slack, and keep connection failures visible.",

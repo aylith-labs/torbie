@@ -1142,6 +1142,18 @@ one carries its own verdict.
   path is asserted deterministically instead, from `accounts.busy` immediately
   after a forced re-check.
 
+### The folder button creates the folder it opens
+
+On a fresh profile the button beside "drop a folder containing an
+integration.json into" did nothing. `<config dir>/integrations` does not exist
+until someone makes it, `shell.openPath` answers a missing path with an error
+*string* rather than a rejection, and `PlatformService.openPath` discards it.
+The button now creates it (`recursive`) first, and reports a failure it can
+see, such as a file sitting where the directory should be. A shell failure
+after that stays invisible, because `openPath` returns nothing; surfacing it
+means changing that platform API. `userDirectory.cdp.js` stubs `openPath` for
+the run, so no Explorer window opens on the desktop.
+
 ### Rich integrations
 
 The reference fork grew five manifest keys in `3f221ee31`, and a manifest using
@@ -1457,6 +1469,25 @@ button is a split button whose caret offers eleven ready-made rules, and an
 - Applying a preset resets the delay/width overrides and the button suppression
   but **keeps custom actions**: they are the one part of a rule that is
   unambiguously the user's own work.
+
+### The preset menus are grouped, and the cursor starts in the search
+
+Both preset menus (the Add rule caret and Apply preset) list presets under the
+integration or family they belong to (`presetGroups()` in `presets.ts`),
+focus their search when they open, and clear it when they close.
+
+- **`name` keeps its prefix.** It is what a rule made from a preset is called,
+  and how `presetForRule` recognises that rule later, so the menu shows a
+  separate `label` under the group's header instead of renaming anything.
+- **Focus waits one task.** ngbDropdown emits `openChange` before it focuses
+  its own toggle and before `.show` is on the menu, and nothing inside a
+  `display: none` menu can take focus.
+- **ngbDropdown only navigates from its toggle or an item**, so ArrowDown in
+  the search box did nothing until the component moved focus itself.
+- **A view built by `window.ng.applyChanges` from a CDP script listens outside
+  the zone.** A rule editor built that way let the menu fall behind typing;
+  built inside `NgZone.run` it kept up. `presets.cdp.js` builds it in the zone,
+  and says why.
 
 ### The card says which rule made it, and the buttons pick a real edge
 
@@ -2539,6 +2570,32 @@ question, answered without leaving the app.
   branch, the newest local subject, and the resolved GitHub URL all match, and
   the Fetch button moves `FETCH_HEAD` in ~1.5s.
 
+## The settings nav is in sections (`tabby-settings`)
+
+Eight labelled sections replace four prioritized pages and an alphabetical
+run: General, Terminal, Connections, Links & integrations, Claude, Plugins,
+Development, Configuration. `tabby-settings/src/settingsGroups.ts` is one
+table of provider ids per section, in order.
+
+- **Placed by id, so no provider file changed.** Every line edited in an
+  upstream provider is a line a cherry-pick has to land, and the fork's own
+  providers are left alone for the same reason.
+- **A plugin's page must still find a home.** `SettingsTabProvider.group` is
+  optional and add-only. A page that names no section and is not in the table
+  goes under Plugins, and so does one naming a section that does not exist.
+  `navGroups.cdp.js` proves it with a stand-in plugin loaded from a scratch
+  profile under `%TEMP%`, launched on a port picked from the top of the range
+  so it never lands on the instance a person is using.
+- **Application opens the first section and Config file closes the last**
+  because the template still draws those two pages itself, where upstream put
+  them. That keeps the template's diff to one loop.
+- **Labels are headings, not pages**: no `.nav-link`, not focusable, stepped
+  over by ngbNav's arrow keys. Every page link is still a `.nav-link` under the
+  settings tab's own nav, which `forkMarks.cdp.js` and the contrast audit
+  select by.
+- `prioritized` now only means "early within its section". The labels are not
+  translated yet, and screen readers do not announce them as group names.
+
 ## Which settings are this fork's (`tabby-upstream`)
 
 Nothing in the running program said which behaviour is ours and which is
@@ -2673,6 +2730,30 @@ The migration is to the directive API already used by the Link Tooltip page:
   been styling nothing for as long as it had been there.
 - Verified live: 144 available and 19 installed items, zero of either removed
   tag, a body that instantiates its Get / Homepage / version content on click.
+
+### Search that filters, when the registry will not
+
+Typing into Search plugins reordered the Available list and never shortened
+it, and a refused request left the spinner turning for good. Both were the
+registry path, not the page.
+
+- **The npm registry does not filter by a term sent beside a `keywords:`
+  qualifier.** Measured: `keywords:tabby-plugin tmux`, a nonsense term and the
+  qualifier alone all return the same 149 packages, re-ranked. So the
+  catalogue is fetched once (both keywords, paged past 250, cached five
+  minutes) and `pluginSearch.ts` filters and sorts locally. Typing sends no
+  request.
+- **A refused request still has a JSON body.** A 429 is `{"code":"E429",…}`,
+  and reading `.objects` off it threw inside the RxJS stream, which ended it:
+  the spinner kept turning over a stale list and later typing sent nothing. A
+  non-OK response now throws a readable error, shown with Retry.
+- **Two `async` pipes on one cold stream double every request.** Each pause in
+  typing cost four. The component holds the catalogue itself now.
+- Relevance with no query keeps the registry's score order, so the default
+  view is unchanged. The sort choice is view state, in
+  `localStorage.pluginsSortOrder`.
+- The dummy-transition guard read `item.keywords`, which the registry never
+  sends; the keywords are on `item.package`.
 
 ## The renderer and xterm 6
 
@@ -2836,6 +2917,35 @@ Kept to a minimum — every one is a line that conflicts on rebase.
   (the old default) via `max(4, terminal.minimumContrastRatio)` — measured
   identical output at 1 and at 4, while 6 still escalates it, so raising the
   setting for accessibility keeps working.
+
+## The colour scheme page
+
+Settings → Color scheme opens on **Pair**, has one search above its three
+tabs, and each mode tab opens on its own tone.
+
+- **Pairing: the name finds the design, the colours decide the halves**
+  (`colorSchemeTone.ts`). The old rule needed dark, light, night or day as a
+  separate word on both halves, and lost three kinds of pair: words run
+  together (`OneHalfDark`, `TokyoNight Day`), a plain name that is one half
+  (`Tomorrow`, `ayu`, `Tabby Default`), and a family with a third variant.
+  Names now split at separators and at lower-to-upper case, variant words
+  (`moon`, `storm`, `dawn`, `mocha` and so on) come out like tone words, and a
+  name claiming the tone its colours contradict is never a half. 6 pairs
+  became 21 rows from 14 designs.
+- **`morning` and `evening` are not tone words.** Base2Tone ships Morning and
+  Evening as separate designs, and removing the words would pair a design
+  nobody drew.
+- **A longer name joins a design only if it also carries a tone word**, so
+  Tomorrow Night Eighties joins Tomorrow and Solarized Darcula stays out.
+- **The search lives on the page, not in a tab**, because ngbNav destroys a
+  tab's content when another is selected and the query has to survive that.
+- **The tone filter is not stored.** It was one localStorage value shared by
+  both mode tabs, which is how Light chosen on the Light tab was still
+  selected on the Dark one. An override now lasts one visit.
+- `colorSchemeTone.test.js` transcribes the old rule and asserts its six pairs
+  are still found, then pins all 21 rows and the deliberate non-pairs.
+  `colorSchemePage.cdp.js` covers the tab order, the per-tab tone, the shared
+  search and the Pair title alignment.
 
 ## The accent colour
 
