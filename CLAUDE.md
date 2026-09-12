@@ -332,6 +332,47 @@ resolves, and their `ConfigProvider`s ran.
 **Node.** Angular 22 wants `^22.22.3 || ^24.15.0 || >=26.0.0`; this machine has
 25.2.1, so installs need `--ignore-engines`. CI is on 22.
 
+## Cutting a release
+
+A tag is the only thing that makes a build call itself a release, and it is also
+the only thing that exercises the release path at all. Both halves matter.
+
+**electron-builder is the uploader.** `scripts/build-{macos,linux,windows}.mjs`
+each declare a `github` publish provider and `publish: isTag ? 'always' :
+'never'`, so on a tag electron-builder pushes the installers *and* the
+`latest-*.yml` update manifests into the release itself. Nothing else needs to
+attach anything, and adding a second uploader (`softprops/action-gh-release` and
+friends) would mean two things owning one release. `release.yml` creates the
+draft and calls the gate; `build.yml` fills it.
+
+- **Every build step needs `GITHUB_TOKEN`, including the unsigned one.** This
+  repository has no Actions secrets, so `CAN_SIGN` is false and **every tag
+  takes the "without signing" path** — which makes that the step that releases.
+  It had the token on Linux and not on macOS or Windows, so v1.0.0 built every
+  artifact on all three and then died on two of them with *"GitHub Personal
+  Access Token is not set, neither programmatically, nor using env `GH_TOKEN`"*,
+  from `electron-publish/src/gitHubPublisher.ts`. Green on `main`, red on the
+  tag, at the same commit — because only a tag turns the publisher on.
+- **A tag is the only test of this.** `workflow_dispatch` does not reproduce it:
+  `isTag` is false, so `publish` is `'never'` and the whole path is skipped.
+  There is no way to verify a change here except to cut a tag.
+- **Assets arrive minutes after the run starts, one platform at a time.**
+  Measured on v1.0.0: the run began at 00:57 and Linux's eighteen artifacts
+  landed between 01:05 and 01:10. **So `assets: 0` means "not yet", not
+  "none".** Read it once and act on it later and you are acting on a stale
+  number — which is exactly how the first v1.0.0 draft came to be deleted as
+  empty while holding eighteen uploaded files. Re-read immediately before
+  anything destructive, and gate the destructive step on that read rather than
+  chaining it after one.
+- The draft is `draft: true` from `marvinpinto/action-automatic-releases`, so a
+  release is never public until somebody publishes it. Note that a draft's URL
+  is `releases/tag/untagged-<hash>` and `releases/latest` still answers **404**
+  — GitHub does not bind a draft to its tag. The gift icon therefore cannot
+  appear from a draft, and it cannot appear from a release matching the running
+  version either: `ElectronUpdaterService` compares `app.getVersion()` against
+  `tag_name`, so the icon is correct to stay hidden until there is a *newer*
+  published release.
+
 ## Toolchain: why TypeScript is pinned, and why that is not neglect
 
 The org toolchain says `typescript` at its `latest` dist-tag — TS 7, the Go
@@ -380,7 +421,7 @@ gap*, so each is recorded here rather than left to be re-derived.
 
 | Registry | Decision |
 |---|---|
-| `aylith-com/.aylith/deploy-alert-targets.json` | **Registered**, watching `tagged-release`. It cuts a GitHub release, which is the manifest's own criterion. `Package-Build` also publishes artifacts on a tag but runs on `main` too, and routing an ordinary red build there is the noise the criterion excludes; `tagged-release` `needs:` the gate, so a gate failure on the tag still surfaces. **Known gap:** a packaging failure on a tag does not alert. |
+| `aylith-com/.aylith/deploy-alert-targets.json` | **Registered**, watching `tagged-release`. It cuts a GitHub release, which is the manifest's own criterion. `Package-Build` also publishes artifacts on a tag but runs on `main` too, and routing an ordinary red build there is the noise the criterion excludes; `tagged-release` `needs:` the gate, so a gate failure on the tag still surfaces. **Known gap:** a packaging failure on a tag does not alert — and it has now cost something, so it is a real gap rather than a theoretical one. See *Cutting a release* below. |
 | `aylith-hub/packages/db/seed.ts` | **No.** The hub groups changelogs, stats and live status *by service*; this is a desktop application with no service and, so far, no releases. Revisit at the first tagged release, when there is a changelog worth grouping. |
 | `aylith-infra/apps/api/src/config/apps.ts` | **No.** It polls a health endpoint. A terminal on someone's laptop has none, and inventing one would mean the app phoning home — the opposite of what severing upstream's telemetry was for. |
 | `entity-graph/adapters/` | **No.** What this stores is profiles, keys and window geometry, all per-machine and private. There is nothing another app should link to or put on a timeline. |
