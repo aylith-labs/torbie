@@ -17,6 +17,10 @@
   function tick() { x += (tx-x)*.16; y += (ty-y)*.16; if (Math.abs(tx-x)+Math.abs(ty-y)>.4) frame=requestAnimationFrame(tick); else { x=tx; y=ty; frame=0; } }
   function move(e: PointerEvent) {
    if (e.pointerType !== 'mouse' || !fine.matches || motion.matches || document.documentElement.dataset.motion === 'off' || parked || open || host?.matches(':hover') || document.activeElement?.closest('.companion')) return;
+   const bounds=host.getBoundingClientRect();
+   const distance=Math.hypot(Math.max(bounds.left-e.clientX,0,e.clientX-bounds.right),Math.max(bounds.top-e.clientY,0,e.clientY-bounds.bottom));
+   // Stop before the pointer reaches us, including any already queued frame.
+   if(distance<88){cancelAnimationFrame(frame);frame=0;tx=x;ty=y;return;}
    following=true; tx=Math.min(innerWidth-80,Math.max(16,e.clientX+42)); ty=Math.min(innerHeight-88,Math.max(16,e.clientY+36));
    gazeX=Math.max(-2,Math.min(2,(e.clientX-x)/30)); gazeY=Math.max(-2,Math.min(2,(e.clientY-y)/30));
    if(!frame) frame=requestAnimationFrame(tick);
