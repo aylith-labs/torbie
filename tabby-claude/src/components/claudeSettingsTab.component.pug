@@ -1,183 +1,238 @@
 h3.mb-3(translate) Claude
 
-.form-line
-    .header
-        .title(translate) Session registry URL
-        .description(translate) stith provides the session list, including sessions running in WSL and on other machines
-    input.form-control(
-        type='text',
-        [(ngModel)]='config.store.claude.stithURL',
-        (ngModelChange)='saveConfiguration()',
+//- Four groups over what was a 183-line flat scroll. The shape is the Link
+//- Tooltip page's, for the same reasons it gives: ng-bootstrap's *directive*
+//- accordion (the component API was removed in ng-bootstrap 15), Bootstrap 5's
+//- `.accordion` already themed, and the open/closed state kept in localStorage
+//- because it is view state and has no business in `config.yaml`.
+//-
+//- And nothing here sets `disabled` on an accordion item. That disables the
+//- item's own header, so a group whose master switch lives inside it could
+//- never be opened to switch it back on. Every dependency below is per-row
+//- `[disabled]` instead, and each master switch is the first row of the group
+//- it governs.
+div(ngbAccordion, [destroyOnHide]='false', [animation]='config.store.accessibility.animations')
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("registry")',
+        (shown)='setCollapsed("registry", false)',
+        (hidden)='setCollapsed("registry", true)',
     )
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Session registry
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) Session registry URL
+                            .description(translate) stith provides the session list, including sessions running in WSL and on other machines
+                        input.form-control(
+                            type='text',
+                            [(ngModel)]='config.store.claude.stithURL',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Connection
-        .description {{testResult}}
-    button.btn.btn-secondary(
-        (click)='testConnection()',
-        [disabled]='testing'
+                    .form-line
+                        .header
+                            .title(translate) Connection
+                            .description {{testResult}}
+                        button.btn.btn-secondary(
+                            (click)='testConnection()',
+                            [disabled]='testing'
+                        )
+                            i.fas.fa-fw.fa-circle-notch.fa-spin.me-2(*ngIf='testing')
+                            span(translate) Test connection
+
+                    .form-line
+                        .header
+                            .title(translate) Read session transcripts
+                            .description(translate) Derives context window usage locally. Turn off to avoid reading transcript files at all
+                        toggle(
+                            [(ngModel)]='config.store.claude.readTranscripts',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line
+                        .header
+                            .title(translate) Refresh interval
+                            .description(translate) Milliseconds between session refreshes while this window is focused. Never polls faster than this: unfocused it slows to at least 6s, minimised or hidden to at least 15s, and if stith stops answering it doubles each failure up to 60s
+                        input.form-control(
+                            type='number',
+                            min='500',
+                            step='500',
+                            [(ngModel)]='config.store.claude.pollIntervalMs',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("clicking")',
+        (shown)='setCollapsed("clicking", false)',
+        (hidden)='setCollapsed("clicking", true)',
     )
-        span(translate) Test connection
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Clicking a session
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) What a click does
+                            .description(translate) Every action is always available from the ⋮ menu; this is just the one a plain click runs
+                        select.form-control(
+                            [(ngModel)]='config.store.claude.clickAction',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+                            option(value='focus') {{'Focus tab'|translate}}
+                            option(value='details') {{'Show details'|translate}}
+                            option(value='newTab') {{'Open new tab here'|translate}}
+                            option(value='resume') {{'Resume in new tab'|translate}}
+                            option(value='stith') {{'Open in stith'|translate}}
 
-.form-line
-    .header
-        .title(translate) Read session transcripts
-        .description(translate) Derives context window usage locally. Turn off to avoid reading transcript files at all
-    toggle(
-        [(ngModel)]='config.store.claude.readTranscripts',
-        (ngModelChange)='saveConfiguration()',
+                    //- Focusing reaches outside this window: a session running in
+                    //- a herdr/shefrd pane has no tab here to select, and the
+                    //- only thing that can raise it is shefrd itself. No second
+                    //- address to configure — it goes through the registry URL
+                    //- above, which is the only endpoint that can reach a
+                    //- multiplexer from a renderer.
+                    .form-line
+                        .header
+                            .title(translate) Focus panes in herdr / shefrd
+                            .description(translate) When a session has no tab in this window, ask shefrd to raise its pane instead of falling back to the browser
+                        toggle(
+                            [disabled]='config.store.claude.clickAction !== "focus"',
+                            [(ngModel)]='config.store.claude.shefrd.enabled',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line
+                        .header
+                            .title(translate) Delay before typing into a new tab
+                            .description(translate) Seconds. A cold WSL distro is not accepting input immediately, and anything sent early is swallowed by the prompt redraw
+                        input.form-control(
+                            type='number',
+                            min='0',
+                            step='0.5',
+                            [(ngModel)]='config.store.claude.resumeInputDelaySec',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("panel")',
+        (shown)='setCollapsed("panel", false)',
+        (hidden)='setCollapsed("panel", true)',
     )
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Panel contents
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) Font size
+                            .description(translate) Pixels. Everything inside the panel is sized against this, so it scales the whole panel rather than just the body text
+                        input.form-control(
+                            type='number',
+                            min='9',
+                            max='24',
+                            [(ngModel)]='config.store.claude.panel.fontSize',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Clicking a session
-        .description(translate) Every action is always available from the ⋮ menu; this is just the one a plain click runs
-    select.form-control(
-        [(ngModel)]='config.store.claude.clickAction',
-        (ngModelChange)='saveConfiguration()',
+                    //- The master, and the six rows under it are the sections
+                    //- *inside* the active-session block — the panel renders them
+                    //- within `*ngIf='showActiveSession && activeSession'`, so
+                    //- with this off they were switches that changed nothing and
+                    //- said nothing about why.
+                    .form-line
+                        .header
+                            .title(translate) Active session
+                            .description(translate) The block describing the session in the focused tab
+                        toggle(
+                            [(ngModel)]='config.store.claude.panel.showActiveSession',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line.ms-5(*ngFor='let row of activeSessionRows; trackBy: trackKey')
+                        .header
+                            .title {{row.label|translate}}
+                            .description(*ngIf='row.description') {{row.description|translate}}
+                        toggle(
+                            [disabled]='!config.store.claude.panel.showActiveSession',
+                            [(ngModel)]='config.store.claude.panel[row.key]',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    //- These three are their own top-level sections in the panel
+                    //- and are governed by nothing above, so they are deliberately
+                    //- not indented under the master.
+                    .form-line
+                        .header
+                            .title(translate) Sessions waiting on you
+                        toggle(
+                            [(ngModel)]='config.store.claude.panel.showWaiting',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line
+                        .header
+                            .title(translate) Other sessions
+                        toggle(
+                            [(ngModel)]='config.store.claude.panel.showSessionList',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line
+                        .header
+                            .title(translate) Plan usage
+                        toggle(
+                            [(ngModel)]='config.store.claude.panel.showUsage',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+
+                    .form-line.ms-5
+                        .header
+                            .title(translate) How usage is drawn
+                            .description(translate) Pies put both windows on one line; bars read well in a narrow dock
+                        select.form-control(
+                            [disabled]='!config.store.claude.panel.showUsage',
+                            [(ngModel)]='config.store.claude.panel.usageView',
+                            (ngModelChange)='saveConfiguration()',
+                        )
+                            option(value='pies') {{'Pies'|translate}}
+                            option(value='bars') {{'Bars'|translate}}
+
+    .accordion-item(
+        ngbAccordionItem,
+        [collapsed]='collapsed("hover")',
+        (shown)='setCollapsed("hover", false)',
+        (hidden)='setCollapsed("hover", true)',
     )
-        option(value='focus') {{'Focus tab'|translate}}
-        option(value='details') {{'Show details'|translate}}
-        option(value='newTab') {{'Open new tab here'|translate}}
-        option(value='resume') {{'Resume in new tab'|translate}}
-        option(value='stith') {{'Open in stith'|translate}}
+        .accordion-header(ngbAccordionHeader)
+            button.accordion-button(ngbAccordionButton, type='button')
+                span(translate) Tab hover card
+        .accordion-collapse(ngbAccordionCollapse)
+            .accordion-body(ngbAccordionBody)
+                ng-template
+                    .form-line
+                        .header
+                            .title(translate) Show a card when hovering a tab
+                            .description(translate) Only for tabs running a Claude session; other tabs keep the plain title tooltip
+                        toggle(
+                            [(ngModel)]='config.store.claude.hover.enabled',
+                            (ngModelChange)='saveConfiguration()',
+                        )
 
-.form-line
-    .header
-        .title(translate) Refresh interval
-        .description(translate) Milliseconds between session refreshes while this window is focused. Never polls faster than this: unfocused it slows to at least 6s, minimised or hidden to at least 15s, and if stith stops answering it doubles each failure up to 60s
-    input.form-control(
-        type='number',
-        min='500',
-        step='500',
-        [(ngModel)]='config.store.claude.pollIntervalMs',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-h4.mt-4.mb-2(translate) Panel contents
-
-.form-line
-    .header
-        .title(translate) Active session
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showActiveSession',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Status
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showStatus',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Context window
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showContext',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Counters
-        .description(translate) Turns, tool calls, compactions and subagents
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showStats',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Last prompt
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showLastPrompt',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Queued prompts
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showQueued',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Bookmark
-        .description(translate) Notes and links saved against the session in stith
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showBookmark',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Sessions waiting on you
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showWaiting',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Other sessions
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showSessionList',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Plan usage
-    toggle(
-        [(ngModel)]='config.store.claude.panel.showUsage',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-h4.mt-4.mb-2(translate) Tab hover card
-
-.form-line
-    .header
-        .title(translate) Show a card when hovering a tab
-        .description(translate) Only for tabs running a Claude session; other tabs keep the plain title tooltip
-    toggle(
-        [(ngModel)]='config.store.claude.hover.enabled',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Status
-    toggle(
-        [(ngModel)]='config.store.claude.hover.showStatus',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Context window
-    toggle(
-        [(ngModel)]='config.store.claude.hover.showContext',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Counters
-    toggle(
-        [(ngModel)]='config.store.claude.hover.showStats',
-        (ngModelChange)='saveConfiguration()',
-    )
-
-.form-line
-    .header
-        .title(translate) Last prompt
-    toggle(
-        [(ngModel)]='config.store.claude.hover.showLastPrompt',
-        (ngModelChange)='saveConfiguration()',
-    )
+                    .form-line.ms-5(*ngFor='let row of hoverRows; trackBy: trackKey')
+                        .header
+                            .title {{row.label|translate}}
+                        toggle(
+                            [disabled]='!config.store.claude.hover.enabled',
+                            [(ngModel)]='config.store.claude.hover[row.key]',
+                            (ngModelChange)='saveConfiguration()',
+                        )
