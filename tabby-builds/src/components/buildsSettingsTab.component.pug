@@ -6,7 +6,11 @@ h3.mb-3(translate) Builds
             .stat-value {{builds.length}}
             .stat-label(translate) builds
         .stat
-            .stat-value([class.text-success]='processCount') {{processCount}}
+            //- Not green digits: those measured 3.85:1 on the light scheme. The
+            //- dot says "live" on its own, and the number keeps the text colour.
+            .stat-value
+                span.live-dot.me-2(*ngIf='processCount')
+                | {{processCount}}
             .stat-label(translate) processes
         .stat
             .stat-value {{humanBytes(memoryTotal)}}
@@ -25,7 +29,8 @@ h3.mb-3(translate) Builds
     button.btn.btn-sm.btn-secondary.ms-3(
         (click)='rescan()',
         [disabled]='scanning',
-        [ngbTooltip]='"Rescan"|translate'
+        [ngbTooltip]='"Rescan"|translate',
+        container='body'
     )
         i.fas.fa-fw.fa-arrows-rotate([class.fa-spin]='scanning')
 
@@ -53,7 +58,7 @@ div([ngbNavOutlet]='nav')
 
 ng-template(#buildList)
     .list-controls
-        .btn-group.btn-group-sm
+        .btn-group.btn-group-sm.filters
             button.btn.btn-secondary(
                 [class.active]='filter === "all"',
                 (click)='setFilter("all")'
@@ -75,13 +80,15 @@ ng-template(#buildList)
             button.btn.btn-secondary(
                 [class.active]='view === "cards"',
                 (click)='setView("cards")',
-                [ngbTooltip]='"Cards"|translate'
+                [ngbTooltip]='"Cards"|translate',
+                container='body'
             )
                 i.fas.fa-fw.fa-layer-group
             button.btn.btn-secondary(
                 [class.active]='view === "table"',
                 (click)='setView("table")',
-                [ngbTooltip]='"Table"|translate'
+                [ngbTooltip]='"Table"|translate',
+                container='body'
             )
                 i.fas.fa-fw.fa-table-list
 
@@ -91,15 +98,15 @@ ng-template(#buildList)
     .builds(*ngIf='scanning && !visible.length && view === "cards"')
         .build-card.skeleton(*ngFor='let n of [1, 2, 3]')
             .build-head
-                .skeleton-line.w-badge
-                .skeleton-line.w-name
-                .flex-fill
+                .build-title
+                    .skeleton-line.w-badge
+                    .skeleton-line.w-name
             .skeleton-line.w-detail
             .facts
                 .skeleton-line.w-fact(*ngFor='let f of [1, 2, 3, 4]')
             .skeleton-line.w-path
 
-    .text-muted.py-4(*ngIf='!visible.length && !scanning', translate) Nothing here.
+    .muted.py-4(*ngIf='!visible.length && !scanning', translate) Nothing here.
 
     .builds(*ngIf='view === "cards"')
         .build-card(
@@ -107,42 +114,53 @@ ng-template(#buildList)
             [class.current]='build.isCurrent',
             [class.running]='build.processes.length'
         )
+            //- Every tooltip on a card renders into <body>. A card is a query
+            //- container, and a container is a stacking context, so a tooltip
+            //- left inside one paints underneath the card that follows it.
             .build-head
-                .badge(class='text-bg-{{kindClass(build)}}') {{kindLabel(build)|translate}}
-                .build-name {{build.name}}
-                .build-version(*ngIf='build.version') {{build.version}}
-                .badge.text-bg-primary(
-                    *ngIf='build.isActive',
-                    [ngbTooltip]='(taskbarSupported ? "The taskbar pin launches this build" : "The build you use")|translate'
-                )
-                    i.fas.fa-thumbtack.me-1
-                    span(translate) active
-                .badge.text-bg-success(*ngIf='build.isCurrent', translate) this window
-                .badge.text-bg-danger(*ngIf='build.health?.verdict === "broken"')
-                    i.fas.fa-circle-exclamation.me-1
-                    span(translate) will not start
-                .badge.text-bg-warning(
-                    *ngIf='isStale(build)',
-                    [ngbTooltip]='"The checkout has moved on since this was compiled"|translate',
-                    translate
-                ) stale
-                .flex-fill
-                button.btn.btn-sm.btn-link(
-                    *ngIf='build.executable',
-                    (click)='launch(build)',
-                    [ngbTooltip]='"Launch"|translate'
-                )
-                    i.fas.fa-fw.fa-play
-                button.btn.btn-sm.btn-link(
-                    (click)='reveal(build)',
-                    [ngbTooltip]='"Reveal in file manager"|translate'
-                )
-                    i.fas.fa-fw.fa-folder-open
-                button.btn.btn-sm.btn-link(
-                    (click)='menu(build, $event)',
-                    [ngbTooltip]='"More"|translate'
-                )
-                    i.fas.fa-fw.fa-ellipsis-vertical
+                .build-title
+                    span.badge.kind-chip
+                        i.fas.fa-fw.me-1(class='fa-{{kindIcon(build)}}')
+                        span {{kindLabel(build)|translate}}
+                    .build-name {{build.name}}
+                    .build-version(*ngIf='build.version') {{build.version}}
+                    .badge.text-bg-primary(
+                        *ngIf='build.isActive',
+                        [ngbTooltip]='(taskbarSupported ? "The taskbar pin launches this build" : "The build you use")|translate',
+                        container='body'
+                    )
+                        i.fas.fa-thumbtack.me-1
+                        span(translate) active
+                    .badge.text-bg-success(*ngIf='build.isCurrent', translate) this window
+                    .badge.text-bg-danger(*ngIf='build.health?.verdict === "broken"')
+                        i.fas.fa-circle-exclamation.me-1
+                        span(translate) will not start
+                    .badge.text-bg-warning(
+                        *ngIf='isStale(build)',
+                        [ngbTooltip]='"The checkout has moved on since this was compiled"|translate',
+                        container='body',
+                        translate
+                    ) stale
+                .build-tools
+                    button.btn.btn-sm.btn-link(
+                        *ngIf='build.executable',
+                        (click)='launch(build)',
+                        [ngbTooltip]='"Launch"|translate',
+                        container='body'
+                    )
+                        i.fas.fa-fw.fa-play
+                    button.btn.btn-sm.btn-link(
+                        (click)='reveal(build)',
+                        [ngbTooltip]='"Reveal in file manager"|translate',
+                        container='body'
+                    )
+                        i.fas.fa-fw.fa-folder-open
+                    button.btn.btn-sm.btn-link(
+                        (click)='menu(build, $event)',
+                        [ngbTooltip]='"More"|translate',
+                        container='body'
+                    )
+                        i.fas.fa-fw.fa-ellipsis-vertical
 
             .build-detail {{build.detail|translate}}
 
@@ -160,7 +178,7 @@ ng-template(#buildList)
                     .finding-title {{finding.title}}
                     .finding-items(*ngIf='finding.items?.length')
                         code.finding-chip(*ngFor='let item of finding.items') {{item}}
-                    .finding-path(*ngIf='finding.location', [ngbTooltip]='finding.location') {{shortPath(finding.location, 70)}}
+                    .finding-path(*ngIf='finding.location', [ngbTooltip]='finding.location', container='body') {{shortPath(finding.location, 70)}}
                     .finding-detail {{finding.detail}}
                     .finding-hint(*ngIf='finding.hint') {{finding.hint}}
                 button.btn.btn-sm.btn-outline-secondary.flex-shrink-0(
@@ -171,7 +189,7 @@ ng-template(#buildList)
             .facts
                 .fact
                     .fact-label(translate) Processes
-                    .fact-value(*ngIf='build.processes.length', [ngbTooltip]='pidList(build)')
+                    .fact-value(*ngIf='build.processes.length', [ngbTooltip]='pidList(build)', container='body')
                         span.live-dot.me-1
                         | {{build.processes.length}}
                     .fact-value.muted(*ngIf='!build.processes.length', translate) not running
@@ -183,7 +201,7 @@ ng-template(#buildList)
                     .fact-value {{humanDuration(uptimeOf(build))}}
                 .fact
                     .fact-label(translate) Built
-                    .fact-value([ngbTooltip]='absoluteTime(build.builtAt)') {{humanAgo(build.builtAt)}}
+                    .fact-value([ngbTooltip]='absoluteTime(build.builtAt)', container='body') {{humanAgo(build.builtAt)}}
                 .fact
                     .fact-label(translate) Size
                     .fact-value(*ngIf='build.size') {{humanBytes(build.size.bytes)}}
@@ -211,7 +229,7 @@ ng-template(#buildList)
                 container='body',
                 (click)='openPath(build)'
             ) {{shortPath(build.root, 90)}}
-            .build-path.muted(*ngIf='build.configPath', [ngbTooltip]='build.configPath')
+            .build-path.muted(*ngIf='build.configPath', [ngbTooltip]='build.configPath', container='body')
                 | {{'Config'|translate}}: {{shortPath(build.configPath, 80)}}
 
             .build-actions
@@ -224,14 +242,16 @@ ng-template(#buildList)
                 button.btn.btn-sm.btn-outline-secondary(
                     *ngIf='canDiagnose(build)',
                     (click)='diagnose(build)',
-                    [ngbTooltip]='"Re-run the health check"|translate'
+                    [ngbTooltip]='"Re-run the health check"|translate',
+                    container='body'
                 )
                     i.fas.fa-fw.fa-stethoscope.me-1
                     span(translate) Diagnose
                 button.btn.btn-sm.btn-outline-primary(
                     *ngIf='build.executable && !build.isActive',
                     (click)='makeActive(build)',
-                    [ngbTooltip]='(taskbarSupported ? "Point the taskbar pin at this build" : "Use this build")|translate'
+                    [ngbTooltip]='(taskbarSupported ? "Point the taskbar pin at this build" : "Use this build")|translate',
+                    container='body'
                 )
                     i.fas.fa-fw.fa-thumbtack.me-1
                     span(translate) Make active
@@ -244,7 +264,8 @@ ng-template(#buildList)
                 button.btn.btn-sm.btn-outline-danger(
                     (click)='delete(build)',
                     [disabled]='!!deleteBlockedReason(build)',
-                    [ngbTooltip]='deleteBlockedReason(build) || ""'
+                    [ngbTooltip]='deleteBlockedReason(build) || ""',
+                    container='body'
                 )
                     i.fas.fa-fw.fa-trash-can.me-1
                     span {{deleteLabel(build)}}
@@ -300,7 +321,9 @@ ng-template(#buildList)
                     [class.current]='build.isCurrent'
                 )
                     td
-                        .badge(class='text-bg-{{kindClass(build)}}') {{kindLabel(build)|translate}}
+                        span.badge.kind-chip
+                            i.fas.fa-fw.me-1(class='fa-{{kindIcon(build)}}')
+                            span {{kindLabel(build)|translate}}
                     td
                         .d-flex.align-items-center.no-wrap
                             span.live-dot.me-2(*ngIf='build.processes.length')
@@ -451,6 +474,7 @@ ng-template(#options)
                 *ngIf='startMenuTarget',
                 (click)='revealStartMenuShortcut()',
                 [ngbTooltip]='"Show in Explorer, where it can be pinned"|translate',
+                container='body',
             )
                 i.fas.fa-fw.fa-folder-open
 

@@ -1,15 +1,33 @@
 // Colours come from the active Tabby theme, never from a hardcoded palette, so
 // the page follows light and dark themes like the rest of Settings.
+//
+// Secondary text is dimmed with a colour, never with `opacity`. Opacity is
+// composited over whatever sits behind the text, so a fact label at .45 on the
+// current card's tint is two translucencies deep: every run dimmed that way on
+// this page measured below WCAG AA on the light scheme (1.94–3.82:1), and most
+// of them on the dark one too. `--theme-muted-fg` is the theme's secondary-text
+// colour, floored to 4.5:1 against every background surface in both schemes,
+// and nothing here stacks an opacity on top of it.
+
+:host {
+    display: block;
+    // The page's own width decides its layout, not the viewport's: the pane is
+    // the window less the tab bar, the settings nav and any docked side panel,
+    // none of which a media query can see.
+    container: builds-page / inline-size;
+}
 
 .summary-bar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px 8px;
 }
 
 .summary-stats {
     display: flex;
-    gap: 22px;
+    flex-wrap: wrap;
+    gap: 6px 22px;
 }
 
 .stat {
@@ -19,9 +37,10 @@
 .stat-value {
     font-size: 18px;
     font-weight: 600;
+    white-space: nowrap;
 
-    &.measuring {
-        opacity: 0.5;
+    .live-dot {
+        vertical-align: middle;
     }
 }
 
@@ -29,7 +48,7 @@
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    opacity: 0.5;
+    color: var(--theme-muted-fg);
 }
 
 .live-note {
@@ -37,7 +56,7 @@
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    opacity: 0.6;
+    color: var(--theme-muted-fg);
     white-space: nowrap;
 }
 
@@ -48,7 +67,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--bs-success);
+    background: var(--theme-success-text);
     flex: none;
 }
 
@@ -60,9 +79,17 @@
     white-space: nowrap;
 }
 
+// A count beside a label. On a tab it takes the muted colour. In a filter
+// button it keeps the button's own, because no secondary colour passes on the
+// selected button, which is black on the light scheme. So size alone carries
+// the hierarchy there.
 .tab-count {
     font-size: 11px;
-    opacity: 0.5;
+    font-variant-numeric: tabular-nums;
+}
+
+.nav-link .tab-count {
+    color: var(--theme-muted-fg);
 }
 
 // Kind filter on the left, view switch on the right — both act on the list
@@ -75,22 +102,61 @@
     margin-bottom: 12px;
 }
 
+// The joined strip of filters measured 528px and the view switch 65px, so in a
+// narrower pane the strip would push the switch past its edge. There the
+// filters come apart and wrap instead, and the switch keeps its corner.
+@container builds-page (max-width: 640px) {
+    .list-controls {
+        align-items: flex-start;
+
+        > .flex-fill {
+            display: none;
+        }
+    }
+
+    .list-controls .btn-group.filters {
+        flex: 1 1 0;
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 4px;
+
+        > .btn {
+            flex: none;
+            margin-left: 0;
+            border-radius: var(--bs-btn-border-radius);
+        }
+    }
+}
+
 // ── Cards ───────────────────────────────────────────────────────────────
 
+// A grid of columns at least 460px wide, as many as the list's own width fits.
+// auto-fill takes the count from the width the list actually has, so there is
+// no breakpoint table to keep in step with anything, and it keeps empty tracks:
+// the one card a filter leaves stays a card rather than a strip across the
+// pane. 460px is what three columns of facts need inside a card (see .facts).
 .builds {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+    gap: 12px;
 }
 
 .build-card {
+    // In a single column the track is the whole pane, so without this the grid
+    // would still hand out a 930px card just before a second column fits.
+    max-width: 720px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    // What is inside a card answers to the card's width, which the grid decides.
+    container: build-card / inline-size;
     border: 1px solid rgba(128, 128, 128, 0.25);
     border-left: 3px solid rgba(128, 128, 128, 0.35);
     border-radius: 6px;
     padding: 10px 12px;
 
     &.running {
-        border-left-color: var(--bs-success);
+        border-left-color: var(--theme-success-text);
     }
 
     &.current {
@@ -107,6 +173,7 @@
 
 .skeleton-line {
     height: 10px;
+    max-width: 100%;
     border-radius: 3px;
     background: rgba(128, 128, 128, 0.18);
     // A slow sweep rather than a blink: this can be on screen for a couple of
@@ -135,19 +202,69 @@
     50% { opacity: 0.45; }
 }
 
+// The kind, the name and every badge wrap onto as many lines as the card needs;
+// the three icon buttons keep the top right corner whatever the title does.
 .build-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
+}
+
+.build-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+}
+
+.build-tools {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 0;
 
     .btn {
         padding: 0 4px;
     }
 }
 
+// What a build *is*: a neutral chip carrying the kind's icon, the same icon its
+// filter button shows, then its word. Filled colours are kept for status —
+// active, this window, stale, will not start — which is what changes and has to
+// stand out. Colour could not tell five kinds apart anyway: the theme's primary
+// and info are one colour, a dark fill vanishes on a light scheme, and yellow
+// and red already mean stale and broken on the same card. The icon and the word
+// do it in any scheme, and without relying on colour vision.
+//
+// It carries `.badge` itself, so it has a badge's font, weight, padding, line
+// height and radius by construction. The 1px edge is an inset ring rather than
+// a border: a border is laid out, and at fractional display scaling it rounds
+// to a device pixel, so taking "1px" back off the padding left the chip 0.7px
+// shorter than the badges beside it in the table. A ring takes no space, so the
+// box is exactly a badge's. It is the muted text colour, which clears 4.5:1
+// against every surface, so the edge clears 3:1 wherever the chip sits.
+.kind-chip {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--theme-muted-fg);
+    color: var(--theme-fg);
+}
+
+// A filled badge's only edge is its fill, and a fill is only as visible as the
+// scheme made it: warning's yellow measured 1.71:1 against a card on the light
+// scheme. A 1px inset ring in the key's text colour, which the theme floors to
+// 4.5:1 on every surface, gives every status badge an edge in any scheme. It
+// sits inside the badge, so the size does not change, and it leaves the fill
+// and the text colour, which the theme owns, alone.
+@each $key in primary, success, warning, danger {
+    .badge.text-bg-#{$key} {
+        box-shadow: inset 0 0 0 1px var(--theme-#{$key}-text);
+    }
+}
+
 .build-name {
     font-weight: 600;
+    min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -156,12 +273,17 @@
 .build-version {
     font-family: monospace;
     font-size: 11px;
-    opacity: 0.7;
+    color: var(--theme-muted-fg);
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .build-detail {
     font-size: 11px;
-    opacity: 0.55;
+    color: var(--theme-muted-fg);
     margin-top: 1px;
 }
 
@@ -169,21 +291,35 @@
 // bordered rather than tinted — tint alone reads as decoration.
 .finding {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
     margin-top: 8px;
     padding: 8px 10px;
     border-radius: 5px;
-    border: 1px solid var(--bs-warning);
+    // The theme's floored text colours, not the raw scheme colours: a raw
+    // yellow border measured 1.86:1 on the light scheme, which is no border.
+    border: 1px solid var(--theme-warning-text);
     background: rgba(128, 128, 128, 0.08);
 
     &.error {
-        border-color: var(--bs-danger);
+        border-color: var(--theme-danger-text);
+    }
+
+    // Not on the current card, which is tinted already. Two tints deep is a
+    // surface no theme colour is floored against: the muted path and hint
+    // measured 4.26:1 there on the dark scheme. Without the second tint a
+    // finding sits on the same shade whichever card it is on.
+    .build-card.current & {
+        background: none;
     }
 }
 
+// A basis rather than `auto`: with `auto` the body asks for its whole sentence
+// on one line and wraps away from its own icon. Below 200px the fix button
+// drops underneath instead.
 .finding-body {
-    flex: 1 1 auto;
+    flex: 1 1 200px;
     min-width: 0;
 }
 
@@ -212,45 +348,61 @@
 .finding-path {
     font-family: monospace;
     font-size: 11px;
-    opacity: 0.6;
+    color: var(--theme-muted-fg);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-bottom: 4px;
 }
 
+// The explanation, so it keeps the full text colour; the hint beneath it is
+// what is secondary.
 .finding-detail {
     font-size: 12px;
-    opacity: 0.85;
 }
 
 .finding-hint {
     font-size: 11px;
-    opacity: 0.55;
+    color: var(--theme-muted-fg);
     margin-top: 2px;
 }
 
+// One grid for every fact on the card, so the columns line up and the facts
+// spread across the card rather than packing against its left edge. 134px is
+// the widest value measured here — a stale build's Built from, carrying both
+// commits — so ordinary values never truncate, and anything longer ellipsizes
+// inside its cell rather than widening the card.
 .facts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 26px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 134px), 1fr));
+    gap: 8px 16px;
     margin: 9px 0 7px;
+}
+
+.fact {
+    min-width: 0;
 }
 
 .fact-label {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    opacity: 0.45;
+    color: var(--theme-muted-fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
+// A block, not a flex row: an ellipsis only applies to a block's own inline
+// content, and a flex container's text is an anonymous item that never gets one.
 .fact-value {
     font-size: 13px;
-    display: flex;
-    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-    &.measuring {
-        opacity: 0.5;
+    .live-dot {
+        vertical-align: middle;
     }
 
     &.mono {
@@ -258,24 +410,45 @@
     }
 }
 
+// Under 284px — two 134px columns and their gap — a card fits a single column
+// of facts, and label-over-value in one column doubles the card's height. That
+// is a small window, or a pane squeezed by a docked panel. Each fact becomes a
+// row instead, its label beside its value.
+@container build-card (width < 284px) {
+    .facts {
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 3px 12px;
+        align-items: baseline;
+    }
+
+    .fact {
+        display: contents;
+    }
+}
+
 .build-path {
     font-family: monospace;
     font-size: 11px;
-    opacity: 0.6;
+    color: var(--theme-muted-fg);
     cursor: pointer;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 
     &:hover {
-        opacity: 0.95;
+        color: inherit;
+        text-decoration: underline;
     }
 }
 
 .build-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    margin-top: 9px;
+    // At the foot of the card, so a row of cards lines its buttons up whatever
+    // each card carries above them.
+    margin-top: auto;
+    padding-top: 9px;
 }
 
 // ── Table ───────────────────────────────────────────────────────────────
@@ -296,22 +469,19 @@
         font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        opacity: 0.5;
         font-weight: 600;
         white-space: nowrap;
+    }
+
+    // Muted until it is the sorted column or under the pointer, when it takes
+    // the table's own text colour back — where its opacity used to go to 1.
+    th:not(.sorted):not(:hover) {
+        color: var(--theme-muted-fg);
     }
 
     th.sortable {
         cursor: pointer;
         user-select: none;
-
-        &:hover {
-            opacity: 0.85;
-        }
-
-        &.sorted {
-            opacity: 1;
-        }
     }
 
     td {
@@ -333,12 +503,14 @@
 
     .path-cell {
         font-family: monospace;
-        opacity: 0.6;
         cursor: pointer;
         white-space: nowrap;
 
+        &:not(:hover) {
+            color: var(--theme-muted-fg);
+        }
+
         &:hover {
-            opacity: 0.95;
             text-decoration: underline;
         }
 
@@ -379,12 +551,9 @@
     }
 }
 
-.muted {
-    opacity: 0.5;
-}
-
+.muted,
 .measuring {
-    opacity: 0.5;
+    color: var(--theme-muted-fg);
 }
 
 .no-wrap {

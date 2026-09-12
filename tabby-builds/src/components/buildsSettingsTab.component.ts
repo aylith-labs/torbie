@@ -22,14 +22,11 @@ const KIND_LABELS: Record<BuildKind, string> = {
     installer: 'Installer',
 }
 
-const KIND_CLASSES: Record<BuildKind, string> = {
-    installed: 'primary',
-    portable: 'dark',
-    source: 'success',
-    packaged: 'info',
-    installer: 'secondary',
-}
-
+/**
+ * A kind is shown by its icon and its word, never by a colour: the theme's
+ * primary and info fills are one colour, a dark fill vanishes on a light
+ * scheme, and the remaining fills already mean a status on the same card.
+ */
 const KIND_ICONS: Record<BuildKind, string> = {
     installed: 'hard-drive',
     portable: 'boxes-stacked',
@@ -477,8 +474,8 @@ export class BuildsSettingsTabComponent extends BaseComponent {
         return KIND_LABELS[build.kind]
     }
 
-    kindClass (build: TabbyBuild): string {
-        return KIND_CLASSES[build.kind]
+    kindIcon (build: TabbyBuild): string {
+        return KIND_ICONS[build.kind]
     }
 
     memoryOf (build: TabbyBuild): number {
