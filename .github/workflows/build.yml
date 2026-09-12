@@ -99,6 +99,14 @@ jobs:
       if: "! (github.event_name == 'push' && (github.ref_protected || startsWith(github.ref, 'refs/tags')) && env.CAN_SIGN == 'true')"
       env:
         ARCH: ${{matrix.arch}}
+        # This is the step a tag takes here, because there are no signing
+        # secrets — so it is the step that publishes, and it needs the token its
+        # signed twin already carries. `scripts/build-macos.mjs` sets
+        # `publish: isTag ? 'always' : 'never'` with a `github` provider, so on a
+        # tag electron-builder builds every artifact and *then* dies with
+        # "GitHub Personal Access Token is not set" when it goes to upload.
+        # Measured on v1.0.0: green on `main`, red on the tag, for exactly this.
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # DEBUG: electron-builder,electron-builder:*
 
     - name: Upload symbols
@@ -425,6 +433,8 @@ jobs:
       if: "! (github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && env.CAN_SIGN == 'true')"
       env:
         ARCH: ${{matrix.arch}}
+        # The tag path here too — see the same note on the macOS job.
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and sign packages
       if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && env.CAN_SIGN == 'true')
