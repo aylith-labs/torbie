@@ -9,8 +9,8 @@ name: Package-Build
 # wanted — a tag, the default branch, or on demand — and the gate covers
 # everything else.
 #
-# `paths-ignore`: docs/ is a static showcase site and *.md is prose, neither of
-# which compiles into anything. It skips a run only when *every* changed file
+# `paths-ignore`: docs/ and site/ are static websites and *.md is prose, none of
+# which compiles into the Electron app. It skips a run only when *every* changed file
 # matches, so a commit touching both code and docs still builds. GitHub Actions
 # does not support YAML anchors, hence the repetition.
 #
@@ -22,6 +22,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'docs/**'
+      - 'site/**'
       - '**/*.md'
   workflow_dispatch:
   workflow_call:

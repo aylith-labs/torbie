@@ -16,7 +16,8 @@
       "!**/node_modules",
       "!**/typings",
       "!builtin-plugins",
-      "!docs"
+      "!docs",
+      "!site"
     ]
   },
 

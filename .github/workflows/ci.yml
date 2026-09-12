@@ -1,7 +1,7 @@
 name: CI
 
 # The gate. Everything that can fail a bad change without needing a window, a
-# GPU or a WSL distro runs here, on every push and every pull request.
+# GPU or a WSL distro runs here. Static docs/site changes use the Pages gate.
 #
 # Until this existed there was no `test` script in any package.json and no
 # workflow ran any of the forty test files in this repo — they were all run by
@@ -15,10 +15,12 @@ on:
   push:
     paths-ignore:
       - 'docs/**'
+      - 'site/**'
       - '**/*.md'
   pull_request:
     paths-ignore:
       - 'docs/**'
+      - 'site/**'
       - '**/*.md'
   workflow_call:
   # A gate you cannot run on demand is a gate you cannot debug.
