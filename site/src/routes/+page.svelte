@@ -16,7 +16,7 @@
 <div class="showcase-page">
  <section class="intro wrap">
   <a class="intro-kicker" href={`${base}/features/torbie/`} data-guide-title="A familiar starting point" data-guide="Torbie derives from Tabby and preserves its plugin API. Your existing plugin package names and module imports stay in place."><span></span>Built on Tabby. A little more curious.<span aria-hidden="true">↗</span></a>
-  <h1>Make room <br />for your <em>work.</em></h1>
+  <h1>Make room for your <em>work.</em></h1>
   <p>Your terminal. Your tools. A little more together.</p>
   <div class="intro-actions"><a class="button" href={`${base}/download/`}>Get Torbie <span aria-hidden="true">↗</span></a><a class="quiet-action" href="#explore">Take a look <span aria-hidden="true">↓</span></a></div>
   <span class="platform-note">Windows · macOS · Linux</span>
