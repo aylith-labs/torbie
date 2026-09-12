@@ -324,40 +324,99 @@ export class BuildScannerService {
         const trees: string[] = []
         const apps: Seed[] = []
         const installers: Seed[] = []
-        const queue: { dir: string, depth: number }[] = roots.map(dir => ({ dir, depth: 0 }))
         const seen = new Set<string>()
+        let level: { dir: string, depth: number }[] = roots.map(dir => ({ dir, depth: 0 }))
 
-        while (queue.length) {
-            const { dir, depth } = queue.shift()!
-            const key = normalize(dir)
-            if (seen.has(key)) {
-                continue
-            }
-            seen.add(key)
+        // Breadth-first, a level at a time, because the two things that made
+        // this slow were both structural rather than algorithmic.
+        //
+        // **It asked before it looked.** Every directory ran `isSourceTree` and
+        // then `appSeed` — and `appSeed` probes each executable name in turn,
+        // returning early only when it finds one, so a directory that is not an
+        // application paid for the whole list. With the `readdir` after them,
+        // that was roughly eight sequential `fs` round-trips per directory:
+        // ~11,000 of them across this machine's 1,433 directories, measured at
+        // 805ms against 116ms for a plain walk of the same roots.
+        //
+        // The listing answers nearly all of it. `isSourceTree` begins at
+        // `scripts/vars.mjs` and `appSeed` at a binary beside a `resources`
+        // directory — all names this `readdir` already returned. So it is read
+        // first and the expensive checks run only where the listing says they
+        // could succeed, which for an ordinary directory is never.
+        //
+        // **And it was strictly serial.** Node's `fs` is threadpool-backed, so
+        // a level goes out together, bounded so a deep tree cannot open
+        // thousands of handles at once.
+        const CONCURRENCY = 32
+        while (level.length) {
+            const next: { dir: string, depth: number }[] = []
+            // Results are gathered per input index rather than pushed as they
+            // land, so the seed order does not depend on which `readdir`
+            // happened to finish first — `scan()` dedupes by root, and a
+            // non-deterministic winner would be a non-deterministic page.
+            const batchTrees: string[][] = level.map(() => [])
+            const batchApps: Seed[][] = level.map(() => [])
+            const batchInstallers: Seed[][] = level.map(() => [])
+            const batchNext: { dir: string, depth: number }[][] = level.map(() => [])
 
-            if (await this.isSourceTree(dir)) {
-                // Nothing below a checkout is another checkout; its own builds
-                // are enumerated from the checkout itself.
-                trees.push(dir)
-                continue
-            }
-
-            const app = await this.appSeed(dir)
-            if (app) {
-                apps.push(app)
-                continue
-            }
-
-            for (const entry of await readDirSafe(dir)) {
-                const full = path.join(dir, entry.name)
-                if (entry.isDirectory()) {
-                    if (depth < maxDepth && !SKIP_DIRS.has(entry.name) && !entry.name.startsWith('.')) {
-                        queue.push({ dir: full, depth: depth + 1 })
+            for (let start = 0; start < level.length; start += CONCURRENCY) {
+                const slice = level.slice(start, start + CONCURRENCY)
+                await Promise.all(slice.map(async ({ dir, depth }, offset) => {
+                    const index = start + offset
+                    const key = normalize(dir)
+                    // Claimed before the first await, or two entries naming the
+                    // same directory would both get past this.
+                    if (seen.has(key)) {
+                        return
                     }
-                } else if (includeInstallers && INSTALLER_PATTERN.test(entry.name)) {
-                    installers.push(installerSeed(full, entry.name, null))
-                }
+                    seen.add(key)
+
+                    const entries = await readDirSafe(dir)
+                    // Windows compares names case-insensitively and the listing
+                    // reports whatever case is on disk, so the lookup has to be
+                    // folded rather than exact.
+                    const names = new Map<string, { name: string, isDirectory: () => boolean }>()
+                    for (const entry of entries) {
+                        names.set(entry.name.toLowerCase(), entry)
+                    }
+
+                    if (names.has('scripts') && await this.isSourceTree(dir)) {
+                        // Nothing below a checkout is another checkout; its own
+                        // builds are enumerated from the checkout itself.
+                        batchTrees[index].push(dir)
+                        return
+                    }
+
+                    const looksLikeApp = executableNames().some(name => names.has(name.toLowerCase()))
+                        || PRODUCT_NAMES.some(name => names.get(`${name.toLowerCase()}.app`)?.isDirectory())
+                    if (looksLikeApp) {
+                        const app = await this.appSeed(dir)
+                        if (app) {
+                            batchApps[index].push(app)
+                            return
+                        }
+                    }
+
+                    for (const entry of entries) {
+                        const full = path.join(dir, entry.name)
+                        if (entry.isDirectory()) {
+                            if (depth < maxDepth && !SKIP_DIRS.has(entry.name) && !entry.name.startsWith('.')) {
+                                batchNext[index].push({ dir: full, depth: depth + 1 })
+                            }
+                        } else if (includeInstallers && INSTALLER_PATTERN.test(entry.name)) {
+                            batchInstallers[index].push(installerSeed(full, entry.name, null))
+                        }
+                    }
+                }))
             }
+
+            for (let i = 0; i < level.length; i++) {
+                trees.push(...batchTrees[i])
+                apps.push(...batchApps[i])
+                installers.push(...batchInstallers[i])
+                next.push(...batchNext[i])
+            }
+            level = next
         }
         return { trees, apps, installers }
     }
