@@ -46,7 +46,13 @@ a, button {
 
         .description {
             font-size: 13px;
-            opacity: .5;
+            // A theme that follows the colour scheme supplies a secondary-text
+            // colour measured against every surface a row can sit on. This file
+            // loads under every theme, and only that one defines the variable,
+            // so anything else keeps the old half strength. It is a colour
+            // rather than an opacity either way, so a link or a <code> inside a
+            // description is no longer dimmed along with it.
+            color: var(--theme-muted-fg, color-mix(in srgb, currentColor 50%, transparent));
         }
     }
 

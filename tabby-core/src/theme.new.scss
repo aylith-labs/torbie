@@ -36,9 +36,11 @@ app-root {
                     // tab still stands out via --theme-fg plus its background.
                     color: var(--theme-fg-more);
 
+                    // The tab's number is secondary text: a colour, rather
+                    // than 60% of the body colour, which measured 3.4:1 on
+                    // the tab bar.
                     .index {
-                        color: var(--bs-body-color);
-                        opacity: 0.6;
+                        color: var(--theme-muted-fg);
                     }
 
                     button {
@@ -85,7 +87,10 @@ $modal-footer-border-color:      transparent;
 $form-check-input-width: 1.4em;
 $form-switch-width: 2.5em;
 
-$input-placeholder-color: var(--theme-fg-more-2);
+// Placeholder text is text. --theme-fg-more-2 steps away from the foreground,
+// which on a dark scheme darkens it to 3.97:1; the secondary-text colour meets
+// 4.5:1 on every surface an input sits on.
+$input-placeholder-color: var(--theme-muted-fg);
 
 @import '~bootstrap/scss/bootstrap.scss';
 @import "./theme.vendor.scss";
@@ -224,19 +229,95 @@ tab-body {
         --bs-btn-focus-shadow-rgb: 130, 138, 145;
         --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
 
-        --bs-btn-color: var(--theme-#{$color}-fg);
-        --bs-btn-hover-color: var(--theme-#{$color}-fg);
-        --bs-btn-active-color: var(--theme-#{$color}-active-fg);
-        --bs-btn-disabled-color: var(--theme-#{$color}-fg);
+        // Each state's label is measured against that state's own fill at
+        // 4.5:1. The -fg variables are floored at the chrome's 4, which is
+        // where "Test connection" sat, at 4.3:1.
+        --bs-btn-color: var(--theme-#{$color}-contrast-fg);
+        --bs-btn-hover-color: var(--theme-#{$color}-hover-contrast-fg);
+        --bs-btn-active-color: var(--theme-#{$color}-active-contrast-fg);
+        --bs-btn-disabled-color: var(--theme-#{$color}-contrast-fg);
     }
 
+    // Every colour in an alert is one ThemesService measured against the
+    // alert's own fill. The fill is a pale tint of the theme colour over the
+    // page (--theme-*-alert-bg); the text and its links are --theme-*-text, at
+    // 4.5:1 on that tint and on every page surface; the border is
+    // --theme-*-border, at 3:1 on the same.
+    //
+    // It used to be the theme colour on --theme-*-fg, the far end of the
+    // colour's ladder, with no floor between the two: warning measured 4.0:1
+    // on a light scheme, and the fill landed near-white or near-black
+    // depending on which one cleared that pair's own floor.
     .alert-#{$color} {
-        --bs-alert-bg: var(--theme-#{$color}-fg);
-        --bs-alert-border-color: var(--theme-#{$color}-more);
-        --bs-alert-color: var(--theme-#{$color});
+        --bs-alert-bg: var(--theme-#{$color}-alert-bg);
+        --bs-alert-border-color: var(--theme-#{$color}-border);
+        --bs-alert-color: var(--theme-#{$color}-text);
+        --bs-alert-link-color: var(--theme-#{$color}-text);
     }
 }
 
+// Text on a filled contextual background. Bootstrap compiles the text colour
+// of .text-bg-* in at build time — color-contrast() against its own default
+// palette, so always #fff or #000 — while the background under it is
+// var(--bs-*-rgb), which ThemesService derives from the colour scheme at
+// runtime. The two were chosen against different colours: on AtomOneLight a
+// "secondary" badge was white on pale grey at 1.4:1, and "info" black on
+// bright blue at 3.9:1. .badge.bg-* has the same flaw through its
+// --bs-badge-color: #fff. Both now take the colour ThemesService computes
+// against the real background, and keep the compiled one as the fallback.
+@each $color, $value in $theme-colors {
+    .text-bg-#{$color} {
+        color: var(--theme-#{$color}-contrast-fg, #{color-contrast($value)}) !important;
+    }
+
+    .badge.bg-#{$color} {
+        --bs-badge-color: var(--theme-#{$color}-contrast-fg, #{$badge-color});
+    }
+
+    // A fill too close to its surroundings to be seen gets an outline, which
+    // ThemesService decides per scheme (--theme-*-edge). Inset, so it takes
+    // no room: a badge is the same size with an edge or without.
+    .text-bg-#{$color},
+    .badge.bg-#{$color} {
+        box-shadow: inset 0 0 0 1px var(--theme-#{$color}-edge, transparent);
+    }
+}
+
+// A theme colour used as text on the page: .text-*, and the label and outline
+// of .btn-outline-*. Bootstrap compiles .btn-outline-* in its own palette
+// (#0d6efd, #dc3545, whatever the scheme), and .text-* takes the scheme colour
+// unchecked; AtomOneLight's green measured 3.6:1 on its own page, Afterglow's
+// Bootstrap-blue "Make active" 3.6:1 on its. --theme-*-text is the scheme's
+// colour, moved only as far as 4.5:1 on every surface requires.
+@each $color, $value in $theme-colors {
+    .text-#{$color} {
+        color: var(--theme-#{$color}-text, #{$value}) !important;
+    }
+
+    .btn-outline-#{$color} {
+        --bs-btn-color: var(--theme-#{$color}-text);
+        --bs-btn-border-color: var(--theme-#{$color}-text);
+        --bs-btn-hover-color: var(--theme-#{$color}-contrast-fg);
+        --bs-btn-hover-bg: var(--theme-#{$color});
+        --bs-btn-hover-border-color: var(--theme-#{$color});
+        --bs-btn-active-color: var(--theme-#{$color}-contrast-fg);
+        --bs-btn-active-bg: var(--theme-#{$color});
+        --bs-btn-active-border-color: var(--theme-#{$color});
+        --bs-btn-disabled-color: var(--theme-#{$color}-text);
+        --bs-btn-disabled-border-color: var(--theme-#{$color}-text);
+    }
+}
+
+
+// A plain link inside an alert. Bootstrap's link blue belongs to no scheme,
+// and on an alert's tint "Learn more" in Config sync measured 3.5:1 on a light
+// scheme and 2.9:1 on a dark one. It takes the alert's own text colour,
+// underlined so it still reads as a link, which is Bootstrap's .alert-link
+// treatment applied to every plain anchor in an alert.
+.alert a:not(.btn) {
+    color: var(--bs-alert-link-color, inherit);
+    text-decoration: underline;
+}
 
 multi-hotkey-input {
     .item {
@@ -265,7 +346,9 @@ multi-hotkey-input {
     }
 
     .add {
-        color: #777;
+        // Was #777, a grey from no scheme: 4.25:1 on a light page and 3.6:1
+        // on a dark one.
+        color: var(--theme-muted-fg);
         padding: 4px 10px 0;
     }
 
@@ -355,6 +438,14 @@ hotkey-input-modal {
 
         &.active {
             background-color: var(--bs-list-group-active-bg);
+
+            // The secondary-text colour is measured against the page and its
+            // grey panels, not against this row's tinted fill, where it fell
+            // to about 4:1. A selected row's description takes the row's own
+            // colour instead.
+            .text-muted {
+                color: inherit !important;
+            }
         }
     }
 }
@@ -421,9 +512,13 @@ ngx-colors-panel .opened {
     }
 }
 
+// Secondary text is a colour, not an opacity. Half-opacity foreground is a
+// different colour on every surface it lands on, and on a light scheme's grey
+// panels it came out near 2.5:1. ThemesService derives --theme-muted-fg to meet
+// 4.5:1 on every one of them. The fallback is the old half strength, for the
+// instant before the service has run.
 .text-muted {
-    opacity: .5;
-    color: var(--theme-fg) !important;
+    color: var(--theme-muted-fg, color-mix(in srgb, currentColor 50%, transparent)) !important;
 }
 
 .form-switch .form-check-input {
@@ -441,10 +536,97 @@ ngx-colors-panel .opened {
     border-color: var(--theme-fg-more-2);
 }
 
+// Accordions: the settings groups on the Claude and Link Tooltip pages, and the
+// two plugin lists.
+//
+// Bootstrap fills a whole item, header and body, with --bs-accordion-bg and
+// gives an open header a second, darker fill, so a page of groups read as a
+// stack of grey slabs, with every row's secondary text sitting on the grey.
+// Here a group is an outline on the page instead. The header carries the
+// weight, the body is the page itself, and one group is set apart from the
+// next by space rather than by paint.
 .accordion {
-    --bs-accordion-bg: var(--theme-bg-more);
+    --bs-accordion-color: var(--theme-fg);
+    --bs-accordion-bg: transparent;
+    // A step from the page toward the text, so the outline reads in a dark
+    // scheme too. --bs-border-color steps away from the text, which on a dark
+    // page is darker still and all but disappears.
+    --bs-accordion-border-color: color-mix(in srgb, var(--theme-fg) 16%, var(--theme-bg));
+    --bs-accordion-btn-color: var(--theme-fg);
+    --bs-accordion-btn-bg: transparent;
     --bs-accordion-active-color: var(--theme-fg);
-    --bs-accordion-active-bg: var(--theme-bg-more-2);
+    --bs-accordion-active-bg: transparent;
+    --bs-accordion-btn-padding-x: 1rem;
+    --bs-accordion-btn-padding-y: .75rem;
+    --bs-accordion-body-padding-x: 1rem;
+    --bs-accordion-body-padding-y: .25rem;
+    --bs-accordion-btn-icon-width: 1rem;
+    --bs-accordion-btn-focus-box-shadow: none;
+
+    > .accordion-item {
+        // Each item is its own rounded outline. Bootstrap drops the top border
+        // of every item after the first and rounds only the two ends, which is
+        // what joined the groups into one slab.
+        border-top: var(--bs-accordion-border-width) solid var(--bs-accordion-border-color);
+        border-radius: var(--bs-accordion-border-radius);
+
+        & + .accordion-item {
+            margin-top: .5rem;
+        }
+
+        > .accordion-header .accordion-button {
+            border-radius: var(--bs-accordion-inner-border-radius);
+
+            &:not(.collapsed) {
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+        }
+    }
+
+    .accordion-button {
+        font-weight: 600;
+
+        // Secondary text in a header, such as a plugin's description, stays
+        // at regular weight.
+        .text-muted {
+            font-weight: 400;
+        }
+
+        &:hover {
+            background-color: var(--theme-bg-more);
+        }
+
+        // Bootstrap marks an open header with an inset shadow, and its own
+        // :focus rule then replaces that shadow, so the divider vanished
+        // whenever the header had focus. The divider is the body's top border
+        // instead.
+        &:not(.collapsed),
+        &:focus {
+            box-shadow: none;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--theme-accent, var(--bs-primary));
+            outline-offset: -2px;
+        }
+
+        // Bootstrap's chevron is an SVG with its stroke colour compiled in:
+        // near-black when closed, and a dark blue when open that belongs to no
+        // scheme. As a mask over currentColor, the same shape takes the
+        // header's own text colour, open or closed, in every scheme. The
+        // rotation when open is still Bootstrap's.
+        &::after,
+        &:not(.collapsed)::after {
+            background: currentColor;
+            -webkit-mask: var(--bs-accordion-btn-icon) center / contain no-repeat;
+            mask: var(--bs-accordion-btn-icon) center / contain no-repeat;
+        }
+    }
+
+    .accordion-body {
+        border-top: var(--bs-accordion-border-width) solid var(--bs-accordion-border-color);
+    }
 }
 
 start-page {

@@ -24,27 +24,39 @@
     padding: 0 8px;
     font-size: 11px;
     font-family: monospace;
-    opacity: 0.45;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
-    color: var(--theme-fg);
+    // Quiet as a colour rather than as 45% opacity, which measured 2.4:1 on a
+    // light tab bar. Hovering brings it up to the full text colour.
+    color: var(--theme-muted-fg, var(--theme-fg));
 
     &:hover {
-        opacity: 0.9;
+        color: var(--theme-fg);
     }
 }
 
 // Splitter between a vertical tab bar and the terminal content.
+//
+// Painted as part of the tab bar it resizes. It used to be transparent, and
+// nothing behind it paints: body is transparent on purpose, for vibrancy, so
+// the strip showed the window's own backing colour, which is white — a
+// full-height white line down a dark scheme, between the tab bar and the tab.
+// The tab bar is opaque --theme-bg-more-2 with vibrancy on or off, so this
+// matches it either way.
+//
+// The hover and drag tint is mixed from the scheme rather than laid over the
+// strip as translucent grey, which over that white backing drew a pale bar.
+// --theme-fg-more-1, which the old rule reached for first, is defined nowhere.
 .side-tab-bar-splitter {
     flex: 0 0 4px;
     cursor: col-resize;
-    background: transparent;
+    background: var(--theme-bg-more-2);
     transition: 0.15s background;
     z-index: 10;
 
     &:hover, &.dragging {
-        background: var(--theme-fg-more-1, rgba(128, 128, 128, 0.5));
+        background: color-mix(in srgb, var(--theme-fg) 40%, var(--theme-bg-more-2));
     }
 }
 

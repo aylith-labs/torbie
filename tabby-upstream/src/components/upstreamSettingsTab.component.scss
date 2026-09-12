@@ -11,6 +11,13 @@
     gap: 24px;
 }
 
+// Secondary text on this page is the theme's secondary-text colour, not an
+// opacity. An opacity is a different colour on every surface, and the author
+// and date at .55 measured 4.0:1 on a dark scheme's commit stripe.
+// --theme-muted-fg meets 4.5:1 on every surface the theme paints; the fallback
+// keeps half strength under a theme that does not define it.
+$muted: var(--theme-muted-fg, color-mix(in srgb, currentColor 55%, transparent));
+
 .count {
     .value {
         font-size: 26px;
@@ -20,7 +27,7 @@
 
     .label {
         font-size: 11px;
-        opacity: .6;
+        color: $muted;
         text-transform: uppercase;
         letter-spacing: .04em;
     }
@@ -35,7 +42,7 @@
 
     .key {
         min-width: 110px;
-        opacity: .6;
+        color: $muted;
     }
 
     .value {
@@ -79,7 +86,7 @@
 
     .sha {
         font-family: monospace;
-        opacity: .7;
+        color: $muted;
     }
 
     .subject {
@@ -91,7 +98,7 @@
     .author,
     .date {
         font-size: 11px;
-        opacity: .55;
+        color: $muted;
         white-space: nowrap;
     }
 
