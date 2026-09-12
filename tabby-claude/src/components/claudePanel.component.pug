@@ -1,16 +1,19 @@
+//- VSCode's sidebar model: the panel is a column of panes, each with its own
+//- header and its own scroll container, and the expanded ones share whatever
+//- height is left over. What this replaces was one long scroll — so reaching
+//- Usage meant scrolling past however many sessions were running, and a section
+//- growing pushed every section below it off the bottom.
+//-
+//- Not ng-bootstrap's accordion, deliberately: that one sizes each body to its
+//- content and collapses by height animation, which is the opposite of what is
+//- wanted here. A pane has to take a *share of the panel* and scroll inside it.
 .claude-panel
-    // The panel's own controls. The dock host's header belongs to the host,
-    // so anything panel-specific has to live in the panel.
     .panel-toolbar
         button.tool-btn(
             (click)='openSettings()',
             [title]='"Claude settings"|translate'
         )
             i.fas.fa-gear
-
-    .notice(*ngIf='!sessions.length && health === "ok"')
-        i.fas.fa-moon
-        span.ms-2 {{'No Claude sessions running'|translate}}
 
     .notice.offline(*ngIf='health === "unreachable"')
         i.fas.fa-plug
@@ -20,184 +23,244 @@
         button.btn.btn-sm.btn-secondary((click)='retry()') {{'Retry'|translate}}
 
     //- ── Active session ──────────────────────────────────────────────
-    .section.active-session(*ngIf='options.showActiveSession && activeSession as session')
-        .session-title
-            .status-dot([ngClass]='"kind-" + sessionKind(session)')
-            .title-text([title]='session.cwd') {{sessionTitle(session)}}
-            .badge-env {{session.envLabel}}
-
-        .session-meta
-            span.meta-item(*ngIf='session.model') {{session.model}}
-            span.meta-item(*ngIf='session.effort') {{session.effort}}
-            span.meta-item.badge-mode(*ngIf='permissionBadge(session)') {{permissionBadge(session)}}
-            span.meta-item(*ngIf='session.gitBranch')
-                i.fas.fa-code-branch
-                span.ms-1 {{session.gitBranch}}
-
-        .status-row(*ngIf='options.showStatus')
-            .status-label([ngClass]='"kind-" + sessionKind(session)') {{statusLabel(session)}}
-            .status-since {{ago(session.lastActivityAt)}}
-
-        .callout.waiting(*ngIf='waitingMessage(session)') {{waitingMessage(session)}}
-        .callout.error(*ngIf='session.lastError') {{session.lastError}}
-
-        .metric(*ngIf='options.showContext && hasContext(session)')
-            .metric-head
-                span.metric-name {{'Context'|translate}}
-                span.metric-value {{contextLabel(session)}}
-                span.metric-pct {{contextPercent(session)}}
-            .bar
-                .bar-fill(
-                    [ngClass]='"sev-" + contextSeverity(session)',
-                    [style.width]='contextWidth(session)'
-                )
-
-        .stats(*ngIf='options.showStats')
-            .stat
-                .stat-value {{session.turns}}
-                .stat-name {{'turns'|translate}}
-            .stat
-                .stat-value {{session.toolCalls}}
-                .stat-name {{'tools'|translate}}
-            .stat(*ngIf='session.compactions')
-                .stat-value {{session.compactions}}
-                .stat-name {{'compactions'|translate}}
-            .stat(*ngIf='session.subagentCount')
-                .stat-value {{session.subagentCount}}
-                .stat-name {{'agents'|translate}}
-
-        .prompt-block(*ngIf='options.showLastPrompt && lastPrompt(session)')
-            .prompt-label {{'Last prompt'|translate}}
-            .prompt-text {{lastPrompt(session)}}
-
-        .prompt-block(*ngIf='options.showQueued && queuedPrompts(session).length')
-            .prompt-label {{'Queued'|translate}} ({{queuedPrompts(session).length}})
-            .queued-item(*ngFor='let item of queuedPrompts(session)') {{item}}
-
-        .bookmark(*ngIf='options.showBookmark && bookmarkDescription(session)')
-            .prompt-label
-                i.fas.fa-bookmark
-                span.ms-1 {{'Bookmark'|translate}}
-            .prompt-text {{bookmarkDescription(session)}}
-            .bookmark-links(*ngIf='bookmarkLinks(session).length')
-                .bookmark-link(
-                    *ngFor='let link of bookmarkLinks(session)',
-                    [class.openable]='isOpenableLink(link)',
-                    (click)='openLink(link)',
-                    [title]='link.target'
-                )
-                    i.fas.fa-fw(
-                        [class.fa-link]='link.kind === "link"',
-                        [class.fa-file]='link.kind === "file"',
-                        [class.fa-code-branch]='link.kind === "branch"'
-                    )
-                    span.ms-1 {{linkLabel(link)}}
-
-        .session-actions
-            button.btn.btn-sm.btn-link((click)='toggleDetails(session)')
-                i.fas(
-                    [class.fa-chevron-down]='!isExpanded(session)',
-                    [class.fa-chevron-up]='isExpanded(session)'
-                )
-                span.ms-1 {{isExpanded(session) ? ('Hide details'|translate) : ('Details'|translate)}}
-            button.btn.btn-sm.btn-link((click)='openInStith(session)')
-                i.fas.fa-external-link-alt
-                span.ms-1 {{'Open in stith'|translate}}
-            button.btn.btn-sm.btn-link.kebab(
-                (click)='openMenu(session, $event)',
-                [ngbTooltip]='"More actions"|translate',
-                container='body'
+    .pane(
+        *ngIf='options.showActiveSession',
+        [class.collapsed]='paneCollapsed("active")'
+    )
+        .pane-header((click)='togglePane("active")')
+            i.fas.fa-fw.pane-chevron(
+                [class.fa-chevron-down]='!paneCollapsed("active")',
+                [class.fa-chevron-right]='paneCollapsed("active")'
             )
-                i.fas.fa-ellipsis-v
+            .pane-title {{'Active session'|translate}}
+            .status-dot.pane-dot(
+                *ngIf='activeSession',
+                [ngClass]='"kind-" + sessionKind(activeSession)'
+            )
+        .pane-body(*ngIf='!paneCollapsed("active")')
+            .pane-empty(*ngIf='!activeSession') {{'No Claude session in this tab'|translate}}
 
-        .details(*ngIf='isExpanded(session) && details as record')
-            .detail-row(*ngFor='let row of detailRows(record)', (click)='copyDetail(row.value)', [title]='"Click to copy"|translate')
-                .detail-key {{row.key|translate}}
-                .detail-value {{row.value}}
+            .active-session(*ngIf='activeSession as session')
+                .session-title
+                    .status-dot([ngClass]='"kind-" + sessionKind(session)')
+                    .title-text([title]='session.cwd') {{sessionTitle(session)}}
+                    .badge-env {{session.envLabel}}
+
+                .session-meta
+                    span.meta-item(*ngIf='session.model') {{session.model}}
+                    span.meta-item(*ngIf='session.effort') {{session.effort}}
+                    span.meta-item.badge-mode(*ngIf='permissionBadge(session)') {{permissionBadge(session)}}
+                    span.meta-item(*ngIf='session.gitBranch')
+                        i.fas.fa-code-branch
+                        span.ms-1 {{session.gitBranch}}
+
+                .status-row(*ngIf='options.showStatus')
+                    .status-label([ngClass]='"kind-" + sessionKind(session)') {{statusLabel(session)}}
+                    .status-since {{ago(session.lastActivityAt)}}
+
+                .callout.waiting(*ngIf='waitingMessage(session)') {{waitingMessage(session)}}
+                .callout.error(*ngIf='session.lastError') {{session.lastError}}
+
+                .metric(*ngIf='options.showContext && hasContext(session)')
+                    .metric-head
+                        span.metric-name {{'Context'|translate}}
+                        span.metric-value {{contextLabel(session)}}
+                        span.metric-pct {{contextPercent(session)}}
+                    .bar
+                        .bar-fill(
+                            [ngClass]='"sev-" + contextSeverity(session)',
+                            [style.width]='contextWidth(session)'
+                        )
+
+                .stats(*ngIf='options.showStats')
+                    .stat
+                        .stat-value {{session.turns}}
+                        .stat-name {{'turns'|translate}}
+                    .stat
+                        .stat-value {{session.toolCalls}}
+                        .stat-name {{'tools'|translate}}
+                    .stat(*ngIf='session.compactions')
+                        .stat-value {{session.compactions}}
+                        .stat-name {{'compactions'|translate}}
+                    .stat(*ngIf='session.subagentCount')
+                        .stat-value {{session.subagentCount}}
+                        .stat-name {{'agents'|translate}}
+
+                .prompt-block(*ngIf='options.showLastPrompt && lastPrompt(session)')
+                    .prompt-label {{'Last prompt'|translate}}
+                    .prompt-text {{lastPrompt(session)}}
+
+                .prompt-block(*ngIf='options.showQueued && queuedPrompts(session).length')
+                    .prompt-label {{'Queued'|translate}} ({{queuedPrompts(session).length}})
+                    .queued-item(*ngFor='let item of queuedPrompts(session)') {{item}}
+
+                .bookmark(*ngIf='options.showBookmark && bookmarkDescription(session)')
+                    .prompt-label
+                        i.fas.fa-bookmark
+                        span.ms-1 {{'Bookmark'|translate}}
+                    .prompt-text {{bookmarkDescription(session)}}
+                    .bookmark-links(*ngIf='bookmarkLinks(session).length')
+                        .bookmark-link(
+                            *ngFor='let link of bookmarkLinks(session)',
+                            [class.openable]='isOpenableLink(link)',
+                            (click)='openLink(link)',
+                            [title]='link.target'
+                        )
+                            i.fas.fa-fw(
+                                [class.fa-link]='link.kind === "link"',
+                                [class.fa-file]='link.kind === "file"',
+                                [class.fa-code-branch]='link.kind === "branch"'
+                            )
+                            span.ms-1 {{linkLabel(link)}}
+
+                .session-actions
+                    button.btn.btn-sm.btn-link((click)='toggleDetails(session)')
+                        i.fas(
+                            [class.fa-chevron-down]='!isExpanded(session)',
+                            [class.fa-chevron-up]='isExpanded(session)'
+                        )
+                        span.ms-1 {{isExpanded(session) ? ('Hide details'|translate) : ('Details'|translate)}}
+                    button.btn.btn-sm.btn-link((click)='openInStith(session)')
+                        i.fas.fa-external-link-alt
+                        span.ms-1 {{'Open in stith'|translate}}
+                    button.btn.btn-sm.btn-link.kebab(
+                        (click)='openMenu(session, $event)',
+                        [ngbTooltip]='"More actions"|translate',
+                        container='body'
+                    )
+                        i.fas.fa-ellipsis-v
+
+                .details(*ngIf='isExpanded(session) && details as record')
+                    .detail-row(*ngFor='let row of detailRows(record)', (click)='copyDetail(row.value)', [title]='"Click to copy"|translate')
+                        .detail-key {{row.key|translate}}
+                        .detail-value {{row.value}}
 
     //- ── Blocked sessions ────────────────────────────────────────────
-    .section(*ngIf='options.showWaiting && waitingSessions.length')
-        .section-title {{'Waiting on you'|translate}} ({{waitingSessions.length}})
-        .session-row(
-            *ngFor='let session of waitingSessions',
-            (click)='selectSession(session)',
-            [title]='session.cwd'
-        )
-            .status-dot.kind-waiting
-            .row-main
-                .row-title {{sessionTitle(session)}}
-                .row-sub(*ngIf='waitingMessage(session)') {{waitingMessage(session)}}
-            .row-time {{ago(session.waitingSince ?? session.lastActivityAt)}}
-            button.row-kebab((click)='openMenu(session, $event)')
-                i.fas.fa-ellipsis-v
+    .pane(
+        *ngIf='options.showWaiting',
+        [class.collapsed]='paneCollapsed("waiting")'
+    )
+        .pane-header((click)='togglePane("waiting")')
+            i.fas.fa-fw.pane-chevron(
+                [class.fa-chevron-down]='!paneCollapsed("waiting")',
+                [class.fa-chevron-right]='paneCollapsed("waiting")'
+            )
+            .pane-title {{'Waiting on you'|translate}}
+            .pane-count(*ngIf='waitingSessions.length') {{waitingSessions.length}}
+        .pane-body(*ngIf='!paneCollapsed("waiting")')
+            .pane-empty(*ngIf='!waitingSessions.length') {{'Nothing is waiting on you'|translate}}
+            .session-row(
+                *ngFor='let session of waitingSessions; trackBy: trackSession',
+                (click)='selectSession(session)',
+                [title]='rowTooltip(session)'
+            )
+                .status-dot.kind-waiting
+                .row-main
+                    .row-title {{sessionTitle(session)}}
+                    .row-sub(*ngIf='waitingMessage(session)') {{waitingMessage(session)}}
+                i.fas.fa-fw.fa-columns.row-pane-hint(
+                    *ngIf='paneHint(session)',
+                    [title]='paneHint(session)'
+                )
+                .row-time {{ago(session.waitingSince ?? session.lastActivityAt)}}
+                button.row-kebab((click)='openMenu(session, $event)')
+                    i.fas.fa-ellipsis-v
 
     //- ── Everything else running ─────────────────────────────────────
-    .section(*ngIf='options.showSessionList && otherSessions.length')
-        .section-title {{'Other sessions'|translate}} ({{otherSessions.length}})
-        .session-row(
-            *ngFor='let session of otherSessions',
-            (click)='selectSession(session)',
-            [title]='session.cwd'
-        )
-            .status-dot([ngClass]='"kind-" + sessionKind(session)')
-            .row-main
-                .row-title {{sessionTitle(session)}}
-                .row-sub
-                    span {{session.envLabel}}
-                    span.ms-2(*ngIf='hasContext(session)') {{contextPercent(session)}}
-                    span.ms-2(*ngIf='session.currentTool') {{session.currentTool}}
-            .row-time {{ago(session.lastActivityAt)}}
-            button.row-kebab((click)='openMenu(session, $event)')
-                i.fas.fa-ellipsis-v
+    .pane(
+        *ngIf='options.showSessionList',
+        [class.collapsed]='paneCollapsed("others")'
+    )
+        .pane-header((click)='togglePane("others")')
+            i.fas.fa-fw.pane-chevron(
+                [class.fa-chevron-down]='!paneCollapsed("others")',
+                [class.fa-chevron-right]='paneCollapsed("others")'
+            )
+            .pane-title {{'Other sessions'|translate}}
+            .pane-count(*ngIf='otherSessions.length') {{otherSessions.length}}
+        .pane-body(*ngIf='!paneCollapsed("others")')
+            .pane-empty(*ngIf='!otherSessions.length') {{'No other Claude sessions running'|translate}}
+            .session-row(
+                *ngFor='let session of otherSessions; trackBy: trackSession',
+                (click)='selectSession(session)',
+                [title]='rowTooltip(session)'
+            )
+                .status-dot([ngClass]='"kind-" + sessionKind(session)')
+                .row-main
+                    .row-title {{sessionTitle(session)}}
+                    .row-sub
+                        span {{session.envLabel}}
+                        span.ms-2(*ngIf='hasContext(session)') {{contextPercent(session)}}
+                        span.ms-2(*ngIf='session.currentTool') {{session.currentTool}}
+                i.fas.fa-fw.fa-columns.row-pane-hint(
+                    *ngIf='paneHint(session)',
+                    [title]='paneHint(session)'
+                )
+                .row-time {{ago(session.lastActivityAt)}}
+                button.row-kebab((click)='openMenu(session, $event)')
+                    i.fas.fa-ellipsis-v
 
     //- ── Plan usage ──────────────────────────────────────────────────
-    .section(*ngIf='options.showUsage && usableUsage.length')
-        .section-head
-            .section-title {{'Usage'|translate}}
+    .pane(
+        *ngIf='options.showUsage',
+        [class.collapsed]='paneCollapsed("usage")'
+    )
+        .pane-header((click)='togglePane("usage")')
+            i.fas.fa-fw.pane-chevron(
+                [class.fa-chevron-down]='!paneCollapsed("usage")',
+                [class.fa-chevron-right]='paneCollapsed("usage")'
+            )
+            .pane-title {{'Usage'|translate}}
             .flex-fill
-            .view-switch
-                button.view-btn(
-                    [class.active]='usageView === "bars"',
-                    (click)='setUsageView("bars")',
-                    [title]='"Bars"|translate'
-                )
-                    i.fas.fa-align-left
+            //- The header's own controls. `stopPropagation` because the header
+            //- is the pane's toggle, and switching the view must not collapse
+            //- the pane you are looking at.
+            .view-switch(*ngIf='!paneCollapsed("usage")', (click)='$event.stopPropagation()')
+                //- Pies first, and the default: they put both windows on one
+                //- line, so an account costs one row instead of two.
                 button.view-btn(
                     [class.active]='usageView === "pies"',
                     (click)='setUsageView("pies")',
                     [title]='"Pies"|translate'
                 )
                     i.fas.fa-chart-pie
+                button.view-btn(
+                    [class.active]='usageView === "bars"',
+                    (click)='setUsageView("bars")',
+                    [title]='"Bars"|translate'
+                )
+                    i.fas.fa-align-left
+        .pane-body(*ngIf='!paneCollapsed("usage")')
+            .pane-empty(*ngIf='!usableUsage.length') {{'No plan usage reported'|translate}}
+            .usage-account(*ngFor='let account of usableUsage')
+                .usage-name
+                    span {{account.account}}
+                    span.badge-plan {{account.plan}}
 
-        .usage-account(*ngFor='let account of usableUsage')
-            .usage-name
-                span {{account.account}}
-                span.badge-plan {{account.plan}}
+                // Pies put both windows on one line, which is what makes the
+                // section short enough to leave open in a docked panel.
+                .usage-pies(*ngIf='usageView === "pies"')
+                    .usage-pie(*ngFor='let entry of usageWindows(account)')
+                        svg.pie(viewBox='0 0 20 20', [attr.aria-label]='entry.window.pct + "%"')
+                            circle.pie-track(cx='10', cy='10', r='5')
+                            circle.pie-value(
+                                cx='10', cy='10', r='5',
+                                [ngClass]='"sev-" + usageSeverity(entry.window.pct)',
+                                [attr.stroke-dasharray]='pieDash(entry.window.pct)'
+                            )
+                        .pie-body
+                            .pie-pct([ngClass]='"sev-" + usageSeverity(entry.window.pct)') {{entry.window.pct}}%
+                            .pie-label {{entry.label|translate}}
+                            .pie-reset(*ngIf='entry.window.resetsIn') {{entry.window.resetsIn}}
 
-            // Pies put both windows on one line, which is what makes the
-            // section short enough to leave open in a docked panel.
-            .usage-pies(*ngIf='usageView === "pies"')
-                .usage-pie(*ngFor='let entry of usageWindows(account)')
-                    svg.pie(viewBox='0 0 20 20', [attr.aria-label]='entry.window.pct + "%"')
-                        circle.pie-track(cx='10', cy='10', r='5')
-                        circle.pie-value(
-                            cx='10', cy='10', r='5',
-                            [ngClass]='"sev-" + usageSeverity(entry.window.pct)',
-                            [attr.stroke-dasharray]='pieDash(entry.window.pct)'
-                        )
-                    .pie-body
-                        .pie-pct([ngClass]='"sev-" + usageSeverity(entry.window.pct)') {{entry.window.pct}}%
-                        .pie-label {{entry.label|translate}}
-                        .pie-reset(*ngIf='entry.window.resetsIn') {{entry.window.resetsIn}}
-
-            ng-container(*ngIf='usageView === "bars"')
-                .metric(*ngFor='let entry of usageWindows(account)')
-                    .metric-head
-                        span.metric-name {{entry.label|translate}}
-                        span.metric-value(*ngIf='entry.window.resetsIn') {{entry.window.resetsIn}}
-                        span.metric-pct {{entry.window.pct}}%
-                    .bar
-                        .bar-fill(
-                            [ngClass]='"sev-" + usageSeverity(entry.window.pct)',
-                            [style.width.%]='entry.window.pct'
-                        )
+                ng-container(*ngIf='usageView === "bars"')
+                    .metric(*ngFor='let entry of usageWindows(account)')
+                        .metric-head
+                            span.metric-name {{entry.label|translate}}
+                            span.metric-value(*ngIf='entry.window.resetsIn') {{entry.window.resetsIn}}
+                            span.metric-pct {{entry.window.pct}}%
+                        .bar
+                            .bar-fill(
+                                [ngClass]='"sev-" + usageSeverity(entry.window.pct)',
+                                [style.width.%]='entry.window.pct'
+                            )

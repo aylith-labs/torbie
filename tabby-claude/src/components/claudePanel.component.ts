@@ -6,10 +6,29 @@ import { ClaudeBookmarkLink, ClaudeSession, ClaudeUsage, ClaudeUsageWindow, Stit
 import { formatTokens, permissionBadge, relativeTime, sessionKind, sessionTitle, statusLabel } from '../format'
 import { ClaudeActionsService } from '../services/claudeActions.service'
 import { ClaudeSessionsService } from '../services/claudeSessions.service'
+import { HerdrService } from '../services/herdr.service'
 import { StithService } from '../services/stith.service'
 
 /** How often relative timestamps re-render when nothing else changes. */
 const RELATIVE_TIME_REFRESH_MS = 20000
+
+/** Where the panes' open/closed state is kept. */
+const PANE_STATE_KEY = 'claudePanelPaneCollapsed'
+
+/**
+ * Which panes start closed.
+ *
+ * The active session is what the panel is for, and "waiting on you" is the one
+ * thing worth interrupting for — so those two are open and the other two are a
+ * click away. Same rule the Link Tooltip groups follow: an absent id falls back
+ * to *that pane's* intended default rather than to "open".
+ */
+const DEFAULT_PANE_COLLAPSED: Record<string, boolean | undefined> = {
+    active: false,
+    waiting: false,
+    others: true,
+    usage: true,
+}
 
 /**
  * The docked Claude panel: what the statusline shows, for the session attached
@@ -50,6 +69,7 @@ export class ClaudePanelComponent extends BaseComponent {
     constructor (
         public config: ConfigService,
         private claude: ClaudeSessionsService,
+        private herdr: HerdrService,
         private stith: StithService,
         private actions: ClaudeActionsService,
         private app: AppService,
@@ -102,7 +122,7 @@ export class ClaudePanelComponent extends BaseComponent {
     }
 
     get usageView (): string {
-        return this.config.store.claude.panel.usageView ?? 'bars'
+        return this.config.store.claude.panel.usageView ?? 'pies'
     }
 
     setUsageView (view: string): void {
@@ -135,7 +155,81 @@ export class ClaudePanelComponent extends BaseComponent {
     }
 
     get options (): any {
+        // Keeping the pane cache warm from here rather than from a timer of its
+        // own: this getter runs on every change-detection pass over the panel,
+        // and `warm()` no-ops unless the cache is older than ten seconds.
+        this.herdr.warm()
         return this.config.store.claude.panel
+    }
+
+    // ── Panes ────────────────────────────────────────────────────────
+
+    /**
+     * Whether a pane is closed.
+     *
+     * View state, so localStorage rather than `config.yaml` — the same shape
+     * `linkTooltipGroupCollapsed` and `profileGroupCollapsed` use. It has to
+     * outlive the component: the panel is destroyed and rebuilt whenever it is
+     * hidden and shown again, or docked to another edge.
+     *
+     * Read through a memo, because this is called from the template several
+     * times per pass per pane and every miss is a `JSON.parse` of the whole
+     * map.
+     */
+    paneCollapsed (id: string): boolean {
+        this.paneState ??= this.readPaneState()
+        const stored = this.paneState[id]
+        return typeof stored === 'boolean' ? stored : DEFAULT_PANE_COLLAPSED[id] ?? false
+    }
+
+    togglePane (id: string): void {
+        const state = this.readPaneState()
+        state[id] = !this.paneCollapsed(id)
+        this.paneState = state
+        try {
+            window.localStorage[PANE_STATE_KEY] = JSON.stringify(state)
+        } catch {
+            // Storage can be unavailable or full. Forgetting which pane was
+            // open is not worth failing the panel over.
+        }
+    }
+
+    /**
+     * Where this session actually is, when it is not in a tab here — shown as
+     * a tooltip on the icon, so the row says what a click is about to do
+     * rather than surprising you with another window.
+     */
+    paneHint (session: ClaudeSession): string | null {
+        if (!this.herdr.enabled) {
+            return null
+        }
+        const pane = this.herdr.cachedPaneFor(session.sessionId)
+        return pane ? `shefrd pane ${pane.paneId}` : null
+    }
+
+    rowTooltip (session: ClaudeSession): string {
+        const hint = this.paneHint(session)
+        return hint ? `${session.cwd}\n${hint}` : session.cwd
+    }
+
+    /**
+     * By session id, not identity. Every poll builds fresh objects, so identity
+     * tracking re-creates every row twice a second — which drops the hover
+     * state, restarts any transition and defeats the browser's own scroll
+     * anchoring inside a pane that is now independently scrollable.
+     */
+    trackSession (index: number, session: ClaudeSession): string {
+        return session.sessionId
+    }
+
+    private paneState: Record<string, boolean> | null = null
+
+    private readPaneState (): Record<string, boolean> {
+        try {
+            return JSON.parse(window.localStorage[PANE_STATE_KEY] ?? '{}')
+        } catch {
+            return {}
+        }
     }
 
     // The three lists partition the sessions rather than overlapping: a session

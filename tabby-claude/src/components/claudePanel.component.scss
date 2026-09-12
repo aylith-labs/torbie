@@ -1,18 +1,124 @@
+// The panel owns its own height so its panes can share it. The host
+// (`sidePanelHost`) gives `.panel-body` a definite height from its flex row and
+// leaves `overflow: auto` on it as the fallback for a panel that does not do
+// this; here nothing ever overflows it, because every pane scrolls internally.
 :host {
     display: block;
+    height: 100%;
     font-size: 12px;
     color: var(--theme-fg);
 }
 
 .claude-panel {
-    padding: 8px 10px 16px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding: 4px 0 0;
+}
+
+// ── Panes ────────────────────────────────────────────────────────────
+//
+// VSCode's sidebar rules, which are what make a column of panes usable:
+// a collapsed pane costs exactly its header, and the expanded ones split
+// whatever is left. `flex-basis: 0` rather than `auto` is what makes them
+// split it *evenly* instead of in proportion to how much content each
+// happens to hold — otherwise one busy pane takes the whole panel and the
+// others are reduced to their headers anyway.
+
+.pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    border-top: 1px solid var(--theme-fg-less-2);
+
+    &:first-of-type {
+        border-top: none;
+    }
+
+    &.collapsed {
+        flex: none;
+    }
+}
+
+.pane-header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px 3px 4px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.917em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    opacity: 0.75;
+
+    &:hover {
+        opacity: 1;
+        background: rgba(128, 128, 128, 0.1);
+    }
+}
+
+.pane-chevron {
+    font-size: 0.75em;
+    opacity: 0.7;
+}
+
+.pane-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pane-count {
+    flex: none;
+    margin-left: 4px;
+    padding: 0 5px;
+    border-radius: 8px;
+    background: rgba(128, 128, 128, 0.22);
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+// The dot beside a collapsed pane's title: it is the one thing about the
+// active session worth knowing without opening the pane.
+.pane-dot {
+    flex: none;
+    margin-left: auto;
+}
+
+.pane-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2px 10px 10px;
+}
+
+.pane-empty {
+    padding: 6px 0;
+    opacity: 0.5;
+}
+
+// A hint that this session is in a multiplexer pane rather than a tab here —
+// which is what clicking it will focus.
+.row-pane-hint {
+    flex: none;
+    font-size: 0.833em;
+    opacity: 0.45;
 }
 
 .notice {
+    flex: none;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 4px;
+    padding: 10px;
     opacity: 0.65;
 
     &.offline {
@@ -42,9 +148,10 @@
 }
 
 .panel-toolbar {
+    flex: none;
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 4px;
+    padding: 0 6px 2px;
 }
 
 .tool-btn {
@@ -72,7 +179,6 @@
 .view-switch {
     display: flex;
     gap: 2px;
-    margin-bottom: 5px;
 }
 
 .view-btn {
