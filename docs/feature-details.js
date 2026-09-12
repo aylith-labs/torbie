@@ -245,6 +245,94 @@ window.FEATURE_DETAILS = {
     ],
   },
 
+  "claude-pane-focus": {
+    problem:
+      "\"Focus tab\" could only ever mean a tab in this window, and most sessions are not in one. Measured on the machine this was built on: <strong>15 of 15 listed sessions had a multiplexer pane and no tab here</strong>, so every click fell through to the \"there is nothing to focus\" branch and opened a browser instead.",
+    how:
+      "Three places are tried nearest first, because each is more disruptive than the last: a tab in this window, then the herdr/shefrd pane the session is running in, then the session registry on the web. Both pane calls go through the registry itself — <code>GET /api/herdr/panes</code> and <code>POST /api/herdr/focus</code> — which already holds a socket to every multiplexer server. The join is the session id, matched against the pane rows' own.",
+    steps: [
+      "Open Settings → Claude → Clicking a session and confirm \"Focus panes in herdr / shefrd\" is on. It depends on the click action being Focus, and is disabled otherwise.",
+      "Press Test connection on the same page. It reports the pane count beside the session count.",
+      "Click a row in the panel for a session running in a multiplexer. The row carries a columns icon naming its pane."
+    ],
+    settings: [
+      { key: "claude.shefrd.enabled", def: "true", note: "Ask the multiplexer to raise a session's pane when there is no tab here for it." },
+    ],
+    notes: [
+      "<strong>There is deliberately no second address to configure.</strong> <code>claude.stithURL</code> is the whole of it, so the registry URL and a shefrd URL cannot drift apart — and it is the same pair of endpoints <code>tabby-links</code>' <code>shefrd.json</code> manifest uses, kept identical on purpose.",
+      "It is a separate service from the registry client, which documents at the top of its own file that it never mutates registry state. A focus POST does.",
+      "<code>focus()</code> returns <em>how</em> it failed rather than a boolean. \"No pane\" means the session is somewhere else entirely and a browser is the honest answer; \"failed\" means the pane is real and something transient went wrong. The fallbacks differ.",
+      "The timeout is its own constant rather than the poll's, which is tuned against a two-second interval where failing fast is right. An aborted focus looks exactly like a click that did nothing. Measured: listing 45–110ms for 44 panes, focus 120ms.",
+    ],
+    caveats: [
+      "It does nothing for a session on another machine — there is no pane here to raise, and that case still opens the registry in a browser.",
+      "<strong>The automated test never talks to the real registry</strong>, and must not: the point of the service is a command that moves someone's desktop. It drives an HTTP server the test owns. The live path was exercised once by hand, recording which pane was focused first and putting it back.",
+      "Nothing verifies that raising a pane also raises the window containing it; that is the multiplexer's business, not this.",
+    ],
+  },
+
+  "claude-panel-panes": {
+    problem:
+      "The panel was one long scroll, so reaching plan usage meant scrolling past however many sessions were running, and a section growing pushed everything below it off the bottom. Its settings page was a 183-line flat list in which six switches silently did nothing whenever the one above them was off.",
+    how:
+      "Four collapsible panes on VSCode's sidebar model — active session, waiting on you, other sessions, usage — each with its own header and its own scroll container, the expanded ones sharing the panel's height and a collapsed one costing exactly its header. The settings page becomes four accordion groups to match, with every dependent switch indented under the master that governs it and disabled when it is off.",
+    steps: [
+      "Open the docked Claude panel and click any pane header to collapse it. The others take its space.",
+      "Open Settings → Claude → Panel contents and turn Active session off. The six rows beneath it grey out rather than staying live and inert.",
+    ],
+    settings: [
+      { key: "claude.panel.usageView", def: "pies", note: "Pies put both windows on one line, so an account costs one row instead of two." },
+    ],
+    notes: [
+      "<strong>Not ng-bootstrap's accordion</strong>, deliberately: that sizes each body to its content and collapses by animating height. A pane here has to take a share of the panel and scroll inside it.",
+      "<code>flex: 1 1 0</code>, not <code>1 1 auto</code>. With <code>auto</code> the panes split the height in proportion to how much content each holds, so one busy pane takes everything and the rest are reduced to their headers anyway — which is the problem this set out to fix.",
+      "Rows track by session id. Every poll builds fresh objects, so identity tracking re-created every row twice a second, dropping hover state and defeating the browser's scroll anchoring inside a pane that is now independently scrollable.",
+      "Waiting, Other sessions and Usage are deliberately <em>not</em> indented on the settings page: they are their own top-level sections and are governed by nothing above them.",
+      "Nothing sets <code>disabled</code> on an accordion item. That disables the item's own header, and every master switch lives inside the group it governs — so a disabled group could never be opened to switch it back on.",
+    ],
+    caveats: [
+      "Pane sizes are not draggable, unlike VSCode's. The expanded panes share the height evenly and that is all.",
+      "Which panes are open is per-machine browser storage, so it does not travel with Config Sync.",
+    ],
+  },
+
+  "plugins-tab-repair": {
+    problem:
+      "Settings → Plugins rendered both of its lists as nothing at all, which reads as \"plugins have stopped working\" — the one thing this fork exists to avoid being true.",
+    how:
+      "It was markup, not compatibility. <code>&lt;ngb-accordion&gt;</code> and <code>&lt;ngb-panel&gt;</code> were removed in ng-bootstrap 15 and this tree is on 21; <strong>an unknown element is not an error in Angular</strong>, so there was no exception, no console warning and no failed build. The page simply resolved to nothing. Migrated to the directive accordion the Link Tooltip page already uses.",
+    notes: [
+      "Plugins themselves were never affected, and that was measured rather than assumed: 21 load, including all three third-party ones, their config keys are present in the store, and the repaired Installed list shows 19 entries.",
+      "The upgrade button is now a sibling of the toggle rather than a child. The old component API rendered the panel title <em>inside</em> the header button, so a plugin with an upgrade available produced a button nested in a button — invalid, and swallowed in some browsers.",
+      "The stylesheet had been targeting <code>.card-header &gt; button</code>, which is ng-bootstrap <em>4</em>'s markup. Nothing has emitted that element for several majors, so it had been styling nothing the whole time.",
+      "A search of the tree found these two tags in this component and nowhere else, so the same fault is not hiding on another page.",
+    ],
+    caveats: [
+      "Verified in a live window — 144 available, 19 installed, zero of either removed tag, zero nested buttons — but installing or uninstalling a plugin from the repaired page has not been exercised end to end.",
+    ],
+  },
+
+  "builds-faster-scan": {
+    problem:
+      "Opening the Builds page took noticeably long before anything appeared, and 805ms of that was the directory walk — against 116ms for a plain walk of the same roots.",
+    how:
+      "Neither cause was algorithmic. The walk <em>asked before it looked</em>: every directory ran the checkout test and then the application test, and the latter probes each executable name in turn, so a directory that is neither paid for the whole list before the <code>readdir</code> that would have answered in one call. The listing is read first now, and the expensive checks run only where it says they could succeed. The walk is also breadth-first and bounded-concurrent rather than strictly serial.",
+    sample: {
+      label: "Three consecutive scans, after",
+      text: "walkRoots  36ms   readVersions 273ms   materialize 19ms\nwalkRoots  27ms   readVersions 302ms   materialize 18ms\nwalkRoots  33ms   readVersions 303ms   materialize  9ms",
+    },
+    notes: [
+      "<strong>Proved equivalent rather than assumed.</strong> A longhand serial walk of the same roots, with the same predicates written out, finds the identical set — one checkout, two application directories, nothing on either side only — and takes 3358ms doing it.",
+      "Results are gathered per input index rather than pushed as they land. The scan dedupes by root, so a non-deterministic winner would be a non-deterministic page.",
+      "The remaining cost is reading each executable's version resource, which is now most of the scan.",
+      "The Built from column also stops reading as a range: <code>abc1234 → def5678</code> looked like a span of commits when it meant \"compiled from the first, and the checkout has since moved to the second\". The second is labelled, and a tooltip says it in words.",
+    ],
+    caveats: [
+      "The numbers are this machine's, with four search roots and 1,433 directories under them. A tree of a different shape will differ.",
+      "Nothing here speeds up the version reads, which now dominate.",
+    ],
+  },
+
   "pane-hover-pinning": {
     problem: "Hiding popovers did not update the pane, so Pane only left stale content. Reading one ticket also needed a way to return to it after checking another link.",
     how: "Pane only sends hover changes straight to the existing pane. Pin link stores the current preview separately: another hover temporarily replaces it, and leaving restores cached content. Without a pin, the latest hover stays. Explicit Show in pane clears the pin. Repeated hovers are deduplicated and stale replies cannot overwrite a restored pin.",

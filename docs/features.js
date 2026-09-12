@@ -27,6 +27,30 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "claude-pane-focus", title: "Click a session, focus the pane it runs in",
+    cat: "claude", catLabel: "Claude Code", dateAdded: "2026-09-12",
+    commits: ["3b656373"], files: 6, ins: 491, del: 9,
+    desc: "A session running in a herdr or shefrd pane is raised in place instead of opening a browser. Three places are tried nearest first: a tab in this window, then the multiplexer pane, then the session registry on the web. Everything goes through the registry's own herdr endpoints, so no second address is configured and nothing invokes a binary.",
+  },
+  {
+    id: "claude-panel-panes", title: "The Claude panel is panes, each scrolling on its own",
+    cat: "claude", catLabel: "Claude Code", dateAdded: "2026-09-12",
+    commits: ["68d01f35", "99680951"], files: 5, ins: 785, del: 356,
+    desc: "Four collapsible panes on VSCode's sidebar model, each with its own scroll container, the expanded ones sharing the panel's height. The settings page behind them is grouped to match, and a switch that depends on another is disabled rather than silently doing nothing.",
+  },
+  {
+    id: "plugins-tab-repair", title: "The Plugins tab lists again",
+    cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
+    commits: ["ff24a1ec"], files: 3, ins: 115, del: 68,
+    desc: "Both plugin lists rendered as nothing after the ng-bootstrap upgrade removed the accordion component the page used, which Angular reports as neither an error nor a warning. Migrated to the directive accordion, with the upgrade button moved out of the header button it was illegally nested inside.",
+  },
+  {
+    id: "builds-faster-scan", title: "The build scan asks each directory once",
+    cat: "builds", catLabel: "Builds", dateAdded: "2026-09-12",
+    commits: ["a5f4d101", "50f04e14"], files: 3, ins: 115, del: 29,
+    desc: "Opening the Builds page spent 805ms walking the search roots, almost all of it on filesystem probes answered by a directory listing it then made anyway. The listing is read first and the expensive checks run only where it says they could succeed: 27-39ms, proved to find the identical set. Built from also says which of its two commits is the checkout's current head.",
+  },
+  {
     id: "pane-hover-pinning", title: "Follow hovered links and pin a preview",
     cat: "links", catLabel: "Links", dateAdded: "2026-09-12",
     commits: ["92b49f50"], files: 8, ins: 119, del: 18,

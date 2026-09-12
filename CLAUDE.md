@@ -586,7 +586,7 @@ all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
 
 | Tier | Command | What it needs |
 |---|---|---|
-| **fast** | `yarn test` | Nothing but a checkout. ~4s, 303 checks. **This is the gate.** |
+| **fast** | `yarn test` | Nothing but a checkout. ~4s, 7 suites / 280 checks. **This is the gate.** |
 | **built** | `yarn test:built` | `yarn run build` — it reads the compiled bundle, 515 checks. |
 | **checks** | `yarn test:checks` | `check-docs` needs full history; `check-fork-marks` needs `upstream` fetched. |
 | **cdp** | see below | A compiled bundle **and an instance already listening**. Not a push-button tier. |
@@ -760,6 +760,90 @@ Three things make that join work, each of which cost real debugging:
 For WSL, `OSCProcessor` now parses **OSC 7** (`file://host/path`) as well as
 iTerm's OSC 1337; OSC 7 is what default bash/zsh (including WSL's) emit, so
 before this a WSL tab reported no working directory at all.
+
+### Clicking a row focuses the pane it is actually running in
+
+"Focus tab" could only ever mean a tab in this window, and most sessions on this
+machine are not in one: measured live, **15 of 15 listed sessions had a
+herdr/shefrd pane and no tab here**, so every single click fell through to the
+"there is nothing to focus" branch and opened stith in a browser.
+`herdr.service.ts` closes that, and `claude.shefrd.enabled` (on) is the switch.
+
+- **Everything goes through stith, and nothing invokes a binary.** stith already
+  holds a socket to every multiplexer server, which is the only reason this is
+  reachable from a renderer at all — `GET /api/herdr/panes` and
+  `POST /api/herdr/focus {kind,id}`. `tabby-links`' `shefrd.json` manifest talks
+  to exactly those two, and the addresses are kept identical on purpose. There
+  is deliberately **no second URL setting**: `claude.stithURL` is the whole
+  address, so the two cannot drift apart.
+- **The join is `sessionId`**, matched against the pane rows' own. A pane with
+  no session is the trap — `undefined === undefined` would match it for any
+  session whose id is missing — so paneless rows are excluded explicitly.
+- **It is a separate service from `StithService`**, which documents at the top of
+  its file that it never mutates stith state. A focus POST does.
+- **Three places, tried nearest first**, because each is more disruptive than
+  the last: a tab here, then a pane, then a browser. `focusSession` returns which
+  it used.
+- **`focus()` returns how it failed, not a boolean.** "No pane" means the session
+  is elsewhere and a browser is the honest answer; "failed" means the pane is
+  real and something transient went wrong, which is not the same fallback.
+- **The timeout is its own constant, not `claude.requestTimeoutMs`.** That one is
+  the poll's budget, tuned against a 2s interval where failing fast is right.
+  Neither call here is a poll, and an aborted focus looks exactly like a click
+  that did nothing. Measured: listing 45–110 ms for 44 panes, focus POST 120 ms.
+- The pane cache is warmed from the panel's own `options` getter rather than a
+  timer — it no-ops unless the cache is over ten seconds old, so the labels stay
+  honest without doubling this window's traffic to stith.
+- `tabby-claude/test/herdr.test.js` (20 checks, fast tier) drives the service
+  against an HTTP server it owns. **Never point it at the real stith**: the whole
+  point of the service is a command that moves someone's desktop, which is not a
+  thing a suite may do as a side effect. The live path was verified once, by
+  hand, recording which pane was focused first and putting it back.
+
+### The panel is panes, VSCode-style
+
+One long scroll became four panes, each with its own header and its own scroll
+container, the expanded ones sharing the panel's height.
+
+- **Not ng-bootstrap's accordion**, deliberately. That sizes each body to its
+  content and collapses by animating height; a pane here has to take *a share of
+  the panel* and scroll inside it.
+- **`flex: 1 1 0`, not `1 1 auto`.** With `auto` the panes split the height in
+  proportion to how much content each holds, so one busy pane takes everything
+  and the rest are reduced to their headers anyway — which is the problem this
+  set out to fix. A collapsed pane is `flex: none` and costs exactly its header.
+- **The panel owns its height** (`:host { height: 100% }`) so `.panel-body`'s own
+  `overflow: auto` never engages. That stays in `sidePanelHost` as the fallback
+  for a panel that does not do this.
+- **`trackBy: trackSession`.** Every poll builds fresh session objects, so
+  identity tracking re-created every row twice a second — which drops hover
+  state and defeats the browser's scroll anchoring inside a pane that is now
+  independently scrollable.
+- The usage view switch lives in the pane header and `stopPropagation()`s:
+  the header is the pane's toggle, and changing the view must not collapse the
+  pane you are looking at.
+- State is view state: `localStorage.claudePanelPaneCollapsed`, the shape
+  `linkTooltipGroupCollapsed` and `profileGroupCollapsed` already use.
+
+### The settings page is grouped, and a dependant says so
+
+Four accordion groups over what was a 183-line flat scroll
+(`localStorage.claudeGroupCollapsed`), following the Link Tooltip page exactly —
+including its rule that **nothing sets `disabled` on an accordion item**, since
+every master switch lives inside the group it governs and a disabled header
+could never be opened to switch it back on.
+
+- The six rows under **Active session** are the sections the panel renders
+  *inside* `*ngIf='showActiveSession && activeSession'`. With the master off they
+  were six controls that silently changed nothing; they are now indented and
+  `[disabled]`, which is measured both ways in the live check.
+- They are a table in the component rather than six near-identical template
+  blocks, because the thing that matters about them is that they are one group.
+- **Waiting / Other sessions / Usage are deliberately not indented** — they are
+  their own top-level sections in the panel and are governed by nothing above.
+- The connection test reports the pane count beside the session count: stith
+  answering while herdr is not running is a real state, and the one that makes
+  pane focusing fall back to the browser without saying why.
 
 ### Verifying the UI without stealing focus
 
@@ -1334,11 +1418,24 @@ was open. ng-bootstrap's directive accordion was already imported and Bootstrap
 - State is view state: `localStorage.linkTooltipGroupCollapsed`, in the shape
   `profileGroupCollapsed` already uses. An **absent** id falls back to *that
   group's* intended default rather than to "open".
-- **A collapsed group's body has never been instantiated**, so its controls are
-  absent from the DOM rather than hidden — `clicks.cdp.js` read `.chord-row`
-  straight out of the document and had to learn to open the group first. Tabby
-  has no settings search, so the reference's concern about a search index
-  reaching into a collapsed expander has no analogue here.
+- **A collapsed group has to be opened before anything in it can be measured**,
+  and how it fails depends on `destroyOnHide`. `clicks.cdp.js` read `.chord-row`
+  straight out of the document and found nothing, which is the loud failure.
+  This page sets `[destroyOnHide]='false'`, so the *quiet* one applies here
+  instead: every control stays in the DOM under a `display: none` collapse and
+  measures **0 in every dimension**. A check like "all three checkboxes start at
+  the same x" is trivially true of three zeroes, so a probe must assert the
+  element has layout before believing an alignment. Cost a green run that proved
+  nothing. Tabby has no settings search, so the reference's concern about a
+  search index reaching into a collapsed expander has no analogue here.
+- **The click-kind checkboxes need two boxes, not one.** `.click-kinds` is
+  right-aligned like every other control on the page and the checks wrap to one
+  per line, so `justify-content: flex-end` aligned each *line* on its own — and
+  since the labels differ in length, the checkboxes landed on a ragged left edge
+  (measured 847 / 861 / 820, a 41px spread). The outer box right-aligns; an
+  inner `.click-kinds-list` shrinks to the widest line and left-aligns inside
+  it, which is what gives the boxes a common edge. CSS has no way to align items
+  *across* wrapped lines without that wrapper.
 
 ### WSL paths: the translation was right and unreachable
 
@@ -1574,6 +1671,16 @@ The bits that cost real time:
   binary means portable, which is what lets a slot run alongside the installed
   app. `~\Torbie` is therefore a default search root, and `~\Tabby` stays one
   so slots cut before the rename remain visible.
+- **The walk asks the directory once and answers from the listing.** It used to
+  `stat` a handful of candidate paths per directory to decide what it was
+  looking at — `scripts/`, an executable, a `.app` — which is several syscalls
+  each, over a tree with thousands of directories. `readdir` already returns all
+  of that, so `isSourceTree` now gates on `names.has('scripts')` and the app
+  seed on an executable name or `.app` dir being *in the listing*. Breadth-first
+  at `CONCURRENCY = 32`, with results batched per index so ordering is stable.
+  **Measured on this machine: 805 ms → 27–36 ms** across three consecutive
+  scans, which moves the whole cost of opening the page onto `readVersions`
+  (~290 ms, reading each executable's version resource).
 - **A slot's `BUILD-INFO.txt` wins over its version resource.** Slot binaries
   report `1.0.0`; the sidecar carries the real version, the commit, the branch,
   the originating checkout and the upstream base it was forked from. Taking
@@ -2401,6 +2508,40 @@ Two things only a running window found: assigning `activeTab` from outside
 Angular's zone changes nothing until `applyChanges`, and **more than one
 settings page stays in the DOM at once**, so a document-wide query reads rows
 from a page nobody is looking at.
+
+## The empty Plugins tab was markup, not compatibility
+
+Settings → **Plugins** rendered both of its lists as nothing at all after the
+Angular 22 / ng-bootstrap 21 upgrade, which looks exactly like "plugins stopped
+working". It was not that, and the distinction matters enough to record how each
+half was established:
+
+- **Plugins are fine.** 21 load, including all three third-party ones, their
+  config keys are in the store, and the Installed list — once it rendered —
+  showed 19 entries. That is the measurement described under *The rename*, redone.
+- **`<ngb-accordion>` and `<ngb-panel>` were removed in ng-bootstrap 15** and
+  this tree is on 21. Both lists used them, and **an unknown element is not an
+  error in Angular** — no exception, no console warning, no failed build. The
+  markup simply resolved to nothing, in the one component nobody had reopened
+  since the upgrade. `grep` for the two tags across `src` found these and
+  nothing else, so the same fault is not hiding elsewhere.
+
+The migration is to the directive API already used by the Link Tooltip page:
+`ngbAccordion` / `ngbAccordionItem` / `ngbAccordionHeader` / `ngbAccordionButton`
+/ `ngbAccordionCollapse` / `ngbAccordionBody`, with the body's content inside an
+`ng-template`.
+
+- **The Upgrade button is now a sibling of the toggle, not a child.** The
+  component API rendered `ngbPanelTitle` *inside* the header button, so a plugin
+  with an upgrade available produced a `<button>` nested in a `<button>` —
+  invalid, and the inner click is swallowed in some browsers. The header is the
+  flex row now and the toggle takes the slack; the live check asserts
+  `button button` matches **zero** elements.
+- **The old stylesheet targeted `.card-header > button`**, which is ng-bootstrap
+  *4's* markup. Nothing has emitted that element for several majors, so it had
+  been styling nothing for as long as it had been there.
+- Verified live: 144 available and 19 installed items, zero of either removed
+  tag, a body that instantiates its Get / Homepage / version content on click.
 
 ## The renderer and xterm 6
 
