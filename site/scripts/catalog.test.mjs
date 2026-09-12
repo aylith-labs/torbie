@@ -25,3 +25,11 @@ test('release API failures retain the public recovery link', async () => {
  const original=globalThis.fetch;
  try { globalThis.fetch=async()=>new Response('',{status:503});const release=await latestRelease();assert.equal(release.available,false);assert.equal(release.url,releasesUrl);assert.deepEqual(release.assets,[]); } finally { globalThis.fetch=original; }
 });
+
+test('rendered upstream reference keeps code links within Torbie', async () => {
+ const { details } = await import('../src/lib/server/catalog.ts');
+ const history = details['url-punctuation'].upstream;
+ assert.match(history, /upstream pull request #11383/);
+ assert.match(history, /https:\/\/github\.com\/aylith-labs\/torbie\/commit\//);
+ assert.doesNotMatch(history, /href="https:\/\/github\.com\/Eugeny/);
+});
