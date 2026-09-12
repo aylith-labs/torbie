@@ -510,6 +510,15 @@ feature — twelve today, all reverts, docs or build patches.
   at once and every entry failed until they were re-pointed — the site's one
   real maintenance cost. A single `main` that is never rebased retires it: run
   the checker after adding a feature, not after a sync.
+- **On a shallow clone it passes without checking anything.** The git checks
+  start from `git merge-base HEAD upstream/master`, and on a shallow checkout
+  that command fails; the checker catches the failure and prints *"no
+  upstream/master — skipping the git checks"* even when the ref is right there.
+  It then reports `docs OK` over numbers nobody compared. CI clones with
+  `fetch-depth: 0`, so a wrong count passes locally and fails on `main`.
+  `git rev-parse --is-shallow-repository` says which you have, and
+  `git fetch --unshallow upstream` fixes it. Found 2026-09-12, when the local
+  checks had been skipping for an unknown stretch.
 - **The candour is load-bearing.** Each page has a *What this does not claim*
   block, and the index has *Known limits*: emoji width is listed as broken, the
   stale-glyph artifacts are stated as **not reproduced** by `glyphs.cdp.js`, and
@@ -2936,13 +2945,85 @@ Kept to a minimum — every one is a line that conflicts on rebase.
   Windows high-contrast is on (`TerminalCore/Terminal.cpp`). So this is now
   "draw what the app asked for", same as WT/iTerm2.
 
-  **The same key also drove the app chrome's contrast floor**
-  (`ThemesService.applyThemeVariables` contrast pairs), so dropping the default
-  would have dimmed derived UI colours like `--theme-fg-less-2` that are faint
-  by design. Chrome now floors at its own `UI_MINIMUM_CONTRAST_RATIO = 4`
-  (the old default) via `max(4, terminal.minimumContrastRatio)` — measured
-  identical output at 1 and at 4, while 6 still escalates it, so raising the
-  setting for accessibility keeps working.
+  **The same key also drives the chrome's contrast floors, and there are two.**
+  `ThemesService.applyThemeVariables` floors each derived pair by what its
+  foreground is used for:
+
+  - **Text, 4.5** (`TEXT_CONTRAST_RATIO`): `--bs-body-color`, `--theme-fg`,
+    `--theme-fg-less`, `--theme-fg-less-2`, `--theme-fg-more`, every
+    `--theme-<key>-fg` and `-active-fg`, and `--theme-accent`. Each of them
+    colours words somewhere: body text, tab titles, nav links,
+    `--bs-emphasis-color`, `<code>`, the active nav pill.
+  - **Tint, 4** (`UI_MINIMUM_CONTRAST_RATIO`): `--theme-fg-more-2` only, which
+    is the scrollbar thumb, a focused input's border and a fork mark's outline.
+
+  Both are `max(floor, terminal.minimumContrastRatio)`, so dropping that
+  default to 1 changed nothing here, and raising it still escalates both. One
+  floor of 4 used to cover text too, which left a secondary button's label at
+  4.30:1. A foreground that is ever read as text belongs in the text list.
+
+  Colours no pair covers are measured against where they land.
+  `--theme-muted-fg` meets 4.5:1 on `--body-bg`, `--theme-bg`, `-more`,
+  `-more-2`, `-less` and `-less-2`. `--theme-<key>-text` meets it on those and
+  on `--theme-<key>-alert-bg` (the key at 14% over the page), and
+  `--theme-<key>-border` meets 3:1 on the same. `--theme-<key>-contrast-fg` and
+  its `-hover-` and `-active-` forms meet 4.5:1 on that key's own fill.
+  `--theme-<key>-edge` is an outline for a badge fill too close to the page, or
+  `transparent`. Every search is judged in whole channels, because an
+  unrounded 4.500 painted as 4.487.
+
+## Text contrast is measured (`scripts/dev/contrast-audit.cdp.cjs`)
+
+Every settings page, the tab bar, the settings nav and the profile selector
+are measured in the light scheme and the dark one, in a hidden dev build,
+against WCAG AA: 4.5:1, or 3:1 for text of 24px (18.66px bold). On 2026-09-12
+it found 94 runs below that in AtomOneLight and 98 in Afterglow, colour-scheme
+previews excluded, and none in either once the fixes below landed.
+
+```bash
+node scripts/dev/launch-hidden.mjs --enable links,linkifier,claude,builds --port 9246   # leave it running
+CDP_PORT=9246 node scripts/dev/contrast-audit.cdp.cjs [--page "Builds,Plugins"] [--json out.json]
+CDP_PORT=9246 node scripts/dev/contrast-audit.cdp.cjs --self-test
+```
+
+- **Text is measured the way it is composited.** Every element is an isolated
+  group: its background, then its content, the whole multiplied by its opacity
+  and laid over what is behind it, up to the root. The first version multiplied
+  opacity into the text alone and scored a planted white-on-half-black case at
+  5.28:1 where the painted result is 4.04:1. `--self-test` plants that case and
+  six more and fails unless each comes back exact.
+- **A collapsed accordion measures nothing**, so every group on a page is
+  opened first, and a page's inner tabs (Builds → Options) are visited in turn.
+- **Colour-scheme previews are skipped**, because they draw a scheme's own
+  colours on purpose, and disabled controls are exempt, as WCAG exempts them.
+- **Not covered yet:** the Claude side panel and tab hover card, the link hover
+  card and preview pane, the SFTP panel, menus, toasts, and text that only
+  appears on hover. Plain links outside alerts still use Bootstrap's
+  `#0d6efd`, 4.27:1 on a light page and 3.58:1 on a dark one; no audited page
+  shows one, and recolouring every link is a design decision not yet taken.
+
+What it found, and where the fixes live:
+
+- **Secondary text was an opacity, not a colour.** `.text-muted` was the
+  foreground at `opacity: .5`, a different colour on every surface it lands on
+  and about 2.5:1 on a light scheme's grey panel. `--theme-muted-fg` replaces
+  it. A component that dims text uses that variable and no `opacity` on the
+  same element, or the two stack and fail again.
+- **Bootstrap compiles half of each contextual class and the theme supplies
+  the other half at runtime.** `.text-bg-*` baked `color: #fff` or `#000` in
+  at build time against Bootstrap's own palette, while its background was
+  `var(--bs-*-rgb)`: AtomOneLight's secondary badge was white on pale grey at
+  1.40:1. `.btn-outline-*` kept `#0d6efd` and `#dc3545` whatever the scheme.
+  Both now read colours `ThemesService` measured against the real fill.
+- **Accordions are outlined cards, not grey slabs.** Bootstrap filled header
+  and body with `--bs-accordion-bg`, gave an open header a darker fill, and
+  drew the chevron from a compiled `#212529` or `#052c65`, which measured
+  1.14:1 on a dark scheme. Bodies are the page now, the header carries the
+  weight, and the chevron is a mask over `currentColor`.
+- **`primary` and `info` are the same colour** (`theme.colors[4]`), so their
+  badges and alerts are identical. Left as it is; a page that needs to tell two
+  things apart should not lean on those two keys, which is why the Builds page
+  shows a build's kind as an icon chip.
 
 ## The colour scheme page
 

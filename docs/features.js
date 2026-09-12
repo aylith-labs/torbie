@@ -27,6 +27,18 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "readable-everywhere", title: "Text reads on every surface, and accordions are outlines",
+    cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
+    commits: ["a65c43d2", "101900fc"], files: 6, ins: 489, del: 54,
+    desc: "An audit of every settings surface found 94 runs of text below WCAG AA in a light scheme and 98 in a dark one. None remain. Secondary text is a measured colour instead of half opacity, badges and buttons take text measured against their own fill, alerts are tints with measured text, and a dark scheme no longer shows a white stripe beside the vertical tab bar. Accordions are outlined cards rather than grey slabs, and profile selector rows show a pointer.",
+  },
+  {
+    id: "contrast-audit", title: "A contrast audit of every settings surface",
+    cat: "robustness", catLabel: "Robustness", dateAdded: "2026-09-12",
+    commits: ["ecd70aa0"], files: 1, ins: 594, del: 0,
+    desc: "A script that attaches to a hidden build and measures every visible run of text on every settings page, the tab bar, the settings nav and the profile selector, in both schemes, against WCAG AA. Text is measured as the browser composites it, and a self-test plants cases with known ratios so a change to how anything is measured cannot pass unnoticed.",
+  },
+  {
     id: "builds-cards", title: "Build cards sit in a grid laid out by container queries",
     cat: "builds", catLabel: "Builds", dateAdded: "2026-09-12",
     commits: ["cb3060f9"], files: 3, ins: 300, del: 110,

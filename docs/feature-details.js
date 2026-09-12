@@ -20,6 +20,49 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "readable-everywhere": {
+    problem:
+      "On a light scheme, settings descriptions sat in pale grey on grey panels, the profile selector's ENTER hint was white on light grey, an SSH badge was white on near-white and a Telnet one black on bright blue. Accordions were stacked grey slabs, and on a dark scheme a full-height white stripe ran between the vertical tab bar and the tab.",
+    how:
+      "The causes were few and global. Secondary text was the foreground at half opacity, which is a different colour on every surface; <code>ThemesService</code> now derives <code>--theme-muted-fg</code> to reach 4.5:1 on the page, both raised panels and both hover fills. Bootstrap compiles each <code>.text-bg-*</code> text colour at build time against its own palette while the fill is the scheme's runtime colour, so badges and buttons now read a colour measured against their own fill, at rest, hovered and pressed. Derived colour pairs whose foreground is text floor at 4.5 rather than 4.",
+    sample: {
+      label: "Contrast audit, colour-scheme previews excluded",
+      text: "              before  after\nAtomOneLight    94      0\nAfterglow       98      0",
+    },
+    notes: [
+      "A badge fill too close to the page gets a one-pixel inset edge at 3:1, and an alert is a 14% tint of its colour with text and border measured against that tint.",
+      "Each accordion group is an outlined card on the page: the header carries the weight and a keyboard focus ring, the body has no fill, and the chevron follows the text colour instead of a compiled blue that measured 1.14:1 on a dark scheme.",
+      "The white stripe was the vertical tab bar's resize splitter, transparent over a body that is transparent on purpose, showing the window's white backing. It now paints the tab bar's own colour.",
+      "Rows in the profile selector are anchors with no link, so they showed a text caret; they show a pointer now.",
+    ],
+    caveats: [
+      "Measured on AtomOneLight and Afterglow, plus the two default schemes for alerts. Another scheme is floored by the same rules, not individually measured.",
+      "Not yet audited: the Claude side panel and hover card, the link hover card and preview pane, the SFTP panel, menus and toasts.",
+      "Plain links outside alerts still use Bootstrap's blue, which falls below AA; no audited page shows one.",
+      "The theme's primary and info colours are the same, so their badges and alerts cannot be told apart.",
+    ],
+  },
+
+  "contrast-audit": {
+    problem:
+      "A screenshot cannot say whether a page of thirty rows at four opacities is readable, and a colour picker on one cannot see an opacity two ancestors up.",
+    how:
+      "The script attaches to a hidden dev build, switches the scheme, opens every settings page, every accordion group and every inner tab, and walks each visible run of text. Every element is treated as an isolated group: its background, then its content, the whole multiplied by its opacity and laid over what is behind it, up to the root. That is how a browser paints them, and it is what the measured colour has to be.",
+    sample: {
+      label: "Self-test",
+      text: "ok   grey-on-white: reported 2.32, expected 2.32\nok   opacity-above-bg: reported 4.04, expected 4.04\nok   inset-shadow-bg: reported 1.16, expected 1.16\n\nthe previous compositing scored opacity-above-bg at 5.28",
+    },
+    notes: [
+      "It reads colours from <code>color-mix()</code>, Bootstrap's inset-shadow table fills, input values and placeholders.",
+      "Colour-scheme previews are skipped because they draw a scheme's own colours, and disabled controls are exempt, as WCAG exempts them.",
+      "<code>--page</code> limits a run to named pages, and <code>--json</code> writes every finding with its element path and colours.",
+    ],
+    caveats: [
+      "It measures text only. Icons, borders and focus rings are not checked against the 3:1 non-text threshold.",
+      "Surfaces outside the settings tab, such as hover cards and the side panel, are not visited.",
+    ],
+  },
+
   "builds-cards": {
     problem:
       "The Builds page opts out of the settings column's width cap so its table has room, and in cards view that let each card stretch across the whole pane. At a 2400px pane a card was 2401px wide with its facts packed against the left edge. Secondary text was dimmed with opacity, and two kinds of build wore the same blue.",
