@@ -588,7 +588,7 @@ all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
 |---|---|---|
 | **fast** | `yarn test` | Nothing but a checkout. ~5s, 8 suites / 295 checks. **This is the gate.** |
 | **built** | `yarn test:built` | `yarn run build` — it reads the compiled bundle, 515 checks. |
-| **checks** | `yarn test:checks` | `check-docs` needs full history; `check-fork-marks` needs `upstream` fetched. |
+| **checks** | `yarn test:checks` | `check-docs` needs full history; `check-fork-marks` needs `upstream` fetched. **CI runs this too, and it gates packaging** — so a green `yarn test` is not a green CI. Run it before pushing anything that adds a config key or a feature: a fork-added key missing from `fork-settings.json` fails here and nowhere else, and the fix is `node scripts/dev/check-fork-marks.mjs --write`. |
 | **cdp** | see below | A compiled bundle **and an instance already listening**. Not a push-button tier. |
 | **electron** | `--tier electron` | Electron's native ABI, via `ELECTRON_RUN_AS_NODE`. |
 | **wsl** | `--tier wsl` | A real Ubuntu distro. Starts and cleans up its own panes, by pid. |
