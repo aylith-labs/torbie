@@ -13,14 +13,18 @@ name: Package-Build
 # which compiles into anything. It skips a run only when *every* changed file
 # matches, so a commit touching both code and docs still builds. GitHub Actions
 # does not support YAML anchors, hence the repetition.
+#
+# A tag does not trigger this workflow directly any more: `release.yml` does,
+# by calling it, so that the gate, the draft, the packages and the upload are
+# one run under the one name the deploy-alert registry watches.
 on:
   push:
     branches: [main]
-    tags: ['v*']
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
   workflow_dispatch:
+  workflow_call:
 jobs:
   # The gate lives in ci.yml and is called rather than restated, so there is
   # one definition of "verified" and it runs on the ref being packaged. This
@@ -28,9 +32,46 @@ jobs:
   Verify:
     uses: ./.github/workflows/ci.yml
 
+  # One owner for the release. electron-builder uploads into "the draft for
+  # this tag" and creates one when none exists — but seven platform jobs
+  # finish at their own pace, and two matrix jobs landing within seconds of
+  # each other would each find nothing and each create one. So the draft is
+  # made here, once, before anything can publish, and it is idempotent: a
+  # draft already there is reused, which is the case on a re-tag. Two drafts
+  # for one tag is the split state (measured on v1.0.0: artifacts spread
+  # 20/30 across them), and it fails here rather than filling both.
+  #
+  # On a branch push this job runs and does nothing, so the platform jobs can
+  # `needs:` it unconditionally rather than each carrying a skipped-is-fine
+  # condition.
+  Draft:
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    needs: Verify
+    permissions:
+      contents: write
+    steps:
+    - name: Ensure exactly one draft release exists for this tag
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        ids=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+          --jq ".[] | select(.tag_name == \"$TAG\") | .id" | sed '/^$/d')
+        count=$(printf '%s\n' "$ids" | sed '/^$/d' | wc -l)
+        if [ "$count" -gt 1 ]; then
+          echo "::error::$count releases carry the tag $TAG (ids: $(echo $ids)). Uploading now would split the artifacts across them. Delete every draft but one, then re-run."
+          exit 1
+        elif [ "$count" -eq 1 ]; then
+          echo "Reusing release $ids for $TAG"
+        else
+          gh release create "$TAG" --draft --verify-tag --title "$TAG" --generate-notes
+          echo "Created the draft for $TAG"
+        fi
+
   macOS-Build:
     runs-on: macos-15
-    needs: Verify
+    needs: [Verify, Draft]
     strategy:
       matrix:
         include:
@@ -139,7 +180,7 @@ jobs:
 
   Linux-Build:
     runs-on: ${{matrix.os}}
-    needs: Verify
+    needs: [Verify, Draft]
     strategy:
       matrix:
         include:
@@ -303,7 +344,7 @@ jobs:
 
   Windows-Build:
     runs-on: windows-2022
-    needs: Verify
+    needs: [Verify, Draft]
     strategy:
       matrix:
         include:

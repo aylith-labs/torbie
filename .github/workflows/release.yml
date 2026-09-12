@@ -1,27 +1,30 @@
 ---
 name: "tagged-release"
 
+# The whole release, under one name. A tag push lands here and nowhere else:
+# `build.yml` no longer triggers on tags itself, it is *called* from here, so
+# the gate, the draft, the three platform builds and the upload into that draft
+# are one run — and a failure anywhere in it fails a workflow named
+# `tagged-release`, which is the one `deploy-alert-targets.json` watches.
+# Before this, packaging ran under `Package-Build`, and a packaging failure on
+# a tag alerted nobody: v1.0.0 built every artifact and died on the upload,
+# twice, in silence.
+#
+# The draft used to be created here by `marvinpinto/action-automatic-releases`,
+# which makes a *new* draft on every push of a tag rather than reusing the one
+# already there — so a re-tag left two, and electron-builder's platform jobs
+# split the artifacts between them. The draft is created once now, by
+# `build.yml`'s own Draft job, ordered before anything can upload into it.
+#
+# The gate is not restated here either: `build.yml` runs it on the ref being
+# shipped as its first job, which is exactly what this workflow's own `verify`
+# used to do a second time.
 on:
   push:
     tags:
       - "v*"
 
 jobs:
-  # A green `ci.yml` on main says nothing about the tag being released: they
-  # are separate triggers with separate run histories, and GitHub will happily
-  # cut a release from a ref the gate never ran on. So the gate is called here,
-  # on the ref actually being shipped, and the release waits for it.
-  verify:
-    uses: ./.github/workflows/ci.yml
-
-  tagged-release:
-    name: "Tagged Release"
-    needs: verify
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-
-    steps:
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
-          draft: true
+  release:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit

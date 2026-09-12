@@ -226,10 +226,11 @@ which is not on this machine.
 ## What version this is, and where that number comes from
 
 **The root `package.json` owns it.** `scripts/vars.mjs` reads `version` there —
-`0.1.0` — and appends `-nightly.${REV}` unless `git tag --points-at HEAD`
-carries exactly `v0.1.0`. Nothing consults a tag it did not put there, so a
+`1.0.0` — and appends `-nightly.${REV}` unless `git tag --points-at HEAD`
+carries exactly `v1.0.0`. Nothing consults a tag it did not put there, so a
 clone that still has upstream's imported tags cannot relabel the same commit.
-Torbie has released nothing yet; every build is a nightly.
+Every build that is not the tagged commit is a nightly; see *Cutting a
+release* for what a tag sets in motion.
 
 **`app/package.json`'s version is not that number, and used to disagree with
 it loudly.** It said `1.0.0-alpha.1` — upstream Tabby's placeholder, which
@@ -342,8 +343,14 @@ each declare a `github` publish provider and `publish: isTag ? 'always' :
 'never'`, so on a tag electron-builder pushes the installers *and* the
 `latest-*.yml` update manifests into the release itself. Nothing else needs to
 attach anything, and adding a second uploader (`softprops/action-gh-release` and
-friends) would mean two things owning one release. `release.yml` creates the
-draft and calls the gate; `build.yml` fills it.
+friends) would mean two things owning one release.
+
+**And one workflow owns the whole release.** A tag push runs `release.yml`
+(`tagged-release`), which does nothing but *call* `build.yml` — gate, draft,
+three platform builds, upload — as one run under that one name. `build.yml` no
+longer triggers on tags itself. That shape is what closes the alerting gap the
+registry table above used to record: `deploy-alert-targets.json` watches
+`tagged-release`, and packaging is now inside it.
 
 - **Every build step needs `GITHUB_TOKEN`, including the unsigned one.** This
   repository has no Actions secrets, so `CAN_SIGN` is false and **every tag
@@ -364,27 +371,39 @@ draft and calls the gate; `build.yml` fills it.
   empty while holding eighteen uploaded files. Re-read immediately before
   anything destructive, and gate the destructive step on that read rather than
   chaining it after one.
-- **Two things own the release, and on a re-tag that splits it.**
-  `release.yml` creates a draft with `marvinpinto/action-automatic-releases`,
-  and electron-builder then uploads into "the draft for this tag". The action
-  makes a **new** draft on every tag push rather than reusing the one already
-  there, so a re-tagged version leaves two — and the platform jobs race to pick
-  one. Measured on v1.0.0's third push: Windows x64 and twelve Linux artifacts
-  landed in the newer draft, Windows arm64 and eighteen Linux artifacts in the
-  older, with macOS split 4/8. Neither draft is a complete release.
-  - It does not bite on a first, clean tag: one draft exists, everything lands
-    in it. It bites the moment a tag is moved, which is exactly when you are
-    iterating on this workflow and cannot test it any other way.
-  - **The fix is to have one owner.** electron-builder creates the draft itself
-    when none exists (`releaseType: draft` is its default), so `release.yml`'s
-    release step is redundant — its other job, running the gate on the shipped
-    ref, is already done by `build.yml`'s own `Verify`. Retiring it means
-    re-pointing `deploy-alert-targets.json`, which watches `tagged-release`; that
-    is a cross-repo registry, so read the handbook before moving it.
+- **The draft is created once, by `build.yml`'s own `Draft` job, before any
+  platform job can upload.** It used to come from
+  `marvinpinto/action-automatic-releases` in `release.yml`, which makes a
+  **new** draft on every push of a tag rather than reusing the one already
+  there — so a re-tagged version left two, and electron-builder's platform jobs
+  (which upload into "the draft for this tag", whichever they list first) split
+  the artifacts between them. Measured on v1.0.0's third push: Windows x64 and
+  twelve Linux artifacts in the newer draft, Windows arm64 and eighteen Linux
+  in the older, macOS 4/8. Neither was a complete release.
+  - It does not bite on a first, clean tag; it bites the moment a tag is
+    moved, which is exactly when you are iterating on this workflow.
+  - **Why not let electron-builder create the draft itself**, which it does
+    when none exists: `getOrCreateRelease` in `electron-publish` lists
+    releases and creates one if nothing matches, with no lock between the
+    two. Seven platform jobs finish at their own pace, and two matrix jobs on
+    the same platform land within seconds of each other — each finding
+    nothing and each creating a draft is the same split from a different
+    direction. A draft that exists before any build finishes is what removes
+    that race, and the old workflow got that half right.
+  - **The `Draft` job is idempotent and refuses ambiguity.** One release for
+    the tag is reused; none is created (`gh release create --draft
+    --verify-tag --generate-notes`); more than one fails the run with the ids,
+    because uploading into that state is how a split happens. It runs on
+    branch pushes too and does nothing, so the platform jobs `needs:` it
+    unconditionally.
   - **Recovery from a split:** delete *every* draft for the tag, then push the
-    tag once. One draft gets created and one set of jobs fills it.
-- The draft is `draft: true` from `marvinpinto/action-automatic-releases`, so a
-  release is never public until somebody publishes it. Note that a draft's URL
+    tag once. Delete on a fresh read, per the bullet above.
+- The draft is `draft: true`, so a release is never public until somebody
+  publishes it. **Once one is published, its tag is frozen**: v1.0.0 was
+  force-moved three times while every version of it was an unpublished draft
+  with zero downloads and only CI commits between them, and that is the
+  boundary — a published tag gets fixes as a patch release, never a move.
+  Note that a draft's URL
   is `releases/tag/untagged-<hash>` and `releases/latest` still answers **404**
   — GitHub does not bind a draft to its tag. The gift icon therefore cannot
   appear from a draft, and it cannot appear from a release matching the running
@@ -440,7 +459,7 @@ gap*, so each is recorded here rather than left to be re-derived.
 
 | Registry | Decision |
 |---|---|
-| `aylith-com/.aylith/deploy-alert-targets.json` | **Registered**, watching `tagged-release`. It cuts a GitHub release, which is the manifest's own criterion. `Package-Build` also publishes artifacts on a tag but runs on `main` too, and routing an ordinary red build there is the noise the criterion excludes; `tagged-release` `needs:` the gate, so a gate failure on the tag still surfaces. **Known gap:** a packaging failure on a tag does not alert — and it has now cost something, so it is a real gap rather than a theoretical one. See *Cutting a release* below. |
+| `aylith-com/.aylith/deploy-alert-targets.json` | **Registered**, watching `tagged-release`. It cuts a GitHub release, which is the manifest's own criterion. `Package-Build` runs on `main` too, and routing an ordinary red build there is the noise the criterion excludes — so on a tag, `tagged-release` *calls* `Package-Build` rather than running beside it, and the gate, the draft, every platform build and the upload all fail under the watched name. That closed a real gap: v1.0.0's packaging failed twice on the tag and alerted nobody, because packaging then ran under the unwatched name. See *Cutting a release* below. |
 | `aylith-hub/packages/db/seed.ts` | **No.** The hub groups changelogs, stats and live status *by service*; this is a desktop application with no service and, so far, no releases. Revisit at the first tagged release, when there is a changelog worth grouping. |
 | `aylith-infra/apps/api/src/config/apps.ts` | **No.** It polls a health endpoint. A terminal on someone's laptop has none, and inventing one would mean the app phoning home — the opposite of what severing upstream's telemetry was for. |
 | `entity-graph/adapters/` | **No.** What this stores is profiles, keys and window geometry, all per-machine and private. There is nothing another app should link to or put on a timeline. |
