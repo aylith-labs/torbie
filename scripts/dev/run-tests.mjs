@@ -99,6 +99,7 @@ const CDP = [
     'tabby-links/test/preview.cdp.js',
     'tabby-links/test/rich.cdp.js',
     'tabby-links/test/ruleEditor.cdp.js',
+    'tabby-links/test/userDirectory.cdp.js',
     'tabby-links/test/wslPath.cdp.js',
     'tabby-resume/test/restart.cdp.js',
     'tabby-resume/test/resume.cdp.js',

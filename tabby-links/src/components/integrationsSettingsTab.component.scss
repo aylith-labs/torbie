@@ -1,3 +1,10 @@
+// Secondary text is a colour here, never an opacity. The theme floors
+// `--theme-muted-fg` to 4.5:1 against the page, card and menu surfaces; an
+// opacity is floored against nothing, and on a tinted row it compounds with
+// the row's own tint. No fallback: Bootstrap's secondary colour, the obvious
+// one, measured 20% grey on the dark scheme.
+$muted: var(--theme-muted-fg);
+
 .code {
     font-family: var(--bs-font-monospace, 'Cascadia Mono', Consolas, monospace);
     font-size: 12px;
@@ -46,7 +53,7 @@
 
 .integration-source {
     font-size: 12px;
-    opacity: .5;
+    color: $muted;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -54,24 +61,28 @@
 
 // The verdict for one row. Colour carries it, but never alone: each state has
 // its own icon as well, so the list still reads without it.
+//
+// The theme's `-text` variants, not `--bs-success` and `--bs-danger`. Those are
+// the scheme's own colours, chosen to be told apart rather than read at 12px on
+// a tinted row: measured, Tomorrow's `#718c00` on the light row is 3.26:1. The
+// `-text` variants are the same hue floored to 4.5:1 on every surface, so the
+// account name can keep its colour, and the icon inherits it.
 .integration-account {
     font-size: 12px;
+    color: $muted;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    &.state-connected { color: var(--bs-success); }
-    &.state-error { color: var(--bs-danger); }
-    &.state-pending,
-    &.state-disabled,
-    &.state-unconfigured,
-    &.state-unsupported { opacity: .5; }
+    &.state-connected { color: var(--theme-success-text); }
+    &.state-error { color: var(--theme-danger-text); }
 }
 
 .integration-toggle {
     flex: none;
 }
 
+// An icon, not text: it repeats what the whole row's pointer cursor says.
 .chevron {
     flex: none;
     opacity: .4;
@@ -91,7 +102,7 @@
     }
 
     .description {
-        opacity: .7;
+        color: $muted;
     }
 }
 
@@ -103,7 +114,7 @@
 
 .source-value {
     width: 33%;
-    opacity: .7;
+    color: $muted;
     text-align: right;
 }
 
@@ -116,7 +127,7 @@
 
     .description {
         font-size: 13px;
-        opacity: .5;
+        color: $muted;
     }
 }
 
@@ -144,7 +155,7 @@
 .credential-status {
     margin-top: 5px;
     font-size: 12px;
-    opacity: .55;
+    color: $muted;
 }
 
 // Enough of the stored secret to tell which one it is, in a font where the
@@ -174,7 +185,7 @@
     // A group where only some fields are shown: the header checkbox is off,
     // so this says the group is not simply empty.
     .partial {
-        opacity: .55;
+        color: $muted;
     }
 }
 

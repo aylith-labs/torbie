@@ -55,9 +55,19 @@ div(*ngIf='!current')
         .header
             .title(translate) To add your own, drop a folder containing an integration.json into
             .description.code {{userDirectory}}
-        button.btn.btn-sm.btn-secondary((click)='copyUserDirectory()')
+        //- Icon-only, so each carries its own name for a tooltip and a screen
+        //- reader.
+        button.btn.btn-sm.btn-secondary.copy-user-dir(
+            (click)='copyUserDirectory()',
+            [title]='"Copy path"|translate',
+            [attr.aria-label]='"Copy path"|translate',
+        )
             i.fas.fa-fw.fa-copy
-        button.btn.btn-sm.btn-secondary((click)='openUserDirectory()')
+        button.btn.btn-sm.btn-secondary.open-user-dir(
+            (click)='openUserDirectory()',
+            [title]='"Open folder"|translate',
+            [attr.aria-label]='"Open folder"|translate',
+        )
             i.fas.fa-fw.fa-folder-open
 
 // ── The detail view ─────────────────────────────────────────────────────────

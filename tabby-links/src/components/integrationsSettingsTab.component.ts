@@ -1,5 +1,6 @@
 import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker'
 
+import * as fs from 'fs/promises'
 import { Component, Optional, OnDestroy } from '@angular/core'
 import { ConfigService, NotificationsService, PlatformService, TranslateService } from 'tabby-core'
 import { SettingsTabComponent } from 'tabby-settings'
@@ -423,9 +424,33 @@ export class IntegrationsSettingsTabComponent implements OnDestroy {
         }
     }
 
-    openUserDirectory (): void {
-        if (this.userDirectory) {
-            this.platform.openPath(this.userDirectory)
+    /**
+     * Open the directory user manifests are dropped into, creating it first.
+     *
+     * On a fresh profile this button did nothing at all. The directory does
+     * not exist until someone makes it, `shell.openPath` answers a missing
+     * path with an error *string* rather than a rejection, and
+     * `PlatformService.openPath` discards that string. Creating it is also the
+     * useful thing to do: the next step is dropping a folder into it.
+     *
+     * `recursive` makes an existing directory a no-op and still fails on a
+     * *file* of that name, which is the failure worth telling someone about.
+     * What happens after the hand-off to the shell is not observable from
+     * here, because `openPath` returns nothing.
+     */
+    async openUserDirectory (): Promise<void> {
+        const directory = this.userDirectory
+        if (!directory) {
+            return
+        }
+        try {
+            await fs.mkdir(directory, { recursive: true })
+            this.platform.openPath(directory)
+        } catch (err) {
+            this.notifications.error(
+                this.translate.instant(_('Could not open the integrations folder')),
+                `${directory}: ${err instanceof Error ? err.message : err}`,
+            )
         }
     }
 
