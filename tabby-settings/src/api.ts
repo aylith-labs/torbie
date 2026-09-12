@@ -21,6 +21,18 @@ export abstract class SettingsTabProvider {
      * them, and marking all of them would be noise rather than information.
      */
     forkAdded = false
+    /**
+     * Which labelled section of the settings nav lists this page: `general`,
+     * `terminal`, `connections`, `links`, `claude`, `plugins`, `development`
+     * or `configuration`.
+     *
+     * Optional, because Tabby's plugins were written before sections existed.
+     * A page that names none is placed by its id when this app knows that id,
+     * and under Plugins otherwise; so is a page naming a section that does not
+     * exist. Within a section, `prioritized` and then `weight` still order the
+     * pages that section does not already list.
+     */
+    group?: string
 
     getComponentType (): any {
         return null

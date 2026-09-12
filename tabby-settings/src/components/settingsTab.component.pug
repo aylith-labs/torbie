@@ -1,5 +1,6 @@
 .content
     ul.nav-pills(ngbNav, #nav='ngbNav', [activeId]='activeTab', orientation='vertical')
+        li.nav-group-label(role='presentation') {{navGroups[0].title|translate}}
         li(ngbNavItem='application')
             a(ngbNavLink, draggable='false')
                 i.fas.fa-fw.fa-window-maximize.me-2
@@ -106,18 +107,12 @@
                             (ngModelChange)='config.save()'
                         )
 
-        ng-container(*ngFor='let provider of settingsProviders')
-            li(*ngIf='provider.prioritized', [ngbNavItem]='provider.id')
-                a.d-flex.align-items-center(ngbNavLink, draggable='false')
-                    i(class='fas fa-fw me-2 fa-{{provider.icon}}')
-                    span([class.fork-mark]='provider.forkAdded') {{provider.title|translate}}
-                ng-template(ngbNavContent)
-                    settings-tab-body([provider]='provider')
-
-        .mb-3
-
-        ng-container(*ngFor='let provider of settingsProviders')
-            li(*ngIf='!provider.prioritized', [ngbNavItem]='provider.id')
+        //- Sections come from settingsGroups.ts. Application opens the first
+        //- and Config file closes the last, so the first label is drawn above
+        //- Application rather than here.
+        ng-container(*ngFor='let group of navGroups; first as isFirst')
+            li.nav-group-label(*ngIf='!isFirst', role='presentation') {{group.title|translate}}
+            li(*ngFor='let provider of group.providers', [ngbNavItem]='provider.id')
                 a.d-flex.align-items-center(ngbNavLink, draggable='false')
                     i(class='fas fa-fw me-2 fa-{{provider.icon || "puzzle-piece"}}')
                     span([class.fork-mark]='provider.forkAdded') {{provider.title|translate}}

@@ -18,6 +18,7 @@ import {
 } from 'tabby-core'
 
 import { SettingsTabProvider } from '../api'
+import { groupSettingsProviders, SettingsNavGroup } from '../settingsGroups'
 import { ReleaseNotesComponent } from './releaseNotesTab.component'
 
 /** @hidden */
@@ -40,6 +41,8 @@ export class SettingsTabComponent extends BaseTabComponent {
     showConfigDefaults = false
     allLanguages = LocaleService.allLanguages
     @HostBinding('class.pad-window-controls') padWindowControls = false
+    /** The nav's labelled sections. Application and Config file are drawn by the template. */
+    navGroups: SettingsNavGroup[]
 
     constructor (
         public config: ConfigService,
@@ -59,6 +62,7 @@ export class SettingsTabComponent extends BaseTabComponent {
         this.settingsProviders = config.enabledServices(this.settingsProviders)
         this.settingsProviders = this.settingsProviders.filter(x => !!x.getComponentType())
         this.settingsProviders.sort((a, b) => a.weight - b.weight + a.title.localeCompare(b.title))
+        this.navGroups = groupSettingsProviders(this.settingsProviders)
 
         this.configDefaults = yaml.dump(config.getDefaults())
 

@@ -41,6 +41,7 @@ const FAST = [
     'tabby-links/test/integrationAccounts.test.js',
     'tabby-links/test/wslPath.test.js',
     'tabby-resume/test/logic.test.js',
+    'tabby-settings/test/navGroups.test.js',
     'tabby-terminal/test/webSearch.test.js',
     'tabby-terminal/test/colorSchemeTone.test.js',
 ]
@@ -101,6 +102,7 @@ const CDP = [
     'tabby-links/test/wslPath.cdp.js',
     'tabby-resume/test/restart.cdp.js',
     'tabby-resume/test/resume.cdp.js',
+    'tabby-settings/test/navGroups.cdp.js',
     'tabby-terminal/test/glyphs.cdp.js',
     'tabby-terminal/test/webSearch.cdp.js',
     'tabby-upstream/test/forkMarks.cdp.js',

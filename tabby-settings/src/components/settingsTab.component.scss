@@ -39,6 +39,33 @@
             flex: none;
             overflow-y: auto;
             flex-wrap: nowrap;
+
+            // A section heading, not a page. It carries no `.nav-link`, so the
+            // arrow keys (ngbNav walks its links), the active state, and every
+            // test that finds pages by `.nav-link` pass straight over it.
+            > .nav-group-label {
+                margin: 16px 0 4px;
+                // The link's own horizontal padding, so the label starts where
+                // the icons below it do.
+                padding: 0 16px;
+                font-size: 11px;
+                line-height: 16px;
+                font-weight: 600;
+                letter-spacing: .06em;
+                text-transform: uppercase;
+                // Secondary text, which the theme floors to 4.5:1 against every
+                // background it defines. No opacity on this element: that would
+                // dim it below the floor the variable was measured to.
+                color: var(--theme-muted-fg);
+                // A long translation wraps rather than widening a 222px column.
+                overflow-wrap: anywhere;
+                cursor: default;
+                user-select: none;
+
+                &:first-child {
+                    margin-top: 0;
+                }
+            }
         }
 
         > .tab-content {
