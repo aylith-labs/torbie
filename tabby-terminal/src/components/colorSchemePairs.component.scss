@@ -24,6 +24,21 @@
     box-shadow: 0 1px 1px rgba(0, 0, 0, .5);
 }
 
+// The title on the card's left edge, which is where the scheme names under it
+// start, and the check for the selected pair at the far end, where it costs
+// that alignment nothing.
+.pair-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    strong {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}
+
 // Two equal columns, dark then light. `min-width: 0` on the column is what
 // keeps a preview from pushing the row wider than the panel — a grid item's
 // default `min-width: auto` sizes to content, which for a terminal preview is
@@ -38,16 +53,31 @@
     min-width: 0;
 }
 
+// Secondary text as the theme's muted colour rather than `.text-muted`. That
+// class is `!important`, and the muted colour is floored against the page's six
+// surfaces, which do not include a selected row's fill — so on the selected row
+// the label follows that row's own text colour instead.
 .pair-label {
     margin-bottom: 4px;
+    color: var(--theme-muted-fg);
+}
+
+.list-group-item.active .pair-label {
+    color: inherit;
 }
 
 .pair-swatches {
     margin-bottom: 6px;
 }
 
-// The preview is indented inside the single-scheme list; here it is already
-// inside its own column, so the indent would only eat width.
+// The preview is indented inside the single-scheme list, where that lines its
+// box up under a name that sits after the check column. Here the name is on the
+// column's edge, so the box goes there too: the host's indent and the 10px the
+// preview gives its own box are both taken back.
 .pair-column color-scheme-preview {
     margin-left: 0;
+
+    ::ng-deep .preview {
+        margin-left: 0;
+    }
 }

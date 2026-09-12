@@ -60,20 +60,34 @@ h3.mb-3(translate) Color schemes
         (ngModelChange)='config.save()'
     )
 
-ul.nav-tabs(ngbNav, #nav='ngbNav', [activeId]='defaultTab')
+//- One search for all three tabs, placed above them so it reads as applying to
+//- whichever is open. Each list takes it as its `filter` input. `.content-box`
+//- gives it the lists' width, so its edges line up with theirs.
+.content-box.mb-3
+    .input-group
+        .input-group-text
+            i.fas.fa-fw.fa-search
+        input.form-control(
+            type='search',
+            [placeholder]='"Search color schemes"|translate',
+            [attr.aria-label]='"Search color schemes"|translate',
+            [(ngModel)]='filter'
+        )
+
+ul.nav-tabs(ngbNav, #nav='ngbNav', [activeId]='activeTab')
+    li(ngbNavItem='pair')
+        a(ngbNavLink, translate) Pair
+        ng-template(ngbNavContent)
+            color-scheme-pairs([filter]='filter')
+
     li(ngbNavItem='dark')
         a(ngbNavLink, translate) Dark mode
         ng-template(ngbNavContent)
-            color-scheme-settings-for-mode(configKey='colorScheme')
+            color-scheme-settings-for-mode(configKey='colorScheme', [filter]='filter')
 
     li(ngbNavItem='light')
         a(ngbNavLink, translate) Light mode
         ng-template(ngbNavContent)
-            color-scheme-settings-for-mode(configKey='lightColorScheme')
-
-    li(ngbNavItem='pair')
-        a(ngbNavLink, translate) Pair
-        ng-template(ngbNavContent)
-            color-scheme-pairs
+            color-scheme-settings-for-mode(configKey='lightColorScheme', [filter]='filter')
 
 div([ngbNavOutlet]='nav')

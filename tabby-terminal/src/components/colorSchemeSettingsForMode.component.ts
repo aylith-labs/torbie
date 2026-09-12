@@ -2,17 +2,16 @@
 import deepEqual from 'deep-equal'
 import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker'
 
-import { Component, Inject, Input, ChangeDetectionStrategy, ChangeDetectorRef, HostBinding } from '@angular/core'
+import { Component, Inject, Input, ChangeDetectionStrategy, ChangeDetectorRef, HostBinding, SimpleChanges } from '@angular/core'
 import { ConfigService, PlatformService, TerminalColorScheme, TranslateService } from 'tabby-core'
 import { TerminalColorSchemeProvider } from '../api/colorSchemeProvider'
 import { schemeTone } from '../colorSchemeTone'
 import {
     SchemePreviewPosition, SchemeToneFilter,
-    getPreviewPosition, getShowSwatches, getToneFilter,
-    setPreviewPosition, setShowSwatches, setToneFilter,
+    getPreviewPosition, getShowSwatches, toneFilterForMode,
+    setPreviewPosition, setShowSwatches,
 } from '../colorSchemeViewPrefs'
 
-_('Search color schemes')
 _('All')
 _('Dark')
 _('Light')
@@ -33,12 +32,19 @@ export class ColorSchemeSettingsForModeComponent {
     @Input() stockColorSchemes: TerminalColorScheme[] = []
     @Input() customColorSchemes: TerminalColorScheme[] = []
     @Input() allColorSchemes: TerminalColorScheme[] = []
+    /** The page's search, shared by all three tabs; the page owns it. */
     @Input() filter = ''
     @Input() editing = false
     colorIndexes = [...new Array(16).keys()]
 
-    /** How the list is shown. Remembered per machine, not in the config. */
-    toneFilter: SchemeToneFilter = getToneFilter()
+    /**
+     * Which tones the list shows. It opens on the tab's own tone — the Dark
+     * mode tab lists dark schemes — and All or the other tone is an override
+     * for this visit. See `toneFilterForMode` for why it is not remembered.
+     */
+    toneFilter: SchemeToneFilter = 'all'
+
+    /** How the list is laid out. Remembered per machine, not in the config. */
     showSwatches = getShowSwatches()
     previewPosition: SchemePreviewPosition = getPreviewPosition()
 
@@ -64,6 +70,10 @@ export class ColorSchemeSettingsForModeComponent {
     ) { }
 
     async ngOnInit () {
+        // Before the first await, so the first render already shows this tab's
+        // tone. Nothing the reader does can have happened yet.
+        this.toneFilter = toneFilterForMode(this.configKey)
+
         this.stockColorSchemes = (await Promise.all(this.config.enabledServices(this.colorSchemeProviders).map(x => x.getSchemes()))).reduce((a, b) => a.concat(b))
         this.stockColorSchemes.sort((a, b) => a.name.localeCompare(b.name))
         this.customColorSchemes = this.config.store.terminal.customColorSchemes
@@ -72,7 +82,18 @@ export class ColorSchemeSettingsForModeComponent {
         this.update()
     }
 
-    ngOnChanges () {
+    ngOnChanges (changes: SimpleChanges) {
+        if (changes.configKey && !changes.configKey.firstChange) {
+            this.toneFilter = toneFilterForMode(this.configKey)
+        }
+        // A keystroke in the page's search changes only `filter`, and needs
+        // only the list refiltered — not every scheme compared against the
+        // current one again.
+        if (changes.filter && Object.keys(changes).length === 1) {
+            this.applyFilters()
+            this.changeDetector.markForCheck()
+            return
+        }
         this.update()
     }
 
@@ -92,7 +113,7 @@ export class ColorSchemeSettingsForModeComponent {
     }
 
     applyFilters () {
-        const needle = this.filter.trim().toLowerCase()
+        const needle = (this.filter ?? '').trim().toLowerCase()
         this.visibleSchemes = this.allColorSchemes.filter(scheme => {
             if (this.toneFilter !== 'all' && schemeTone(scheme) !== this.toneFilter) {
                 return false
@@ -101,10 +122,9 @@ export class ColorSchemeSettingsForModeComponent {
         })
     }
 
-    /** Every one of these is a write the next visit has to see. */
+    /** An override for this visit, so it is deliberately not written anywhere. */
     setToneFilter (value: SchemeToneFilter) {
         this.toneFilter = value
-        setToneFilter(value)
         this.applyFilters()
         this.changeDetector.markForCheck()
     }
@@ -118,11 +138,6 @@ export class ColorSchemeSettingsForModeComponent {
     setPreviewPosition (value: SchemePreviewPosition) {
         this.previewPosition = value
         setPreviewPosition(value)
-        this.changeDetector.markForCheck()
-    }
-
-    onFilterChange () {
-        this.applyFilters()
         this.changeDetector.markForCheck()
     }
 

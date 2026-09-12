@@ -1,5 +1,5 @@
 /**
- * How the colour scheme list is *shown* — not what it contains.
+ * How the colour scheme lists are *shown* — not what they contain.
  *
  * `localStorage`, deliberately, in the shape `linkTooltipGroupCollapsed` and
  * `profileGroupCollapsed` already use: these are view state, they belong to
@@ -16,7 +16,6 @@
 export type SchemeToneFilter = 'all' | 'dark' | 'light'
 export type SchemePreviewPosition = 'bottom' | 'right'
 
-const TONE_KEY = 'colorSchemeToneFilter'
 const SWATCH_KEY = 'colorSchemeShowSwatches'
 const POSITION_KEY = 'colorSchemePreviewPosition'
 
@@ -36,13 +35,18 @@ function write (key: string, value: string): void {
     }
 }
 
-export function getToneFilter (): SchemeToneFilter {
-    const stored = read(TONE_KEY)
-    return stored === 'dark' || stored === 'light' ? stored : 'all'
-}
-
-export function setToneFilter (value: SchemeToneFilter): void {
-    write(TONE_KEY, value)
+/**
+ * The tone filter a mode's tab opens on: that mode's own tone.
+ *
+ * Not stored, and that is the point. The Dark mode tab lists dark schemes every
+ * time it is opened, and All or Light chosen there is an override for that
+ * visit only — ngbNav destroys a tab's content when another tab is selected, so
+ * the override can neither reach the Light mode tab nor survive a return to
+ * this one. It used to be one remembered value shared by both tabs, which is
+ * how a Light picked on the Light mode tab was still selected on the Dark one.
+ */
+export function toneFilterForMode (configKey: 'colorScheme' | 'lightColorScheme'): SchemeToneFilter {
+    return configKey === 'lightColorScheme' ? 'light' : 'dark'
 }
 
 export function getShowSwatches (): boolean {

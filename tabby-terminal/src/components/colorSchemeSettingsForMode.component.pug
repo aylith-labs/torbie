@@ -79,16 +79,7 @@
 
     hr.mt-3.mb-4
 
-    .input-group.mb-2
-        .input-group-text
-            i.fas.fa-fw.fa-search
-        input.form-control(
-            type='search',
-            [placeholder]='"Search color schemes"|translate',
-            [(ngModel)]='filter',
-            (ngModelChange)='onFilterChange()'
-        )
-
+    //- The search is the page's, above the tabs, and arrives here as `filter`.
     .scheme-controls.mb-3
         .btn-group.btn-group-sm(role='group')
             button.btn.btn-secondary(

@@ -1,16 +1,7 @@
 .head
     p.text-muted.mb-3(translate) Designs that ship a dark and a light scheme together. Picking one sets both, so switching mode needs nothing else.
 
-    .input-group.mb-2
-        .input-group-text
-            i.fas.fa-fw.fa-search
-        input.form-control(
-            type='search',
-            [placeholder]='"Search color scheme pairs"|translate',
-            [(ngModel)]='filter',
-            (ngModelChange)='onFilterChange()'
-        )
-
+    //- The search is the page's, above the tabs, and arrives here as `filter`.
     .scheme-controls.mb-3
         .form-check.form-switch.mb-0
             input.form-check-input#pairShowSwatches(
@@ -27,18 +18,21 @@
         ng-container(*ngFor='let pair of visiblePairs; trackBy: pairTrackBy')
             .list-group-item.list-group-item-action(
                 (click)='selectPair(pair)',
-                [class.active]='isActive(pair)'
+                [class.active]='pair === activePair'
             )
-                .d-flex.align-items-center.mb-2
-                    i.fas.fa-fw([class.fa-check]='isActive(pair)')
-                    .ms-2
-                    strong.me-auto {{pair.name}}
+                //- The title starts on the edge the scheme names under it start
+                //- on. The check used to stand in front of it in a fixed-width
+                //- icon slot, which pushed the title right by the width of that
+                //- slot on every row, the rows where the slot was empty included.
+                .pair-title
+                    strong {{pair.name}}
+                    i.fas.fa-check(*ngIf='pair === activePair')
 
-                //- Both halves side by side, in the order the tabs are in:
-                //- dark first, then light.
+                //- Both halves side by side, dark first, then light: the order
+                //- the mode tabs are in.
                 .pair-columns
                     .pair-column
-                        .pair-label.text-muted.small {{pair.dark.name}}
+                        .pair-label.small {{pair.dark.name}}
                         .pair-swatches(*ngIf='showSwatches')
                             .d-flex
                                 .swatch(
@@ -53,7 +47,7 @@
                         color-scheme-preview([scheme]='pair.dark')
 
                     .pair-column
-                        .pair-label.text-muted.small {{pair.light.name}}
+                        .pair-label.small {{pair.light.name}}
                         .pair-swatches(*ngIf='showSwatches')
                             .d-flex
                                 .swatch(

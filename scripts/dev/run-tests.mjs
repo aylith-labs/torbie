@@ -104,6 +104,7 @@ const CDP = [
     'tabby-resume/test/restart.cdp.js',
     'tabby-resume/test/resume.cdp.js',
     'tabby-settings/test/navGroups.cdp.js',
+    'tabby-terminal/test/colorSchemePage.cdp.js',
     'tabby-terminal/test/glyphs.cdp.js',
     'tabby-terminal/test/webSearch.cdp.js',
     'tabby-upstream/test/forkMarks.cdp.js',
