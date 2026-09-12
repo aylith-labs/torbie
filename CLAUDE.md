@@ -400,6 +400,13 @@ registry table above used to record: `deploy-alert-targets.json` watches
     *"not a git repository"*, which is how the first run of this job went.
     The command was then proven from a directory with no `.git` before it
     was pushed again; a probe draft made that way was deleted on a fresh read.
+  - **Verified on the run after that** (v1.0.0 at `9198ed8f`): every job
+    green under `tagged-release`, and exactly **one** draft holding all 34
+    assets — Linux x64/arm64/armv7l in five formats each, macOS arm64/x86_64
+    as dmg, blockmap and zip, Windows x64/arm64 as setup, blockmap and
+    portable zip, plus the seven `latest-*.yml` manifests. That count is the
+    thing to check on the next release: fewer means a platform did not
+    publish, and two releases for one tag means the split is back.
   - **Recovery from a split:** delete *every* draft for the tag, then push the
     tag once. Delete on a fresh read, per the bullet above.
 - The draft is `draft: true`, so a release is never public until somebody
