@@ -132,3 +132,14 @@ The workspace runs public repository commands. The preview fetches public commit
 The four scene controls, click-to-reveal explanations, native discovery disclosures, companion context, parking persistence, Escape focus restoration, and reduced-motion stationary behavior were exercised in a browser. Home passed axe at 390, 768, 1440 and 1920 pixels in both themes. All 69 routes were additionally checked with feature disclosures expanded: 138 light/mobile and dark/desktop checks, zero axe violations and zero overflow. The intentional 404 document's self-referencing skip link is an expected 404, not a product navigation failure. All eight framed scene exports were visually inspected. Site lint, Svelte/native TypeScript checking, four catalog/release tests, prerendering and internal asset/link checks pass. The source-owned homepage link also survives the actual umbrella collector's parser and serializer.
 
 The owner subsequently relayed a no-Electron-launch instruction while the product session investigates hidden launches and protocol registration. All new captures preceded that instruction; capture processes are stopped and the temporary launcher is disabled. No future launch is authorized by this document. Protocol readback after the handoff points both tabby and torbie schemes at the installed Torbie.exe; this website session did not modify the registry. DNS, repository naming, Pages custom domains and the `/torbie` base are unchanged. The private URL proposal lives in `.review/web-presence-proposal.md`.
+
+### Companion and selector refinement — 12 September 2026
+
+| Before | After | Why |
+| --- | --- | --- |
+| Uniform ginger face, no idle motion | Irregular dark/copper tortoiseshell patches, tabby forehead stripes, amber eyes, a double blink and occasional ear flick | Match Torbie's namesake and make the guide feel attentive; reduced motion disables idle animation |
+| Download placeholder remained selectable | Empty OS/architecture option disables once its value is known or selected | Prevent clearing a confirmed choice into a non-choice |
+| Font plus sat below the label center | Centered geometric strokes rotate into a close mark | Stable optical alignment independent of font metrics |
+| Native category and sort controls | Authored listbox menus with keyboard navigation and category count badges | Consistent appearance; counts reflect the current search, including zero-result categories |
+
+Menus open immediately without keyboard animation. Sort choices have no per-choice counts because sorting does not change the result set. Existing result totals remain visible. The user explicitly requested idle animation for the companion; it is limited to its small control and gated by both the site motion setting and prefers-reduced-motion.
