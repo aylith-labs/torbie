@@ -60,6 +60,8 @@
     "claude.readTranscripts",
     "claude.requestTimeoutMs",
     "claude.resumeInputDelaySec",
+    "claude.shefrd",
+    "claude.shefrd.enabled",
     "claude.stithURL",
     "claude.usageIntervalMs",
     "integrations",
