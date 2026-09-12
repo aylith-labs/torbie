@@ -10,6 +10,14 @@
     padding: 10px 15px;
 }
 
+// Each row is an anchor with no href, which the browser does not treat as a
+// link, so the pointer became a text caret over every title and description.
+// A row selects on click; it is a button in all but markup. Cursor inherits,
+// so this covers everything inside the row too.
+.list-group-item {
+    cursor: pointer;
+}
+
 .group-header {
     padding: 0 1rem;
     margin: 15px 0 10px;
