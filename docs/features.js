@@ -399,8 +399,8 @@ window.FEATURES = [
     cat: "builds", catLabel: "Builds",
     standout: true,
     dateAdded: "2026-08-10",
-    commits: ["9fe5587d","5a999661","fad4b2bb","2c20ac31","be8412bc","81dd27d2","95b0e643","69ae9766","ec3870c4","925a1b2b","d0637cfd","5eacc8cc"],
-    files: 75, ins: 4170, del: 178,
+    commits: ["9fe5587d","5a999661","fad4b2bb","2c20ac31","be8412bc","81dd27d2","95b0e643","69ae9766","ec3870c4","925a1b2b","d0637cfd","5eacc8cc","09250c45"],
+    files: 83, ins: 4473, del: 194,
     desc: "Settings → Builds lists the installed app, the webpack output this fork runs from, electron-builder output inside a checkout, frozen build slots and installer files — with live process counts, memory and uptime, size on disk, build time, arch, branch and provenance. Processes are attributed by executable path, because two builds both called Tabby.exe are otherwise indistinguishable.",
   },
   {

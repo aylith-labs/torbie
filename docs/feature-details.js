@@ -912,7 +912,7 @@ window.FEATURE_DETAILS = {
       { key: "builds.pauseWhenUnfocused", def: "true", note: "Stop polling while the window is unfocused — it costs a subprocess." },
       { key: "builds.autoSize", def: "true", note: "Walk each build's size off the render path, one at a time, and cache it." },
       { key: "builds.autoDiagnose", def: "true", note: "Health-check each build on every scan." },
-      { key: "builds.watchForNewBuilds", def: "true", note: "Offer to switch when a newer build appears." },
+      { key: "builds.watchForNewBuilds", def: "true", note: "Offer to switch when a newer slot or installed build of the same product appears. An installed release is never offered one, and only a slot that is not the active build can be deleted on the way out." },
     ],
     notes: [
       "<strong>Processes are attributed by executable path</strong>, from one PowerShell call per poll. <code>tasklist</code> cannot report a path, and two builds both called <code>Tabby.exe</code> are otherwise indistinguishable. Linux reads <code>/proc</code> directly rather than spawning <code>ps</code>.",
