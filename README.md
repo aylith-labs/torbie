@@ -2,7 +2,7 @@
 
 A terminal for Windows, macOS and Linux, built on the [Tabby](https://github.com/Eugeny/tabby)
 codebase and diverged from it. It keeps Tabby's plugin API — third-party plugins written for Tabby
-load unchanged — and adds the work catalogued in [`docs/`](docs/index.html): 43 features across
+load unchanged — and catalogues its additions in [`docs/`](docs/index.html), covering
 diagnostics, link previews, session resume, build management and the terminal itself.
 
 ## Install

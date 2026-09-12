@@ -35,7 +35,8 @@ Torbie is a terminal for Windows, macOS and Linux, built on the
 panes, an SSH/SFTP/Telnet client and connection manager, a serial terminal, and an encrypted vault
 for secrets. On Windows it drives PowerShell, WSL, Git-Bash, Cygwin, MSYS2, Cmder and CMD.
 
-It is in alpha: run from source, not yet distributed as an installer.
+Installers and portable builds are available for Windows, macOS and Linux in
+[GitHub Releases](https://github.com/aylith-labs/torbie/releases). Builds are unsigned.
 
 ## Why it exists
 
