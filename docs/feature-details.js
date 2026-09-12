@@ -245,6 +245,28 @@ window.FEATURE_DETAILS = {
     ],
   },
 
+  "integration-self-check": {
+    problem:
+      "The account check ran only for the integration you had clicked into, so the list itself said nothing about whether any of them worked. A row whose saved token was revoked last week and a row that works looked identical, and the only way to tell them apart was to open each in turn.",
+    how:
+      "Every integration is checked when the page opens. A row that connects shows the account name — \"it works\" is worth much less than \"it works, as you\" — and a row that does not shows why, with the detail in a tooltip. Each state carries an icon as well as a colour, so the list still reads without colour.",
+    steps: [
+      "Open Settings → Integrations. Every row carries a verdict a moment after the list draws.",
+      "Press Re-check all to ask again, ignoring anything cached."
+    ],
+    notes: [
+      "<strong>This is deliberately the opposite call from the Upstream page</strong>, which refuses to fetch when it opens because network I/O on a settings page is how one earns a reputation for being slow. The difference is what the answer is worth: Upstream reports a commit count that a stale number still describes usefully, while a credential either works right now or the feature silently does nothing.",
+      "So the cost is kept down rather than avoided. Nothing is sent for an integration that is off or unconfigured, because those states are known without asking. The rest go out together. The rows draw first and each badge fills itself in.",
+      "Answers are cached in a service that outlives the page, which is what stops the list re-emitting on every settings save from becoming a request per keystroke. Losing focus on a settings field is the \"done typing\" signal that drops the cached verdict.",
+      "The detail view's own check goes through the same cache, or the badge on the row behind it and the panel in front of it would be two answers to the same question.",
+    ],
+    caveats: [
+      "Three of the shipped manifests describe no account endpoint at all, and say \"No account to check\" rather than implying they are fine. A manifest can only be verified if it declares an account provider.",
+      "A verdict is up to a minute old before the page asks again. Re-check all is the way to force it.",
+      "The automated test replaces the check with a counter and never reaches a network, so what is proven there is the request economics; the verdicts themselves were confirmed once against the real services.",
+    ],
+  },
+
   "claude-pane-focus": {
     problem:
       "\"Focus tab\" could only ever mean a tab in this window, and most sessions are not in one. Measured on the machine this was built on: <strong>15 of 15 listed sessions had a multiplexer pane and no tab here</strong>, so every click fell through to the \"there is nothing to focus\" branch and opened a browser instead.",

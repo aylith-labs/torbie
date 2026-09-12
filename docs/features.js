@@ -27,6 +27,12 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "integration-self-check", title: "The Integrations list verifies itself",
+    cat: "links", catLabel: "Links", dateAdded: "2026-09-12",
+    commits: ["0daf0e55"], files: 6, ins: 353, del: 3,
+    desc: "Every integration is checked when the page opens, and each row says who the service thinks you are — or what is stopping it. Nothing is sent for one that is off or unconfigured, the rest go out together, and the rows draw before any of it finishes.",
+  },
+  {
     id: "claude-pane-focus", title: "Click a session, focus the pane it runs in",
     cat: "claude", catLabel: "Claude Code", dateAdded: "2026-09-12",
     commits: ["3b656373"], files: 6, ins: 491, del: 9,

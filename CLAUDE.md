@@ -586,7 +586,7 @@ all, only a habit. `scripts/dev/run-tests.mjs` groups them, and
 
 | Tier | Command | What it needs |
 |---|---|---|
-| **fast** | `yarn test` | Nothing but a checkout. ~4s, 7 suites / 280 checks. **This is the gate.** |
+| **fast** | `yarn test` | Nothing but a checkout. ~5s, 8 suites / 295 checks. **This is the gate.** |
 | **built** | `yarn test:built` | `yarn run build` — it reads the compiled bundle, 515 checks. |
 | **checks** | `yarn test:checks` | `check-docs` needs full history; `check-fork-marks` needs `upstream` fetched. |
 | **cdp** | see below | A compiled bundle **and an instance already listening**. Not a push-button tier. |
@@ -1010,6 +1010,47 @@ The parts that cost real time:
 - Open and Show in folder use `platform.openPath()` / `showItemInFolder()`, not
   `openExternal('file://' + p)` — that yields `file://C:\foo` on Windows and is
   an existing upstream bug in `tabby-linkifier/src/handlers.ts`.
+
+### The Integrations list verifies itself when it opens
+
+`checkIntegrationAccount` already existed and only ever ran for the integration
+you had clicked into, so the list said nothing about whether any of them
+actually worked — a row whose token was revoked last week and a working row drew
+identically. `integrationAccounts.service.ts` checks every row on open and each
+one carries its own verdict.
+
+- **This is deliberately the opposite call from the Upstream page**, which
+  refuses to fetch on open because network I/O on a settings page is how one
+  earns a reputation for being slow. The difference is what a stale answer is
+  worth: a commit count still describes something usefully when it is old, while
+  a credential either works right now or the feature silently does nothing.
+- So the cost is kept down rather than avoided: **nothing is sent** for an
+  integration that is off or unconfigured (`checkIntegrationAccount` answers
+  those without a request, so the row still gets a badge for free), the rest go
+  **out together**, and the rows **draw first** with each badge filling itself in.
+- **The cache is load-bearing, not an optimisation.** `integrations$` re-emits on
+  every `config.save()`, which is per keystroke in a settings box — without a
+  TTL, "check the list when it changes" is a request per character. Blur is the
+  only safe place to invalidate for the same reason.
+- **The detail view's check goes through the same service.** Two code paths
+  asking the same question would be two answers on screen at once, one behind
+  the other. Organization *discovery* stays direct: different, heavier request,
+  and not what the list shows.
+- **The label is an answer, not the state's name.** "unsupported" describes the
+  code; "No account to check" describes what the reader is looking at. State is
+  carried by an icon as well as a colour.
+- `tabby-links/test/integrationAccounts.test.js` (15 checks, fast tier) replaces
+  the check module with a counter before the service is loaded, so nothing in
+  that process can reach a network — which is the only way to assert the
+  economics rather than the verdicts. Measured live once instead: 6 rows, all
+  drawn before any check finished, GitHub connected as the real account via the
+  CLI, Jira and Slack asking to be set up, three manifests with no account
+  endpoint saying so.
+- **A transient is not always observable, and a flaky assertion is worse than
+  none.** "A row starts as Checking…" failed intermittently because `gh auth
+  token` plus one API call can finish inside the sampling window. The spinner
+  path is asserted deterministically instead, from `accounts.busy` immediately
+  after a forced re-check.
 
 ### Rich integrations
 
