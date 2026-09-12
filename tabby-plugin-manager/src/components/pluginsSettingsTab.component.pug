@@ -26,33 +26,49 @@ ul.nav-tabs.mb-2(ngbNav, #nav='ngbNav')
                     [placeholder]='"Search plugins"|translate'
                 )
 
-            ngb-accordion.mb-4(*ngIf='availablePlugins$', [closeOthers]='true')
+            //- The directive accordion, not `<ngb-accordion>`: that component
+            //- and its `ngb-panel` were removed in ng-bootstrap 15 and this
+            //- tree is on 21, so the markup resolved to nothing and both lists
+            //- rendered empty — with no error, because unknown elements are
+            //- not an error.
+            div.mb-4(
+                ngbAccordion,
+                *ngIf='availablePlugins$',
+                [closeOthers]='true',
+                [animation]='config.store.accessibility.animations'
+            )
                 ng-container(*ngFor='let plugin of (availablePlugins$|async)')
-                    ngb-panel(*ngIf='!isAlreadyInstalled(plugin)')
-                        ng-template(ngbPanelTitle)
-                            .text-left
-                                strong.d-block {{plugin.name}}
-                                small.d-block.text-muted {{plugin.description}}
-                        ng-template(ngbPanelContent)
-                            .d-flex.flex-column.flex-md-row.gap-3.align-items-start
-                                button.btn.btn-primary.btn-block.justify-content-center(
-                                    (click)='installPlugin(plugin)',
-                                    [disabled]='busy.has(plugin.name)'
-                                )
-                                    i.fas.fa-fw.fa-cloud-download(*ngIf='busy.get(plugin.name) != BusyState.Installing')
-                                    i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Installing')
-                                    span.ms-2(translate) Get
+                    .accordion-item(ngbAccordionItem, *ngIf='!isAlreadyInstalled(plugin)')
+                        .accordion-header(ngbAccordionHeader)
+                            button.accordion-button(ngbAccordionButton, type='button')
+                                .text-left
+                                    strong.d-block {{plugin.name}}
+                                    small.d-block.text-muted {{plugin.description}}
+                        .accordion-collapse(ngbAccordionCollapse)
+                            .accordion-body(ngbAccordionBody)
+                                ng-template
+                                    .d-flex.flex-column.flex-md-row.gap-3.align-items-start
+                                        button.btn.btn-primary.btn-block.justify-content-center(
+                                            (click)='installPlugin(plugin)',
+                                            [disabled]='busy.has(plugin.name)'
+                                        )
+                                            i.fas.fa-fw.fa-cloud-download(*ngIf='busy.get(plugin.name) != BusyState.Installing')
+                                            i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Installing')
+                                            span.ms-2(translate) Get
 
-                                button.btn.btn-secondary.btn-block.justify-content-center(
-                                    *ngIf='plugin.homepage',
-                                    (click)='showPluginHomepage(plugin)'
-                                )
-                                    i.fas.fa-fw.fa-external-link-alt
-                                    span.ms-2(translate) Homepage
+                                        button.btn.btn-secondary.btn-block.justify-content-center(
+                                            *ngIf='plugin.homepage',
+                                            (click)='showPluginHomepage(plugin)'
+                                        )
+                                            i.fas.fa-fw.fa-external-link-alt
+                                            span.ms-2(translate) Homepage
 
-                                .ms-auto
-                                div
-                                    ng-container(*ngTemplateOutlet='pluginInfo; context: { plugin }')
+                                        .ms-auto
+                                        div
+                                            ng-container(*ngTemplateOutlet='pluginInfo; context: { plugin }')
+
+            .text-muted.text-center.py-4(*ngIf='availablePluginsReady && !(availablePlugins$|async)?.length', translate)
+                | Nothing found
 
     li(ngbNavItem)
         a(ngbNavLink, translate) Installed
@@ -67,56 +83,67 @@ ul.nav-tabs.mb-2(ngbNav, #nav='ngbNav')
                     [placeholder]='"Search plugins"|translate'
                 )
 
-            ngb-accordion.mb-4([closeOthers]='true')
-                ng-container(*ngFor='let plugin of installedPlugins$')
-                    ngb-panel
-                        ng-template(ngbPanelTitle)
-                            .text-left.me-auto
+            //- Same migration as the Available list above. The Upgrade button is
+            //- a sibling of the toggle rather than a child of it: the component
+            //- API rendered `ngbPanelTitle` *inside* the header button, so this
+            //- was a button nested in a button, which is invalid and swallows
+            //- the inner click in some browsers.
+            div.mb-4(
+                ngbAccordion,
+                [closeOthers]='true',
+                [animation]='config.store.accessibility.animations'
+            )
+                .accordion-item(ngbAccordionItem, *ngFor='let plugin of installedPlugins$')
+                    .accordion-header.plugin-header(ngbAccordionHeader)
+                        button.accordion-button(ngbAccordionButton, type='button')
+                            .text-left
                                 div
                                     strong {{plugin.name}}
                                     small.text-muted.ms-2(*ngIf='plugin.isBuiltin', translate) Built-in
                                     small.text-warning.ms-2(*ngIf='!isPluginEnabled(plugin)', translate) Disabled
                                 small.d-block.text-muted {{plugin.description}}
 
-                            button.btn.btn-primary.ms-2(
-                                *ngIf='knownUpgrades[plugin.name]',
-                                (click)='upgradePlugin(plugin)',
-                                [disabled]='busy.has(plugin.name)'
+                        button.btn.btn-primary.upgrade-button(
+                            *ngIf='knownUpgrades[plugin.name]',
+                            (click)='upgradePlugin(plugin)',
+                            [disabled]='busy.has(plugin.name)'
+                        )
+                            i.fas.fa-fw.fa-arrow-up(*ngIf='busy.get(plugin.name) != BusyState.Installing')
+                            i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Installing')
+                            span(
+                                translate='Upgrade to {version}',
+                                [translateParams]='{version: knownUpgrades[plugin.name]?.version}'
                             )
-                                i.fas.fa-fw.fa-arrow-up(*ngIf='busy.get(plugin.name) != BusyState.Installing')
-                                i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Installing')
-                                span(
-                                    translate='Upgrade to {version}',
-                                    [translateParams]='{version: knownUpgrades[plugin.name]?.version}'
-                                )
 
-                        ng-template(ngbPanelContent)
-                            .d-flex.flex-column.flex-md-row.gap-3.align-items-start
-                                button.btn.btn-warning.btn-block.justify-content-center(
-                                    (click)='togglePlugin(plugin)',
-                                    *ngIf='isPluginEnabled(plugin)',
-                                    [disabled]='!canDisablePlugin(plugin)',
-                                    translate
-                                ) Disable
+                    .accordion-collapse(ngbAccordionCollapse)
+                        .accordion-body(ngbAccordionBody)
+                            ng-template
+                                .d-flex.flex-column.flex-md-row.gap-3.align-items-start
+                                    button.btn.btn-warning.btn-block.justify-content-center(
+                                        (click)='togglePlugin(plugin)',
+                                        *ngIf='isPluginEnabled(plugin)',
+                                        [disabled]='!canDisablePlugin(plugin)',
+                                        translate
+                                    ) Disable
 
-                                button.btn.btn-success.btn-block.justify-content-center(
-                                    (click)='togglePlugin(plugin)',
-                                    *ngIf='canDisablePlugin(plugin) && !isPluginEnabled(plugin)',
-                                    translate
-                                ) Enable
+                                    button.btn.btn-success.btn-block.justify-content-center(
+                                        (click)='togglePlugin(plugin)',
+                                        *ngIf='canDisablePlugin(plugin) && !isPluginEnabled(plugin)',
+                                        translate
+                                    ) Enable
 
-                                button.btn.btn-danger.btn-block.justify-content-center(
-                                    (click)='uninstallPlugin(plugin)',
-                                    *ngIf='!plugin.isBuiltin',
-                                    [disabled]='busy.has(plugin.name)'
-                                )
-                                    i.fas.fa-fw.fa-trash(*ngIf='busy.get(plugin.name) != BusyState.Uninstalling')
-                                    i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Uninstalling')
-                                    span(translate) Uninstall
+                                    button.btn.btn-danger.btn-block.justify-content-center(
+                                        (click)='uninstallPlugin(plugin)',
+                                        *ngIf='!plugin.isBuiltin',
+                                        [disabled]='busy.has(plugin.name)'
+                                    )
+                                        i.fas.fa-fw.fa-trash(*ngIf='busy.get(plugin.name) != BusyState.Uninstalling')
+                                        i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Uninstalling')
+                                        span(translate) Uninstall
 
-                                .ms-auto
-                                div
-                                    ng-container(*ngTemplateOutlet='pluginInfo; context: { plugin }')
+                                    .ms-auto
+                                    div
+                                        ng-container(*ngTemplateOutlet='pluginInfo; context: { plugin }')
 
 ng-template(#pluginInfo, let-plugin='plugin')
     .d-flex.align-items-center.gap-3

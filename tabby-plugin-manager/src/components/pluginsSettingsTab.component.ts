@@ -37,7 +37,7 @@ export class PluginsSettingsTabComponent {
     availableFilter = ''
 
     constructor (
-        private config: ConfigService,
+        public config: ConfigService,
         private platform: PlatformService,
         public pluginManager: PluginManagerService,
     ) {

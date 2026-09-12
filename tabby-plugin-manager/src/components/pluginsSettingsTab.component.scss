@@ -1,7 +1,27 @@
-::ng-deep .card-header {
-    padding: 0;
+// The old rule here targeted `.card-header > button`, which was ng-bootstrap 4's
+// accordion markup. Nothing has emitted that element for several majors, so it
+// styled nothing at all.
 
-    > button {
-        width: 100%;
+.accordion-button {
+    // The title block is two stacked lines, not a label; left-align it against
+    // the chevron rather than letting Bootstrap centre it.
+    text-align: left;
+}
+
+// A plugin with an upgrade available carries a button in its header. It must be
+// a sibling of the toggle — a button inside a button is invalid markup — so the
+// header becomes the flex row and the toggle takes the slack.
+.plugin-header {
+    display: flex;
+    align-items: center;
+
+    .accordion-button {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .upgrade-button {
+        flex: none;
+        margin: 0 0.5rem;
     }
 }
