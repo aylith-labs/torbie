@@ -1,17 +1,56 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker'
-import { BehaviorSubject, Observable, debounceTime, distinctUntilChanged, first, tap, switchMap, map } from 'rxjs'
 import semverGt from 'semver/functions/gt'
 
-import { Component, HostBinding, Input } from '@angular/core'
+import { ChangeDetectorRef, Component, HostBinding, Input } from '@angular/core'
 import { ConfigService, PlatformService, PluginInfo } from 'tabby-core'
 import { PluginManagerService } from '../services/pluginManager.service'
+import {
+    AvailablePluginInfo,
+    AvailableSort,
+    InstalledSort,
+    SortState,
+    arrangeAvailable,
+    arrangeInstalled,
+    parseSortState,
+} from '../pluginSearch'
 
 enum BusyState { Installing = 'Installing', Uninstalling = 'Uninstalling' }
 
 const FORCE_ENABLE = ['tabby-core', 'tabby-settings', 'tabby-electron', 'tabby-web', 'tabby-plugin-manager']
 
+/**
+ * Which order each list is in. View state, so localStorage rather than
+ * `config.yaml` — the shape `linkTooltipGroupCollapsed` already uses.
+ */
+const SORT_STATE_KEY = 'pluginsSortOrder'
+
 _('Search plugins')
+_('Sort plugins')
+
+function loadSortState (): SortState {
+    try {
+        return parseSortState(JSON.parse(window.localStorage[SORT_STATE_KEY] ?? '{}'))
+    } catch {
+        return parseSortState(null)
+    }
+}
+
+function saveSortState (state: SortState): void {
+    try {
+        window.localStorage[SORT_STATE_KEY] = JSON.stringify(state)
+    } catch {
+        // Losing view state costs the default order and nothing else.
+    }
+}
+
+function isNewer (candidate: string, installed: string): boolean {
+    try {
+        return semverGt(candidate, installed)
+    } catch {
+        return false
+    }
+}
 
 /** @hidden */
 @Component({
@@ -21,10 +60,6 @@ _('Search plugins')
 })
 export class PluginsSettingsTabComponent {
     BusyState = BusyState
-    @Input() availablePlugins$: Observable<PluginInfo[]>
-    @Input() availablePluginsQuery$ = new BehaviorSubject<string>('')
-    @Input() availablePluginsReady = false
-    @Input() installedPluginsQuery$ = new BehaviorSubject<string>('')
     @Input() knownUpgrades: Record<string, PluginInfo|null> = {}
     @Input() busy = new Map<string, BusyState>()
     @Input() erroredPlugin: string
@@ -32,50 +67,59 @@ export class PluginsSettingsTabComponent {
 
     @HostBinding('class.content-box') true
 
-    installedPlugins$: PluginInfo[] = []
-    installedFilter = ''
+    /** Every plugin the registry lists, in its own order; null until it has answered. */
+    catalogue: AvailablePluginInfo[]|null = null
+    catalogueLoading = false
+    catalogueError: string|null = null
+
+    /**
+     * What the two lists draw. Rebuilt when something they depend on changes —
+     * a query, a sort, the catalogue arriving, an install — and never by a
+     * method the template calls: an `*ngFor` over a fresh array re-creates every
+     * row on every change-detection pass.
+     */
+    availablePlugins: AvailablePluginInfo[] = []
+    installedPlugins: PluginInfo[] = []
+
     availableFilter = ''
+    installedFilter = ''
+    sort = loadSortState()
+
+    private dateFormat = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+    private numberFormat = new Intl.NumberFormat()
 
     constructor (
         public config: ConfigService,
         private platform: PlatformService,
         public pluginManager: PluginManagerService,
+        private changeDetector: ChangeDetectorRef,
     ) {
     }
 
     ngOnInit () {
-        this.availablePlugins$ = this.availablePluginsQuery$
-            .asObservable()
-            .pipe(
-                debounceTime(200),
-                distinctUntilChanged(),
-                switchMap(query => {
-                    this.availablePluginsReady = false
-                    return this.pluginManager.listAvailable(query).pipe(tap(() => {
-                        this.availablePluginsReady = true
-                    }))
-                }),
-            )
-        this.availablePlugins$.pipe(first(), map((plugins: PluginInfo[]) => {
-            plugins.sort((a, b) => a.name > b.name ? 1 : -1)
-            return plugins
-        })).subscribe(available => {
-            for (const plugin of this.pluginManager.installedPlugins) {
-                this.knownUpgrades[plugin.name] = available.find(x => x.name === plugin.name && semverGt(x.version, plugin.version)) ?? null
-            }
-        })
+        this.refreshInstalled()
+        this.loadCatalogue()
+    }
 
-        this.installedPluginsQuery$
-            .asObservable()
-            .pipe(
-                debounceTime(200),
-                distinctUntilChanged(),
-                switchMap(query => {
-                    return this.pluginManager.listInstalled(query)
-                }),
-            ).subscribe(plugin => {
-                this.installedPlugins$ = plugin
-            })
+    async loadCatalogue (refresh = false): Promise<void> {
+        this.catalogueLoading = true
+        this.catalogueError = null
+        try {
+            this.catalogue = await this.pluginManager.getCatalogue(refresh)
+            for (const plugin of this.pluginManager.installedPlugins) {
+                this.knownUpgrades[plugin.name] = this.catalogue.find(x => x.name === plugin.name && isNewer(x.version, plugin.version)) ?? null
+            }
+        } catch (err) {
+            console.error('Could not load the plugin list', err)
+            this.catalogueError = err instanceof Error ? err.message : String(err)
+        } finally {
+            this.catalogueLoading = false
+            this.refreshAvailable()
+            // The answer arrives on a network callback. Ask for a pass rather than
+            // rely on this component being checked eagerly: Angular 22 defaults to
+            // OnPush, and only app/src/plugins.ts puts the old default back.
+            this.changeDetector.markForCheck()
+        }
     }
 
     openPluginsFolder (): void {
@@ -83,11 +127,38 @@ export class PluginsSettingsTabComponent {
     }
 
     searchAvailable (query: string) {
-        this.availablePluginsQuery$.next(query)
+        this.availableFilter = query
+        this.refreshAvailable()
     }
 
     searchInstalled (query: string) {
-        this.installedPluginsQuery$.next(query)
+        this.installedFilter = query
+        this.refreshInstalled()
+    }
+
+    sortAvailable (order: AvailableSort) {
+        this.sort = { ...this.sort, available: order }
+        saveSortState(this.sort)
+        this.refreshAvailable()
+    }
+
+    sortInstalled (order: InstalledSort) {
+        this.sort = { ...this.sort, installed: order }
+        saveSortState(this.sort)
+        this.refreshInstalled()
+    }
+
+    trackPlugin (_index: number, plugin: PluginInfo): string {
+        return plugin.packageName
+    }
+
+    formatCount (count: number): string {
+        return this.numberFormat.format(count)
+    }
+
+    formatDate (iso: string): string {
+        const time = Date.parse(iso)
+        return Number.isNaN(time) ? '' : this.dateFormat.format(time)
     }
 
     isAlreadyInstalled (plugin: PluginInfo): boolean {
@@ -99,6 +170,8 @@ export class PluginsSettingsTabComponent {
         try {
             await this.pluginManager.installPlugin(plugin)
             this.busy.delete(plugin.name)
+            this.refreshInstalled()
+            this.refreshAvailable()
             this.config.requestRestart()
         } catch (err) {
             console.error('Error installing plugin', plugin.name, err)
@@ -114,6 +187,8 @@ export class PluginsSettingsTabComponent {
         try {
             await this.pluginManager.uninstallPlugin(plugin)
             this.busy.delete(plugin.name)
+            this.refreshInstalled()
+            this.refreshAvailable()
             this.config.requestRestart()
         } catch (err) {
             console.error('Error uninstalling plugin', plugin.name, err)
@@ -155,13 +230,30 @@ export class PluginsSettingsTabComponent {
 
     enablePlugin (plugin: PluginInfo) {
         this.config.store.pluginBlacklist = this.config.store.pluginBlacklist.filter(x => x !== plugin.name)
+        this.refreshInstalled()
         this.config.save()
         this.config.requestRestart()
     }
 
     disablePlugin (plugin: PluginInfo) {
         this.config.store.pluginBlacklist = [...this.config.store.pluginBlacklist, plugin.name]
+        this.refreshInstalled()
         this.config.save()
         this.config.requestRestart()
+    }
+
+    private refreshAvailable (): void {
+        // Installed plugins belong to the other tab.
+        const notInstalled = (this.catalogue ?? []).filter(plugin => !this.isAlreadyInstalled(plugin))
+        this.availablePlugins = arrangeAvailable(notInstalled, this.availableFilter, this.sort.available)
+    }
+
+    private refreshInstalled (): void {
+        this.installedPlugins = arrangeInstalled(
+            this.pluginManager.installedPlugins,
+            this.installedFilter,
+            this.sort.installed,
+            plugin => this.isPluginEnabled(plugin),
+        )
     }
 }

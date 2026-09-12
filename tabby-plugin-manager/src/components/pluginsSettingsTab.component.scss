@@ -25,3 +25,45 @@
         margin: 0 0.5rem;
     }
 }
+
+// Search takes the row and sort takes what its longest label needs. When the
+// pane is too narrow for both, sort drops underneath rather than squeezing the
+// search box.
+.plugin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    .plugin-search {
+        flex: 1 1 16rem;
+        width: auto;
+    }
+
+    .plugin-sort {
+        flex: 0 0 auto;
+        width: auto;
+
+        select {
+            // The theme draws a chevron 0.75rem in from the right edge.
+            padding-right: 2.5rem;
+        }
+    }
+}
+
+// The notice for a catalogue that would not load. Bootstrap's `.alert-warning`
+// draws warning text on a warning tint with no contrast floor, and measured
+// 4.01:1 in the light scheme (#eab700 on #695200). So this is drawn from the
+// theme's surface and text tokens, with the hue on the edge and the icon only.
+.plugin-alert {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--theme-fg);
+    background: var(--theme-bg-more);
+    border: 1px solid var(--theme-bg-more-2);
+    border-left: 0.25rem solid var(--theme-warning-text);
+
+    > i {
+        color: var(--theme-warning-text);
+    }
+}

@@ -15,16 +15,43 @@ ul.nav-tabs.mb-2(ngbNav, #nav='ngbNav')
     li(ngbNavItem)
         a(ngbNavLink, translate) Available
         ng-template(ngbNavContent)
-            .input-group.mb-3.mt-3
-                .input-group-text
-                    i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='!availablePluginsReady')
-                    i.fas.fa-fw.fa-search(*ngIf='availablePluginsReady')
-                input.form-control(
-                    type='text',
-                    [(ngModel)]='availableFilter',
-                    (ngModelChange)='searchAvailable(availableFilter)',
-                    [placeholder]='"Search plugins"|translate'
-                )
+            //- The query never goes to the registry, which ignores it: the whole
+            //- catalogue is fetched once and searched here (pluginSearch.ts).
+            .plugin-toolbar.mb-3.mt-3
+                .input-group.plugin-search
+                    .input-group-text
+                        i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='catalogueLoading')
+                        i.fas.fa-fw.fa-search(*ngIf='!catalogueLoading')
+                    input.form-control(
+                        type='text',
+                        [ngModel]='availableFilter',
+                        (ngModelChange)='searchAvailable($event)',
+                        [placeholder]='"Search plugins"|translate',
+                        [attr.aria-label]='"Search plugins"|translate'
+                    )
+                .input-group.plugin-sort
+                    .input-group-text
+                        i.fas.fa-fw.fa-arrow-down-wide-short
+                    select.form-control(
+                        [ngModel]='sort.available',
+                        (ngModelChange)='sortAvailable($event)',
+                        [attr.aria-label]='"Sort plugins"|translate'
+                    )
+                        option(value='relevance', translate) Relevance
+                        option(value='downloads', translate) Most downloaded
+                        option(value='published', translate) Recently published
+                        option(value='name', translate) Name
+
+            .alert.plugin-alert(*ngIf='catalogueError', role='alert')
+                i.fas.fa-fw.fa-triangle-exclamation(aria-hidden='true')
+                div
+                    strong.d-block(translate) Could not load plugins from the npm registry
+                    small.d-block.text-muted {{catalogueError}}
+                button.btn.btn-secondary.btn-sm.ms-auto(
+                    (click)='loadCatalogue(true)',
+                    [disabled]='catalogueLoading',
+                    translate
+                ) Retry
 
             //- The directive accordion, not `<ngb-accordion>`: that component
             //- and its `ngb-panel` were removed in ng-bootstrap 15 and this
@@ -33,55 +60,83 @@ ul.nav-tabs.mb-2(ngbNav, #nav='ngbNav')
             //- not an error.
             div.mb-4(
                 ngbAccordion,
-                *ngIf='availablePlugins$',
                 [closeOthers]='true',
                 [animation]='config.store.accessibility.animations'
             )
-                ng-container(*ngFor='let plugin of (availablePlugins$|async)')
-                    .accordion-item(ngbAccordionItem, *ngIf='!isAlreadyInstalled(plugin)')
-                        .accordion-header(ngbAccordionHeader)
-                            button.accordion-button(ngbAccordionButton, type='button')
-                                .text-left
-                                    strong.d-block {{plugin.name}}
-                                    small.d-block.text-muted {{plugin.description}}
-                        .accordion-collapse(ngbAccordionCollapse)
-                            .accordion-body(ngbAccordionBody)
-                                ng-template
-                                    .d-flex.flex-column.flex-md-row.gap-3.align-items-start
-                                        button.btn.btn-primary.btn-block.justify-content-center(
-                                            (click)='installPlugin(plugin)',
-                                            [disabled]='busy.has(plugin.name)'
+                .accordion-item(ngbAccordionItem, *ngFor='let plugin of availablePlugins; trackBy: trackPlugin')
+                    .accordion-header(ngbAccordionHeader)
+                        button.accordion-button(ngbAccordionButton, type='button')
+                            .text-left
+                                strong.d-block {{plugin.name}}
+                                small.d-block.text-muted {{plugin.description}}
+                                //- What the sort options order by, so an order can be read.
+                                small.d-block.text-muted.plugin-stats
+                                    span(
+                                        translate='Monthly downloads: {count}',
+                                        [translateParams]='{count: formatCount(plugin.monthlyDownloads)}'
+                                    )
+                                    //- `&ngsp;` survives Angular's whitespace removal. Margins
+                                    //- alone left the text as "3,232Published" to anything that
+                                    //- reads it rather than looks at it.
+                                    ng-container(*ngIf='plugin.published')
+                                        | &ngsp;
+                                        span.mx-1(aria-hidden='true') ·
+                                        | &ngsp;
+                                        span(
+                                            translate='Published: {date}',
+                                            [translateParams]='{date: formatDate(plugin.published)}'
                                         )
-                                            i.fas.fa-fw.fa-cloud-download(*ngIf='busy.get(plugin.name) != BusyState.Installing')
-                                            i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Installing')
-                                            span.ms-2(translate) Get
+                    .accordion-collapse(ngbAccordionCollapse)
+                        .accordion-body(ngbAccordionBody)
+                            ng-template
+                                .d-flex.flex-column.flex-md-row.gap-3.align-items-start
+                                    button.btn.btn-primary.btn-block.justify-content-center(
+                                        (click)='installPlugin(plugin)',
+                                        [disabled]='busy.has(plugin.name)'
+                                    )
+                                        i.fas.fa-fw.fa-cloud-download(*ngIf='busy.get(plugin.name) != BusyState.Installing')
+                                        i.fas.fa-fw.fa-circle-notch.fa-spin(*ngIf='busy.get(plugin.name) == BusyState.Installing')
+                                        span.ms-2(translate) Get
 
-                                        button.btn.btn-secondary.btn-block.justify-content-center(
-                                            *ngIf='plugin.homepage',
-                                            (click)='showPluginHomepage(plugin)'
-                                        )
-                                            i.fas.fa-fw.fa-external-link-alt
-                                            span.ms-2(translate) Homepage
+                                    button.btn.btn-secondary.btn-block.justify-content-center(
+                                        *ngIf='plugin.homepage',
+                                        (click)='showPluginHomepage(plugin)'
+                                    )
+                                        i.fas.fa-fw.fa-external-link-alt
+                                        span.ms-2(translate) Homepage
 
-                                        .ms-auto
-                                        div
-                                            ng-container(*ngTemplateOutlet='pluginInfo; context: { plugin }')
+                                    .ms-auto
+                                    div
+                                        ng-container(*ngTemplateOutlet='pluginInfo; context: { plugin }')
 
-            .text-muted.text-center.py-4(*ngIf='availablePluginsReady && !(availablePlugins$|async)?.length', translate)
+            .text-muted.text-center.py-4(*ngIf='catalogue && !availablePlugins.length', translate)
                 | Nothing found
 
     li(ngbNavItem)
         a(ngbNavLink, translate) Installed
         ng-template(ngbNavContent)
-            .input-group.mb-3.mt-3
-                .input-group-text
-                    i.fas.fa-fw.fa-search
-                input.form-control(
-                    type='text',
-                    [(ngModel)]='installedFilter',
-                    (ngModelChange)='searchInstalled(installedFilter)',
-                    [placeholder]='"Search plugins"|translate'
-                )
+            .plugin-toolbar.mb-3.mt-3
+                .input-group.plugin-search
+                    .input-group-text
+                        i.fas.fa-fw.fa-search
+                    input.form-control(
+                        type='text',
+                        [ngModel]='installedFilter',
+                        (ngModelChange)='searchInstalled($event)',
+                        [placeholder]='"Search plugins"|translate',
+                        [attr.aria-label]='"Search plugins"|translate'
+                    )
+                .input-group.plugin-sort
+                    .input-group-text
+                        i.fas.fa-fw.fa-arrow-down-wide-short
+                    select.form-control(
+                        [ngModel]='sort.installed',
+                        (ngModelChange)='sortInstalled($event)',
+                        [attr.aria-label]='"Sort plugins"|translate'
+                    )
+                        option(value='name', translate) Name
+                        option(value='thirdParty', translate) Third-party first
+                        option(value='disabled', translate) Disabled first
 
             //- Same migration as the Available list above. The Upgrade button is
             //- a sibling of the toggle rather than a child of it: the component
@@ -93,7 +148,7 @@ ul.nav-tabs.mb-2(ngbNav, #nav='ngbNav')
                 [closeOthers]='true',
                 [animation]='config.store.accessibility.animations'
             )
-                .accordion-item(ngbAccordionItem, *ngFor='let plugin of installedPlugins$')
+                .accordion-item(ngbAccordionItem, *ngFor='let plugin of installedPlugins; trackBy: trackPlugin')
                     .accordion-header.plugin-header(ngbAccordionHeader)
                         button.accordion-button(ngbAccordionButton, type='button')
                             .text-left
@@ -144,6 +199,9 @@ ul.nav-tabs.mb-2(ngbNav, #nav='ngbNav')
                                     .ms-auto
                                     div
                                         ng-container(*ngTemplateOutlet='pluginInfo; context: { plugin }')
+
+            .text-muted.text-center.py-4(*ngIf='!installedPlugins.length', translate)
+                | Nothing found
 
 ng-template(#pluginInfo, let-plugin='plugin')
     .d-flex.align-items-center.gap-3
