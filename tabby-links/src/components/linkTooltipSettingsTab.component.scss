@@ -1,3 +1,11 @@
+// Secondary text is a colour here, never an opacity. The theme floors
+// `--theme-muted-fg` to 4.5:1 against the page, card and menu surfaces; an
+// opacity is floored against nothing, and on a tinted card it compounds with
+// the card's own tint. No fallback: Bootstrap's secondary colour, the obvious
+// one, measured 20% grey on the dark scheme, which is a failure waiting for
+// the day the variable goes missing.
+$muted: var(--theme-muted-fg);
+
 .rule-list {
     display: flex;
     flex-direction: column;
@@ -29,7 +37,7 @@
 
 .rule-summary {
     font-size: 12px;
-    opacity: .55;
+    color: $muted;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -56,6 +64,30 @@
         // Bootstrap's item is one line with `white-space: nowrap`; these are two.
         white-space: normal;
     }
+
+    // The group headers and the empty state. Bootstrap's header colour is a
+    // fixed grey chosen for a white menu, not for either scheme's surface.
+    .dropdown-header {
+        color: $muted;
+    }
+}
+
+// The search box sits in the items' own horizontal inset. The menu has no
+// horizontal padding of its own (each item and header carries it), so an input
+// placed straight in the menu ran from edge to edge, and its text started left
+// of every item's.
+//
+// Sticky, because grouping makes the list taller than the menu: scrolling down
+// to browse would otherwise take away the box the cursor was put in. It covers
+// the menu's top padding too, so rows do not show through the strip above it
+// once they scroll under.
+.preset-search {
+    position: sticky;
+    top: calc(-1 * var(--bs-dropdown-padding-y));
+    z-index: 1;
+    margin-top: calc(-1 * var(--bs-dropdown-padding-y));
+    padding: var(--bs-dropdown-padding-y) var(--bs-dropdown-item-padding-x);
+    background-color: inherit;
 }
 
 .preset-name {
@@ -64,7 +96,15 @@
 
 .preset-description {
     font-size: 12px;
-    opacity: .6;
+    color: $muted;
+}
+
+// A disabled item is greyed as a whole and a pressed one sits on the primary
+// colour. In both, the description takes the item's own colour: the muted tone
+// is chosen for the menu surface and is wrong on either of those.
+.dropdown-item:disabled .preset-description,
+.dropdown-item:active .preset-description {
+    color: inherit;
 }
 
 .rule-editor {
@@ -193,11 +233,10 @@
         white-space: pre-wrap;
         overflow-wrap: anywhere;
         min-width: 0;
-        opacity: .6;
+        color: $muted;
     }
 
     .seg-hit {
-        opacity: 1;
         font-weight: 600;
         border-radius: 2px;
         background: var(--theme-accent, var(--bs-primary));
@@ -220,6 +259,6 @@
     }
 
     .capture-eq {
-        opacity: .5;
+        color: $muted;
     }
 }

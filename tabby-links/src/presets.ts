@@ -9,8 +9,22 @@ import { IntegrationManifest, IntegrationMatcher, LinkFileTypeGroup, LinkMatchKi
 
 export interface RulePreset {
     id: string
-    /** Menu label. */
+    /**
+     * The name a rule made from this preset is given, and what recognises that
+     * rule afterwards (`ruleIsPreset`). It keeps its group prefix — "Jira: Issue
+     * links" — because that is the name already sitting in people's rule lists,
+     * and a rule list is shared with the Windows Terminal fork.
+     */
     name: string
+    /**
+     * What the menu shows under the group's header: the name without the
+     * prefix the header now says. Display only; search still reads `name`.
+     */
+    label: string
+    /** Which header the menu lists this preset under. */
+    group: string
+    /** That header's text. */
+    groupLabel: string
     /** One line under it, and the item's tooltip. */
     description: string
     match: LinkMatchKind
@@ -68,9 +82,17 @@ export function rulePresets (integrations: PresetIntegration[]): RulePreset[] {
         const integration = integrations.find(x => x.id === p.integration)
         const matcher = integration ? matcherForExample(integration.manifest.matchers ?? [], p.match, p.example) : null
         if (p.integration && !matcher) continue
+        const grouping = integration
+            ? { group: `integration:${integration.id}`, groupLabel: integration.name, label: matcher?.description || p.label }
+            : standaloneGrouping(p)
         out.push({
             id: p.id,
-            name: integration ? `${integration.name}: ${matcher?.description || p.label}` : p.label,
+            // Built from the same label the menu shows, so the two cannot
+            // disagree about what follows the prefix.
+            name: integration ? `${integration.name}: ${grouping.label}` : p.label,
+            label: grouping.label,
+            group: grouping.group,
+            groupLabel: grouping.groupLabel,
             description: p.description,
             match: p.match,
             schemes: [...(p.schemes ?? [])],
@@ -84,6 +106,75 @@ export function rulePresets (integrations: PresetIntegration[]): RulePreset[] {
         })
     }
     return out
+}
+
+/**
+ * Where a preset that belongs to no integration is listed.
+ *
+ * The catalogue carries no group field, so what the data says is asked first:
+ * a preset that matches by file type is a file preset, whatever its label
+ * calls it. Only then is the label read. Lintel writes "Git: Commit hashes in
+ * output" for hosts that list presets flat, which is the same "<group>: "
+ * convention the integration presets are named with, so that prefix is the
+ * group when nothing else is. The prefix comes off the label either way,
+ * since the header now says it.
+ */
+function standaloneGrouping (preset: {
+    label: string
+    fileTypeGroup?: LinkFileTypeGroup
+    extensions?: readonly string[]
+}): { group: string, groupLabel: string, label: string } {
+    const prefixed = /^([^:]{1,32}):\s+(\S.*)$/.exec(preset.label)
+    const label = prefixed ? prefixed[2] : preset.label
+    if ((preset.fileTypeGroup ?? 'none') !== 'none' || preset.extensions?.length) {
+        return { group: 'files', groupLabel: 'Files', label }
+    }
+    if (prefixed) {
+        return { group: `label:${prefixed[1].toLowerCase()}`, groupLabel: prefixed[1], label }
+    }
+    return { group: 'other', groupLabel: 'Other', label }
+}
+
+/** One header in a preset menu, and the presets listed under it. */
+export interface PresetGroup {
+    key: string
+    label: string
+    presets: RulePreset[]
+}
+
+/**
+ * What a preset menu shows for a search: the matching presets, under headers.
+ *
+ * A group with nothing left in it is dropped rather than drawn as a bare
+ * header. Groups come in the order their first preset does, so grouping
+ * reorders nothing the flat list used to show.
+ *
+ * Every word of the query has to appear somewhere in the preset: its full name,
+ * group prefix included, so "jira" still finds a Jira preset whose label no
+ * longer says so; its label, header, description, integration or id. Anything
+ * the old single-substring filter found is still found.
+ */
+export function presetGroups (presets: RulePreset[], query = ''): PresetGroup[] {
+    const words = query.toLowerCase().split(/\s+/).filter(word => word)
+    const groups: PresetGroup[] = []
+    const byKey = new Map<string, PresetGroup>()
+    for (const preset of presets) {
+        const haystack = [preset.name, preset.label, preset.groupLabel, preset.description, preset.integration, preset.id]
+            .map(part => part ?? '')
+            .join(' ')
+            .toLowerCase()
+        if (!words.every(word => haystack.includes(word))) {
+            continue
+        }
+        let group = byKey.get(preset.group)
+        if (!group) {
+            group = { key: preset.group, label: preset.groupLabel, presets: [] }
+            byKey.set(preset.group, group)
+            groups.push(group)
+        }
+        group.presets.push(preset)
+    }
+    return groups
 }
 
 /**

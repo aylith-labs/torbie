@@ -951,6 +951,61 @@ check('with no integrations, only the standalone presets remain',
     presets.rulePresets([]).map(p => p.id),
     ['git-commit-hashes', 'media-files', 'source-code-files', 'text-files', 'pdf-files', 'office-document-files'])
 
+console.log('\n── preset menu groups ──')
+// The menus list presets under headers. What must not move is `name`: it is
+// what a rule made from a preset is called, and what recognises that rule
+// afterwards, so every existing rule list depends on it staying as it was.
+check('names are unchanged by grouping', allPresets.map(p => p.name), [
+    'Jira: Issue keys in output, like CAB-8209', 'Jira: Issue links',
+    'GitHub: Pull request links', 'GitHub: Issue links', 'GitHub: Commit links',
+    'GitHub: Pull requests and issues (repo#number)',
+    'Slack: Message links',
+    'Stith: Session links', 'Stith: Web links',
+    'Stith: Agent session ids printed bare, with no scheme and no link around them',
+    'shefrd: Multiplexer pane ids printed bare, like w1N:p39',
+    'Git: Commit hashes in output', 'Media: Images, audio and video',
+    'Source code files', 'Text files', 'PDF files', 'Office documents',
+    'Unblocked Code: Coding task IDs in output', 'Unblocked Code: Coding task details links',
+])
+const grouped = presets.presetGroups(allPresets)
+check('headers, in the order the catalogue first names them', grouped.map(g => g.label),
+    ['Jira', 'GitHub', 'Slack', 'Stith', 'shefrd', 'Git', 'Files', 'Unblocked Code'])
+check('how many under each', grouped.map(g => g.presets.length), [2, 4, 1, 3, 1, 1, 5, 2])
+check('with today\'s catalogue, grouping reorders nothing',
+    grouped.flatMap(g => g.presets.map(p => p.id)), allPresets.map(p => p.id))
+const byId = id => allPresets.find(p => p.id === id)
+// An integration preset's label is built from data, not cut out of its name.
+check('an integration preset drops the prefix its header says',
+    [byId('jira-issue-links').label, byId('jira-issue-links').groupLabel], ['Issue links', 'Jira'])
+check('and its name is still header plus label',
+    allPresets.filter(p => p.integration).every(p => p.name === `${p.groupLabel}: ${p.label}`), true)
+// A standalone preset is grouped by what it matches before its label is read,
+// so "Media: …" is a file preset and not a group of one.
+check('a file-type preset is a file preset, whatever its label says',
+    [byId('media-files').group, byId('media-files').label], ['files', 'Images, audio and video'])
+check('and one with no prefix keeps its label', byId('source-code-files').label, 'Source code files')
+check('otherwise the catalogue label\'s own prefix is the group',
+    [byId('git-commit-hashes').groupLabel, byId('git-commit-hashes').label], ['Git', 'Commit hashes in output'])
+check('a preset made into a rule is still called by its full name',
+    presets.applyPreset(byId('jira-issue-links')).name, 'Jira: Issue links')
+check('with no integrations there are two headers',
+    presets.presetGroups(presets.rulePresets([])).map(g => g.label), ['Git', 'Files'])
+
+const search = query => presets.presetGroups(allPresets, query)
+    .map(g => [g.label, g.presets.map(p => p.id)])
+const jiraSearch = presets.presetGroups(allPresets, 'jira').find(g => g.label === 'Jira')
+check('search still finds a preset by the prefix its label dropped',
+    jiraSearch?.presets.map(p => p.id), ['jira-issue-keys', 'jira-issue-links'])
+check('though neither label says Jira',
+    jiraSearch?.presets.some(p => /jira/i.test(p.label)), false)
+check('every word has to match, in any field', search('github commit'), [['GitHub', ['github-commits']]])
+const commitSearch = presets.presetGroups(allPresets, 'commit')
+check('a group with nothing left is dropped, not drawn empty',
+    commitSearch.every(g => g.presets.length > 0) && !commitSearch.some(g => g.label === 'Slack'), true)
+check('and the groups that do match stay', commitSearch.some(g => g.label === 'Git'), true)
+check('no match is no groups', search('zzzz-no-such-preset'), [])
+check('a blank query is the whole list', presets.presetGroups(allPresets, '   ').length, grouped.length)
+
 // No second copy of anyone's regex: a manifest-backed preset's pattern has to
 // be a string the manifest itself contains, selected unambiguously.
 const manifestPatterns = new Set(
@@ -1638,11 +1693,16 @@ settingsProbe.currentRule.actions[0].name='Changed'
 check('duplicate actions independent', originalRule.actions[0].name, 'Custom')
 settingsProbe.duplicateRule(originalRule)
 check('duplicate names stay distinct', settingsProbe.currentRule.name, 'Example (copy) 2')
-settingsProbe.presets=[{id:'unblocked',name:'Unblocked Code',description:'Coding tasks',integration:'unblocked'},{id:'source',name:'Source code',description:'Local files',integration:''}]
-settingsProbe.presetSearch='UNBLOCKED'
-check('preset search case insensitive',settingsProbe.filteredPresets.map(p=>p.id),['unblocked'])
-settingsProbe.presetSearch='missing'
-check('preset search empty state',settingsProbe.filteredPresets.length,0)
+settingsProbe.presets=allPresets
+settingsProbe.setPresetSearch('UNBLOCKED')
+check('preset search case insensitive',settingsProbe.presetGroups.flatMap(g=>g.presets.map(p=>p.id)),['unblocked-task-ids','unblocked-task-links'])
+check('preset search keeps what it typed',settingsProbe.presetSearch,'UNBLOCKED')
+settingsProbe.setPresetSearch('missing')
+check('preset search empty state',settingsProbe.presetGroups.length,0)
+// Closing a menu clears the search. The focus half needs a real DOM and is in
+// presets.cdp.js; this is the half a plain object can answer.
+settingsProbe.presetMenuChanged(false, null)
+check('closing a preset menu clears its search',[settingsProbe.presetSearch,settingsProbe.presetGroups.length],['',allPresets.length ? new Set(allPresets.map(p=>p.group)).size : 0])
 const jiraRule = presets.applyPreset(allPresets.find(p => p.id === 'jira-issue-keys'))
 const taskPreset = allPresets.find(p => p.id === 'unblocked-task-ids')
 settingsProbe.config.store.linkTooltip.rules = [jiraRule]

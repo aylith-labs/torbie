@@ -14,7 +14,7 @@ import {
     ClickableKind,
 } from '../clickChords'
 import { FILE_TYPE_GROUP_LABELS } from '../fileTypes'
-import { RulePreset, applyPreset, presetForRule, presetInUse, rulePresets } from '../presets'
+import { PresetGroup, RulePreset, applyPreset, presetForRule, presetGroups, presetInUse, rulePresets } from '../presets'
 import { ProbeSegment, RuleProbe, probeCaptures, probeRule, probeSegments } from '../ruleProbe'
 import { checkPattern, GuardedRegex } from '../regexGuard'
 import { IntegrationRegistryService } from '../services/integrationRegistry.service'
@@ -109,10 +109,12 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
      */
     presets: RulePreset[] = []
     presetSearch = ''
-    get filteredPresets (): RulePreset[] {
-        const query = this.presetSearch.trim().toLowerCase()
-        return this.presets.filter(preset => `${preset.name} ${preset.description} ${preset.integration} ${preset.id}`.toLowerCase().includes(query))
-    }
+    /**
+     * What both preset menus list: `presets` narrowed by the search box and
+     * put under their headers. A field for the same reason `presets` is one,
+     * rebuilt only when one of those two changes.
+     */
+    presetGroups: PresetGroup[] = []
 
     duplicateRule (source: LinkTooltipRule): void {
         const rule = JSON.parse(JSON.stringify(source)) as LinkTooltipRule
@@ -148,6 +150,7 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
             // Presets take their patterns from the manifests, so the menu is
             // only correct once these have arrived.
             this.presets = rulePresets(list)
+            this.presetGroups = presetGroups(this.presets, this.presetSearch)
         })
     }
 
@@ -373,8 +376,85 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
         }
     }
 
-    trackPreset (index: number): number {
-        return index
+    // ── the preset menus ─────────────────────────────────────────────────────
+
+    setPresetSearch (value: string): void {
+        this.presetSearch = value
+        this.presetGroups = presetGroups(this.presets, value)
+    }
+
+    /**
+     * A preset menu opened or closed.
+     *
+     * Opening puts the cursor in the search box, so a preset can be found by
+     * typing straight away. That cannot happen synchronously: ngbDropdown emits
+     * `openChange` *before* it focuses its own toggle, which would take focus
+     * straight back, and before change detection has put `.show` on the menu,
+     * and nothing inside a `display: none` menu can take focus at all. One task
+     * later both have happened.
+     *
+     * Closing clears the search, so the next open starts from the whole list
+     * rather than from whatever was typed the time before.
+     */
+    presetMenuChanged (open: boolean, search: HTMLInputElement): void {
+        if (!open) {
+            this.setPresetSearch('')
+            return
+        }
+        setTimeout(() => {
+            // Closed again in the meantime, or never laid out.
+            if (search.isConnected && search.getClientRects().length) {
+                search.focus({ preventScroll: true })
+            }
+        })
+    }
+
+    /**
+     * ArrowDown from the search box to the first preset that can be picked.
+     *
+     * ngbDropdown only navigates when the key comes from its toggle or from an
+     * item, and the search box is neither, so ArrowDown there did nothing. The
+     * item chosen is the one ngbDropdown's own navigation starts from (the
+     * first that is not disabled), so the next ArrowDown carries on from it.
+     */
+    focusFirstPreset (event: Event): void {
+        const first = this.firstPresetItem(event.target as HTMLElement)
+        if (first) {
+            event.preventDefault()
+            first.focus()
+        }
+    }
+
+    /**
+     * And ArrowUp from that first preset back into the search box. Stopped
+     * here, or ngbDropdown's handler on the menu would move focus straight back
+     * to the item it considers the top of the list.
+     */
+    backToPresetSearch (event: Event, search: HTMLInputElement): void {
+        if (event.target === this.firstPresetItem(search)) {
+            event.preventDefault()
+            event.stopPropagation()
+            search.focus()
+        }
+    }
+
+    private firstPresetItem (inside: HTMLElement): HTMLElement | null {
+        return inside.closest('.preset-menu')?.querySelector<HTMLElement>('.dropdown-item:not(:disabled)') ?? null
+    }
+
+    /**
+     * By id, not by index. A search removes presets from the middle of a group,
+     * and index tracking would rebind every later row to a different preset
+     * underneath whatever the pointer or the focus is on. The ids are stable
+     * across `rulePresets` rebuilds, which is what index tracking protects
+     * elsewhere in this file.
+     */
+    trackPreset (_index: number, preset: RulePreset): string {
+        return preset.id
+    }
+
+    trackPresetGroup (_index: number, group: PresetGroup): string {
+        return group.key
     }
 
     // Index, like every other trackBy in this package: these are rebuilt as a

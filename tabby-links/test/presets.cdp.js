@@ -137,8 +137,9 @@ async function main () {
         window.ng.applyChanges(page)
         const rule = page.currentRule
         return {
-            header: menu.querySelector('.dropdown-header').textContent.trim(),
+            headers: [...menu.querySelectorAll('.preset-group')].map(h => h.textContent.trim()),
             count: items.length,
+            expected: page.presets.length,
             labels,
             // The menu is styled from the component's stylesheet even after
             // ng-bootstrap reparents it to <body>.
@@ -154,8 +155,12 @@ async function main () {
         }
     `)
     check('the flyout opened', viaMenu.error, '')
-    check('it lists every preset', viaMenu.count, 13)
-    check('under a heading', viaMenu.header, 'Start from a preset')
+    // Against the page's own list, not a constant: this said 13 while the
+    // catalogue had grown to 19, and failed for that reason alone.
+    check('it lists every preset', viaMenu.count, viaMenu.expected)
+    // One "Start from a preset" heading became a header per group.
+    check('under a header per group', viaMenu.headers,
+        ['Jira', 'GitHub', 'Slack', 'Stith', 'shefrd', 'Git', 'Files', 'Unblocked Code'])
     check('exactly one rule was added', viaMenu.added, 1)
     check('and opened in the editor', viaMenu.opened, true)
     check('filled in from the preset', viaMenu.rule, {
@@ -214,7 +219,9 @@ async function main () {
         const menu = document.querySelector('.apply-preset.show')
         if (!menu) { return { error: 'the editor menu did not open' } }
         const items = [...menu.querySelectorAll('.dropdown-item')]
-        const wanted = items.find(i => i.textContent.includes('Media'))
+        // By its label. The item no longer repeats "Media:", which is part of
+        // the rule's name but not of what the menu shows under "Files".
+        const wanted = items.find(i => i.textContent.includes('Images, audio and video'))
         realClick(wanted)
         await new Promise(r => setTimeout(r, 400))
         window.ng.applyChanges(page)
@@ -262,6 +269,170 @@ async function main () {
     `)
     check('an image path picks the media rule', media.image, 'Media: Images, audio and video')
     check('a markdown path does not', media.text === 'Media: Images, audio and video', false)
+
+    console.log('\n── both menus: grouped, searchable, focused, keyboard-navigable ──')
+    // Through the real toggles and real key events. The rule list is restored
+    // below, so rules are added freely here: one made from the first preset
+    // makes the first item in both menus disabled, which is what lets
+    // "ArrowDown reaches the first item that can be picked" mean more than
+    // "ArrowDown reaches the first item".
+    const MENUS = [
+        ['Add rule', '.add-rule-presets', `host.querySelector('.btn-group .dropdown-toggle-split')`],
+        ['Apply preset', '.apply-preset',
+            `[...host.querySelectorAll('.rule-editor .dropdown button')].find(t => t.textContent.includes('Apply preset'))`],
+    ]
+    for (const [name, menuClass, toggleExpression] of MENUS) {
+        const m = await evaluate(`
+            ${CLICK}
+            const sleep = ms => new Promise(r => setTimeout(r, ms))
+            const key = (el, k) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }))
+            const page = ${PAGE}
+            const host = document.querySelector('link-tooltip-settings-tab')
+            const zone = window.ng.getInjector(host).get(window.nodeRequire('@angular/core').NgZone)
+            for (let i = 0; i < 4 && document.querySelector('.preset-menu.show'); i++) {
+                realClick(document.body)
+                await sleep(200)
+            }
+            // The editor is closed and built again inside NgZone, never through
+            // window.ng.applyChanges from here. This script evaluates in the
+            // root zone, and a view built by a pass started from the root zone
+            // registers its DOM listeners there as well: its input events then
+            // schedule no tick, and the menu falls behind what is typed.
+            // Measured with the editor built that way: 3, 3, 3, 8 groups drawn
+            // against a model of 3, 1, 0, 8, with the handler reporting it was
+            // outside Angular's zone. No real path builds it like that; the
+            // hover card's "open this rule" goes through NgZone.run.
+            zone.run(() => { page.currentRule = null })
+            await sleep(200)
+            zone.run(() => {
+                const first = page.presets[0]
+                if (!page.presetInUse(first)) { page.addRuleFromPreset(first) }
+                // The editor needs an open rule that is not that preset, or its
+                // own menu would offer the preset again as "re-sync me".
+                page.addRule()
+            })
+            await sleep(300)
+            const toggle = ${toggleExpression}
+            if (!toggle) { return { error: 'no toggle' } }
+            realClick(toggle)
+            await sleep(400)
+            const menu = document.querySelector('${menuClass}.show')
+            if (!menu) { return { error: 'the menu did not open' } }
+            const input = menu.querySelector('.preset-search input')
+            const describe = el => el === input ? 'search'
+                : el?.classList.contains('dropdown-item') ? el.querySelector('.preset-name').textContent.trim()
+                : el ? el.tagName.toLowerCase() : 'nothing'
+            // Headers and their item counts, read off the menu's children in order.
+            const groups = () => {
+                const out = []
+                for (const el of menu.children) {
+                    if (el.classList.contains('preset-group')) { out.push([el.textContent.trim(), 0]) }
+                    else if (el.classList.contains('dropdown-item') && out.length) { out[out.length - 1][1]++ }
+                }
+                return out
+            }
+            const type = async value => {
+                input.value = value
+                input.dispatchEvent(new Event('input', { bubbles: true }))
+                await sleep(250)
+            }
+            const focusedOnOpen = describe(document.activeElement)
+
+            // Insets from fractional boxes only. The box around the input and
+            // an item are both full-width children of the menu, so the input's
+            // inset inside the one is directly comparable with the text's inset
+            // inside the other, and a scrollbar counts for neither. Not
+            // clientLeft/clientWidth: they are integers, and at 1.5x the menu's
+            // border is 0.667px, which made a symmetric input measure 16/17.
+            // Refused if nothing has layout: an unshown menu measures 0
+            // everywhere, and 0 === 0 proves nothing.
+            const searchBox = menu.querySelector('.preset-search').getBoundingClientRect()
+            const inputBox = input.getBoundingClientRect()
+            const itemBox = menu.querySelector('.dropdown-item').getBoundingClientRect()
+            const range = document.createRange()
+            range.selectNodeContents(menu.querySelector('.dropdown-item .preset-name'))
+            const textBox = range.getBoundingClientRect()
+            const laidOut = searchBox.width > 0 && inputBox.width > 0 && textBox.width > 0
+
+            const all = groups()
+            await type('commit')
+            const commit = groups()
+            await type('zzzz-no-such-preset')
+            const emptyState = menu.querySelector('.dropdown-header:not(.preset-group)')
+            const none = { groups: groups().length, says: emptyState ? emptyState.textContent.trim() : null }
+            await type('')
+
+            input.focus()
+            key(input, 'ArrowDown')
+            const down1 = describe(document.activeElement)
+            key(document.activeElement, 'ArrowDown')
+            const down2 = describe(document.activeElement)
+            key(document.activeElement, 'ArrowUp')
+            key(document.activeElement, 'ArrowUp')
+            const up2 = describe(document.activeElement)
+            const firstEnabled = describe(menu.querySelector('.dropdown-item:not(:disabled)'))
+            const firstItemDisabled = menu.querySelector('.dropdown-item').disabled
+
+            const restingTop = Math.round(input.getBoundingClientRect().top - menu.getBoundingClientRect().top)
+            menu.scrollTop = menu.scrollHeight
+            await sleep(100)
+            const scrolled = menu.scrollTop
+            const stuckTop = Math.round(input.getBoundingClientRect().top - menu.getBoundingClientRect().top)
+            menu.scrollTop = 0
+
+            await type('slack')
+            realClick(document.body)
+            await sleep(300)
+            const closed = !document.querySelector('${menuClass}.show')
+            realClick(toggle)
+            await sleep(400)
+            const reopened = document.querySelector('${menuClass}.show')
+            const reopenedInput = reopened?.querySelector('.preset-search input')
+            const again = {
+                value: reopenedInput ? reopenedInput.value : null,
+                groups: reopened ? reopened.querySelectorAll('.preset-group').length : null,
+                focused: !!reopenedInput && document.activeElement === reopenedInput,
+            }
+            realClick(document.body)
+            await sleep(300)
+            const tenth = x => Math.round(x * 10) / 10
+            return {
+                error: '', focusedOnOpen, laidOut,
+                inputLeft: tenth(inputBox.left - searchBox.left),
+                inputRight: tenth(searchBox.right - inputBox.right),
+                textLeft: tenth(textBox.left - itemBox.left),
+                sameColumn: Math.abs(searchBox.left - itemBox.left) < 0.5 && Math.abs(searchBox.right - itemBox.right) < 0.5,
+                all, commit, none, down1, down2, up2, firstEnabled, firstItemDisabled,
+                restingTop, scrolled, stuckTop, closed, again, total: page.presets.length,
+            }
+        `)
+        check(`${name}: the menu opened`, m.error, '')
+        check(`${name}: the search box has focus as soon as it opens`, m.focusedOnOpen, 'search')
+        check(`${name}: the menu was laid out, so the insets below mean something`, m.laidOut, true)
+        check(`${name}: the box and the items span the same width`, m.sameColumn, true)
+        check(`${name}: the input is inset from both edges`, m.inputLeft > 0 && m.inputRight > 0, true)
+        check(`${name}: by the same amount on each side`, Math.abs(m.inputLeft - m.inputRight) < 0.5, true)
+        check(`${name}: which lines it up with the item text`, Math.abs(m.inputLeft - m.textLeft) < 0.5, true)
+        check(`${name}: every preset sits under a header`, m.all.reduce((n, g) => n + g[1], 0), m.total)
+        check(`${name}: the headers`, m.all.map(g => g[0]),
+            ['Jira', 'GitHub', 'Slack', 'Stith', 'shefrd', 'Git', 'Files', 'Unblocked Code'])
+        check(`${name}: a search drops the groups it empties`,
+            m.commit.every(g => g[1] > 0) && m.commit.length > 0 && m.commit.length < m.all.length, true)
+        check(`${name}: nothing matching shows no header, and says so`,
+            m.none, { groups: 0, says: 'No presets match your search' })
+        check(`${name}: the first item is disabled, so the next check is not vacuous`, m.firstItemDisabled, true)
+        check(`${name}: ArrowDown from the box reaches the first item that can be picked`, m.down1, m.firstEnabled)
+        check(`${name}: ArrowDown again carries on down the list`, m.down2 !== m.down1 && m.down2 !== 'search', true)
+        check(`${name}: ArrowUp from the top item goes back to the box`, m.up2, 'search')
+        check(`${name}: the list is long enough to scroll`, m.scrolled > 0, true)
+        check(`${name}: and the box stays put while it does`, m.stuckTop, m.restingTop)
+        check(`${name}: clicking away closes it`, m.closed, true)
+        check(`${name}: closing cleared the search`, m.again.value, '')
+        check(`${name}: so it reopens on every group`, m.again.groups, m.all.length)
+        check(`${name}: with the box focused again`, m.again.focused, true)
+        note(`${name}: box inset ${m.inputLeft}px / ${m.inputRight}px, item text at ${m.textLeft}px, ` +
+            `"commit" → ${m.commit.map(g => `${g[0]} ${g[1]}`).join(', ')}`)
+    }
 
     console.log('\n── the profile is left as it was found ──')
     const restored = await evaluate(`

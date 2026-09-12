@@ -321,7 +321,16 @@ h4.mt-4.mb-2(translate) Rules
 //- A split button: the left half adds a blank rule, the caret starts from a
 //- preset. `container='body'` because the settings tab is a scroll container
 //- and a menu this tall is clipped by it otherwise.
-.btn-group.mb-3(ngbDropdown, container='body', placement='bottom-start')
+//-
+//- `container='body'` also means the menu is not in this component's DOM once
+//- it opens, so the search box reaches `presetMenuChanged` as a template
+//- reference rather than by querying the host.
+.btn-group.mb-3(
+    ngbDropdown,
+    container='body',
+    placement='bottom-start',
+    (openChange)='presetMenuChanged($event, addPresetSearch)',
+)
     button.btn.btn-secondary((click)='addRule()')
         i.fas.fa-fw.fa-plus.me-2
         span(translate) Add rule
@@ -330,21 +339,37 @@ h4.mt-4.mb-2(translate) Rules
         [title]='"Start from a preset"|translate',
     )
     .preset-menu.add-rule-presets(ngbDropdownMenu)
-        input.form-control(type='search', [(ngModel)]='presetSearch', placeholder='Search presets', aria-label='Search presets', (click)='$event.stopPropagation()')
-        .dropdown-header(*ngIf='!filteredPresets.length', translate) No presets match your search
-        h6.dropdown-header(translate) Start from a preset
-        //- `ngbDropdownItem` is what closes the menu on a click and makes the
-        //- list navigable from the keyboard; a bare `.dropdown-item` looks the
-        //- same and leaves the menu open behind the rule it just added.
-        button.dropdown-item(
-            ngbDropdownItem,
-            *ngFor='let preset of filteredPresets; trackBy: trackPreset',
-            (click)='addRuleFromPreset(preset)',
-            [disabled]='presetInUse(preset)',
-            [title]='presetInUse(preset) ? ("Already in your rules"|translate) : preset.description',
-        )
-            .preset-name {{preset.name}}
-            .preset-description {{preset.description}}
+        .preset-search
+            input.form-control(
+                #addPresetSearch,
+                type='search',
+                [ngModel]='presetSearch',
+                (ngModelChange)='setPresetSearch($event)',
+                placeholder='Search presets',
+                [attr.aria-label]='"Start from a preset"|translate',
+                (click)='$event.stopPropagation()',
+                (keydown.arrowdown)='focusFirstPreset($event)',
+            )
+        .dropdown-header(*ngIf='!presetGroups.length', translate) No presets match your search
+        //- Headers and items stay direct children of the menu, with nothing but
+        //- `ng-container` between them. ngbDropdownMenu finds its items with a
+        //- content query that does not look through a real element, and an item
+        //- it cannot find is one the arrow keys skip.
+        ng-container(*ngFor='let group of presetGroups; trackBy: trackPresetGroup')
+            h6.dropdown-header.preset-group {{group.label|translate}}
+            //- `ngbDropdownItem` is what closes the menu on a click and makes the
+            //- list navigable from the keyboard; a bare `.dropdown-item` looks the
+            //- same and leaves the menu open behind the rule it just added.
+            button.dropdown-item(
+                ngbDropdownItem,
+                *ngFor='let preset of group.presets; trackBy: trackPreset',
+                (click)='addRuleFromPreset(preset)',
+                (keydown.arrowup)='backToPresetSearch($event, addPresetSearch)',
+                [disabled]='presetInUse(preset)',
+                [title]='presetInUse(preset) ? ("Already in your rules"|translate) : preset.description',
+            )
+                .preset-name {{preset.label}}
+                .preset-description {{preset.description}}
 
 .rule-list
     .rule-row(*ngFor='let rule of rules; let i = index; trackBy: trackRule', [class.editing]='currentRule === rule')
@@ -381,22 +406,42 @@ h4.mt-4.mb-2(translate) Rules
         .header
             .title(translate) Preset
             .description(translate) Fill in the criteria below from a ready-made rule. Your custom actions are kept; the overrides are reset
-        .dropdown(ngbDropdown, container='body', placement='bottom-end')
+        //- The same menu as the "Add rule" caret's, including why its items stay
+        //- direct children of the menu. Only what a click does differs.
+        .dropdown(
+            ngbDropdown,
+            container='body',
+            placement='bottom-end',
+            (openChange)='presetMenuChanged($event, applyPresetSearch)',
+        )
             button.btn.btn-secondary(ngbDropdownToggle)
                 i.fas.fa-fw.fa-wand-magic-sparkles.me-2
                 span(translate) Apply preset
             .preset-menu.apply-preset(ngbDropdownMenu)
-                input.form-control(type='search', [(ngModel)]='presetSearch', placeholder='Search presets', aria-label='Search presets', (click)='$event.stopPropagation()')
-                .dropdown-header(*ngIf='!filteredPresets.length', translate) No presets match your search
-                button.dropdown-item(
-                    ngbDropdownItem,
-                    *ngFor='let preset of filteredPresets; trackBy: trackPreset',
-                    (click)='applyPresetToCurrent(preset)',
-                    [disabled]='presetInUseElsewhere(preset)',
-                    [title]='presetInUseElsewhere(preset) ? ("Already in your rules"|translate) : preset.description',
-                )
-                    .preset-name {{preset.name}}
-                    .preset-description {{preset.description}}
+                .preset-search
+                    input.form-control(
+                        #applyPresetSearch,
+                        type='search',
+                        [ngModel]='presetSearch',
+                        (ngModelChange)='setPresetSearch($event)',
+                        placeholder='Search presets',
+                        aria-label='Search presets',
+                        (click)='$event.stopPropagation()',
+                        (keydown.arrowdown)='focusFirstPreset($event)',
+                    )
+                .dropdown-header(*ngIf='!presetGroups.length', translate) No presets match your search
+                ng-container(*ngFor='let group of presetGroups; trackBy: trackPresetGroup')
+                    h6.dropdown-header.preset-group {{group.label|translate}}
+                    button.dropdown-item(
+                        ngbDropdownItem,
+                        *ngFor='let preset of group.presets; trackBy: trackPreset',
+                        (click)='applyPresetToCurrent(preset)',
+                        (keydown.arrowup)='backToPresetSearch($event, applyPresetSearch)',
+                        [disabled]='presetInUseElsewhere(preset)',
+                        [title]='presetInUseElsewhere(preset) ? ("Already in your rules"|translate) : preset.description',
+                    )
+                        .preset-name {{preset.label}}
+                        .preset-description {{preset.description}}
 
     .form-line
         .header
