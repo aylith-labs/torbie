@@ -1895,6 +1895,32 @@ The bits that cost real time:
 - Sizes are walked one build at a time off the render path and cached; symlinks
   are never followed, or `builtin-plugins` would count the same bytes twice.
 
+### Cards are a grid, laid out by container queries
+
+The page opts out of the settings column's 600px cap (`wide`) so the table has
+room, which in cards view let each card stretch across the whole pane: at a
+2400px pane a card was 2401px wide with its facts packed at the left.
+
+- **Container queries, not media queries.** The page host is
+  `container: builds-page / inline-size` and every card `build-card`, because
+  the width that matters is the pane's, which the viewport cannot see past the
+  settings nav or a docked panel. Cards fill as many columns of at least 460px
+  as fit, each capped at 720px (1/2/3/5 columns at 700/1100/1600/2400px). Under
+  a 640px page the filter buttons come apart and wrap; under a 284px card each
+  fact becomes a label beside its value.
+- **A container is a stacking context**, so a tooltip left inside a card paints
+  under the card after it. Every tooltip on the page renders into `<body>`.
+- **A kind is a chip with an icon, not a colour.** This theme's `primary` and
+  `info` are one colour (both `theme.colors[4]`), a `dark` fill vanishes on a
+  light scheme, and the remaining fills already mean a status on the same card.
+  So kinds are neutral chips carrying `KIND_ICONS`, and filled colours mean
+  status only. Status badges get a 1px inset ring in their key's text colour,
+  since light "stale" had no other edge (1.71:1).
+- **Checking a container from CDP:** `ng.getHostElement(ng.getOwningComponent(el))`
+  handed back the wrong element for a node rendered through the page's
+  `ngTemplateOutlet`, and reported no container at all. Walk up from the node
+  to the nearest `_nghost-*` attribute instead.
+
 ### Cutting a slot
 
 There are exactly **two** slots, after the model this machine's Windows Terminal

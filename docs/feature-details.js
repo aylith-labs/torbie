@@ -20,6 +20,26 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "builds-cards": {
+    problem:
+      "The Builds page opts out of the settings column's width cap so its table has room, and in cards view that let each card stretch across the whole pane. At a 2400px pane a card was 2401px wide with its facts packed against the left edge. Secondary text was dimmed with opacity, and two kinds of build wore the same blue.",
+    how:
+      "The page and every card are size containers, so layout answers to the pane and to the card rather than to the window, which cannot see the settings nav or a docked panel. Cards fill as many columns of at least 460px as fit, each capped at 720px. Under a 640px page the filter buttons come apart and wrap, and under a 284px card each fact becomes a label beside its value. A build's kind is a neutral chip carrying its icon, and filled colours are left to mean status.",
+    sample: {
+      label: "Measured, both schemes",
+      text: "pane  700px  1 column   card 700px\npane 1100px  2 columns  card 544px\npane 1600px  3 columns  card 525px\npane 2400px  5 columns  card 470px",
+    },
+    notes: [
+      "A size container is a stacking context, so a tooltip left inside a card painted under the card after it. Every tooltip on the page renders into the document body.",
+      "The theme's primary and info colours are the same, a dark fill disappears on a light scheme, and the remaining fills already mean active, this window, stale or will not start. That is why a kind is told apart by its icon and word.",
+      "Status badges carry a one-pixel inset ring in their own text colour, because the light scheme's stale badge otherwise had no edge against the card.",
+    ],
+    caveats: [
+      "The narrowest layouts were measured by pinning the page's width, because the window itself cannot shrink to a 300px pane.",
+      "The card outline and the idle card's left border are decorative and sit below 3:1.",
+    ],
+  },
+
   "color-scheme-pairs": {
     problem:
       "The Pair tab listed six designs from a catalogue that holds many more. The search box sat inside each tab, so switching tabs lost it; the page opened on whichever mode the OS was in; and a tone filter chosen on the Light mode tab was still selected on the Dark one.",

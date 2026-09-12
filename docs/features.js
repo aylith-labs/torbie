@@ -27,6 +27,12 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "builds-cards", title: "Build cards sit in a grid laid out by container queries",
+    cat: "builds", catLabel: "Builds", dateAdded: "2026-09-12",
+    commits: ["cb3060f9"], files: 3, ins: 300, del: 110,
+    desc: "In cards view each card stretched across the whole pane. Cards now fill as many columns of at least 460px as the pane allows, each capped at 720px, and the page and every card answer to their own width rather than the window's. A build's kind is a chip with its icon, because colour could not tell five kinds apart, and every run of text on the page reads at AA in both schemes.",
+  },
+  {
     id: "color-scheme-pairs", title: "Every dark and light pair, one search, and tabs that keep their own tone",
     cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
     commits: ["31c44dcc", "151f1ca4"], files: 12, ins: 1004, del: 216,
@@ -35,7 +41,7 @@ window.FEATURES = [
   {
     id: "plugins-search", title: "Plugin search filters, and the list sorts",
     cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
-    commits: ["b94ae54f"], files: 5, ins: 571, del: 139,
+    commits: ["b94ae54f", "99e3526e"], files: 9, ins: 874, del: 183,
     desc: "Typing into the Plugins search reordered the list and never shortened it, because the npm registry ignores a search term sent beside a keyword qualifier. The catalogue is fetched once and searched locally, with four sorts for available plugins and three for installed ones, and a refused request shows an error with Retry instead of a spinner that never stops.",
   },
   {
