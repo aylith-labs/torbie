@@ -364,6 +364,25 @@ draft and calls the gate; `build.yml` fills it.
   empty while holding eighteen uploaded files. Re-read immediately before
   anything destructive, and gate the destructive step on that read rather than
   chaining it after one.
+- **Two things own the release, and on a re-tag that splits it.**
+  `release.yml` creates a draft with `marvinpinto/action-automatic-releases`,
+  and electron-builder then uploads into "the draft for this tag". The action
+  makes a **new** draft on every tag push rather than reusing the one already
+  there, so a re-tagged version leaves two — and the platform jobs race to pick
+  one. Measured on v1.0.0's third push: Windows x64 and twelve Linux artifacts
+  landed in the newer draft, Windows arm64 and eighteen Linux artifacts in the
+  older, with macOS split 4/8. Neither draft is a complete release.
+  - It does not bite on a first, clean tag: one draft exists, everything lands
+    in it. It bites the moment a tag is moved, which is exactly when you are
+    iterating on this workflow and cannot test it any other way.
+  - **The fix is to have one owner.** electron-builder creates the draft itself
+    when none exists (`releaseType: draft` is its default), so `release.yml`'s
+    release step is redundant — its other job, running the gate on the shipped
+    ref, is already done by `build.yml`'s own `Verify`. Retiring it means
+    re-pointing `deploy-alert-targets.json`, which watches `tagged-release`; that
+    is a cross-repo registry, so read the handbook before moving it.
+  - **Recovery from a split:** delete *every* draft for the tag, then push the
+    tag once. One draft gets created and one set of jobs fills it.
 - The draft is `draft: true` from `marvinpinto/action-automatic-releases`, so a
   release is never public until somebody publishes it. Note that a draft's URL
   is `releases/tag/untagged-<hash>` and `releases/latest` still answers **404**
