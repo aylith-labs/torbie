@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {gzipSync} from 'node:zlib';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),here=path.dirname(new URL(import.meta.url).pathname),root=path.resolve(here,'../..');
+const script=fs.readdirSync(path.join(here,'dist')).find(name=>/^demo\.[a-f0-9]+\.js$/.test(name));
+if(!script)throw new Error('Missing browser bundle');
+const bytes=gzipSync(fs.readFileSync(path.join(here,'dist',script))).byteLength;
+if(bytes>2*1024*1024)throw new Error(`Preview exceeds its 2 MiB compressed budget: ${bytes} bytes`);
+console.log(`Deferred browser bundle: ${(bytes/1024/1024).toFixed(2)} MiB gzip`);
+const logo=fs.readFileSync(path.join(root,'app/assets/logo.svg'),'utf8');
+let css=require('sass').compile(path.join(root,'app/src/preload.scss')).css.replace(/url\([^)]*logo\.svg[^)]*\)/,`url("data:image/svg+xml,${encodeURIComponent(logo)}")`);
+let html=require('pug').renderFile(path.join(root,'app/index.pug'));
+html=html.replace("window.nodeRequire = require",'').replace('<script src="./preload.js"></script>','').replace('src="./bundle.js"',`src="./${script}"`).replace('<base href="index.html">','<meta name="viewport" content="width=device-width,initial-scale=1">');
+html=html.replace('</head>',`<title>Torbie interactive demo</title><link rel="icon" href="data:image/svg+xml,${encodeURIComponent(logo)}"><style>html,body{margin:0;height:100%;overflow:hidden}${css}@media(max-width:700px){app-root .tab-bar>.tabs{overflow-x:auto!important;min-width:0;flex:1 1 auto!important;max-width:calc(100vw - 86px)}app-root tab-header:not(.vertical){min-width:130px!important;flex:0 0 130px!important}app-root .build-hint,app-root .tab-bar>.btn-space{display:none!important}settings-tab>.content{flex-direction:column!important}settings-tab>.content>.nav{width:100%!important;flex-direction:row!important;padding:8px!important;overflow-x:auto!important;min-height:52px!important}settings-tab .nav-group-label{display:none!important}settings-tab .nav-link{white-space:nowrap}settings-tab>.content>.tab-content{min-width:0;flex:1!important}settings-tab .tab-pane{padding:0 16px!important}demo-plugins .card-body{flex-wrap:wrap}demo-plugins .card-body>.flex-grow-1{flex-basis:160px}}</style></head>`);
+html=html.replace('<head>','<head><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; connect-src \'none\'; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; font-src \'self\' data:; object-src \'none\'; base-uri \'none\'">');
+fs.writeFileSync(path.join(here,'dist/index.html'),html);
+fs.writeFileSync(path.join(here,'dist/loading.html'),html.replace(/<script[^>]*src="\.\/demo\.[a-f0-9]+\.js"[^>]*><\/script>/,''));

@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "es2022",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "emitDecoratorMetadata": false,
+    "paths": {
+      "tabby-core": [
+        "../../tabby-core/src/index.ts"
+      ],
+      "tabby-terminal": [
+        "../../tabby-terminal/src/index.ts"
+      ],
+      "tabby-settings": [
+        "../../tabby-settings/src/index.ts"
+      ],
+      "tabby-web": [
+        "../../tabby-web/src/index.ts"
+      ],
+      "tabby-claude": [
+        "../../tabby-claude/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "./*.ts"
+  ]
+}

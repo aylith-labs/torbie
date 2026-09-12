@@ -143,3 +143,26 @@ The owner subsequently relayed a no-Electron-launch instruction while the produc
 | Native category and sort controls | Authored listbox menus with keyboard navigation and category count badges | Consistent appearance; counts reflect the current search, including zero-result categories |
 
 Menus open immediately without keyboard animation. Sort choices have no per-choice counts because sorting does not change the result set. Existing result totals remain visible. The user explicitly requested idle animation for the companion; it is limited to its small control and gated by both the site motion setting and prefers-reduced-motion.
+
+## Live Angular playground · September 12
+
+The user replaced theme-paired screenshot tours with the actual app populated by
+mock sessions. The Herdr interactive product demonstration (https://herdr.dev/)
+and Codex's product-led presentation (https://openai.com/codex/) informed the
+approach: a usable workspace first, optional explanations after interaction.
+This is Torbie's own Angular UI, not a reconstruction of either reference.
+
+| Before | After | Reason |
+| --- | --- | --- |
+| Static terminal captures and separate theme assets | Actual xterm, tabs, splits, settings and Claude panel | Visitors can explore and change the theme themselves |
+| Screenshot beginning in a Windows system directory | Demo project at `/workspace/studio` | Show agent work in a normal project |
+| Large app code competing with the opening page | Deferred iframe with the actual app loading screen | Keep the opening usable while Angular starts |
+| Plugin compatibility explained only in prose | Enable Claude Code and reveal seeded sessions | Demonstrate the result of an action |
+| Side panel consumes narrow terminal space | Existing bottom docking on small viewports | Keep both terminal and panel available |
+
+Mock boundaries and reproduction commands are documented in preview/README.md.
+The eight terminal programs contain interactive authored fixtures; the controls
+exercise actual Torbie layout/configuration APIs, without a live MCP connection.
+The feature pages share the workspace playground; this does not imply every
+native feature is available in the browser. Text remains in disclosures and
+short, contextual hints. Existing reduced-motion guide behavior is preserved.

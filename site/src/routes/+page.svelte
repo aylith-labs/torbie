@@ -1,38 +1,17 @@
 <script lang="ts">
- import { base } from '$app/paths';
- import Shot from '$lib/Shot.svelte';
- let scene = $state(0);
- let expanded = $state(false);
- const scenes = [
-  {name:'Your workspace',number:'01',title:'Everything in its place.',image:'workspace',alt:'Torbie running a split terminal workspace with public repository commands',description:'Split your terminal into panes and keep the layout. Torbie remembers supported commands and sends them to their restored shells after a restart.',link:'session-resume',point:'Panes that pick up where you left off.'},
-  {name:'Links, opened',number:'02',title:'Stay beside your work.',image:'links',alt:'Torbie link preview beside a terminal',description:'Hover over a terminal link for a summary. Open the preview beside your terminal. Integration rules control what gets fetched and shown.',link:'preview-pane',point:'A link becomes a place to work.'},
-  {name:'Under the hood',number:'03',title:'Less guessing. More evidence.',image:'diagnostics',alt:'Torbie terminal displaying the recorded 71.3 second stall diagnostic',description:'A recorded 71.3-second stall was attributed to synchronous file operations. Torbie records blocking work in the main process and renderers so you can inspect what happened.',link:'diagnostics-log',point:'The pause has a paper trail.'},
-  {name:'Builds & doctor',number:'04',title:'Know what you’re running.',image:'builds',alt:'Torbie build inventory and doctor controls in the real application',description:'Inspect installed builds, running processes and source checkouts. The doctor checks missing plugins, provenance and builds that fail to start.',link:'builds-doctor',point:'Your builds, with a second opinion.'},
- ];
- const current = $derived(scenes[scene]);
- function select(index:number){scene=index;expanded=false;}
+ import {base} from '$app/paths';
+ import LivePreview from '$lib/LivePreview.svelte';
 </script>
-<svelte:head><title>Torbie · Make room for your work</title><meta name="description" content="Your terminal, your tools, a little more together. Explore Torbie’s workspaces, link previews, diagnostics and build doctor." /></svelte:head>
+<svelte:head><title>Torbie · A terminal your agents can drive</title><meta name="description" content="Your terminal, your tools, a little more together. Explore Torbie’s workspaces, link previews, diagnostics and build doctor." /></svelte:head>
 <div class="showcase-page">
  <section class="intro wrap">
   <a class="intro-kicker" href={`${base}/features/torbie/`} data-guide-title="A familiar starting point" data-guide="Torbie derives from Tabby and preserves its plugin API. Your existing plugin package names and module imports stay in place."><span></span>Built on Tabby. A little more curious.<span aria-hidden="true">↗</span></a>
-  <h1>Make room for your <em>work.</em></h1>
-  <p>Your terminal. Your tools. A little more together.</p>
-  <div class="intro-actions"><a class="button" href={`${base}/download/`}>Get Torbie <span aria-hidden="true">↗</span></a><a class="quiet-action" href="#explore">Take a look <span aria-hidden="true">↓</span></a></div>
+  <h1>Give your agents room to <em>work.</em></h1>
+  <p>A terminal your agents can drive. A workspace you can explore.</p>
+  <div class="intro-actions"><a class="button" href={`${base}/download/`}>Get Torbie <span aria-hidden="true">↗</span></a><a class="quiet-action" href="#explore">Try it here <span aria-hidden="true">↓</span></a></div>
   <span class="platform-note">Windows · macOS · Linux</span>
  </section>
- <section class="workspace-tour" id="explore" aria-label="Explore Torbie">
-  <div class="tour-top wrap"><span class="eyebrow">A few things to get curious about</span><span class="tour-count">{current.number} / 04</span></div>
-  <div class="scene-tabs" aria-label="Product demonstrations">{#each scenes as item,i}<button class:chosen={scene===i} aria-pressed={scene===i} onclick={()=>select(i)} data-guide-title={item.title} data-guide={item.description}><span class="tab-number">{item.number}</span>{item.name}</button>{/each}</div>
-  <div class="stage wrap">
-   <div class="stage-light"></div><div class="stage-grid"></div>
-   <div class="scene-heading"><span class="eyebrow">Torbie, up close</span><h2>{current.title}</h2></div>
-   <div class="app-capture" data-scene={scene}><Shot name={current.image} alt={current.alt} eager={scene===0} /></div>
-   <button class="scene-hotspot" class:expanded aria-expanded={expanded} aria-controls="scene-explanation" onclick={()=>{expanded=!expanded;}} data-guide-title={current.title} data-guide={current.description}><span aria-hidden="true">{expanded ? '−' : '+'}</span>{current.point}</button>
-   <div class="stage-caption"><span><i></i>{scene === 2 ? 'Recorded log · replayed in Torbie' : 'Captured in Torbie'}</span><span>Explore the details <span aria-hidden="true">↗</span></span></div>
-  </div>
-  {#if expanded}<div class="scene-explanation wrap" id="scene-explanation"><p>{current.description}</p><a href={`${base}/features/${current.link}/`}>How it works <span aria-hidden="true">↗</span></a></div>{/if}
- </section>
+ <section class="workspace-tour wrap" id="explore" aria-label="Explore Torbie"><LivePreview /></section>
  <section class="small-discoveries wrap" aria-labelledby="discover-title">
   <div class="section-heading"><span class="eyebrow">It’s the little things</span><h2 id="discover-title">Feels familiar.<br />Thinks a little further.</h2><a href={`${base}/features/`}>Explore every feature ↗</a></div>
   <div class="discovery-grid">

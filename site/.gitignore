@@ -6,3 +6,4 @@ static/favicon.svg
 .review/
 
 !package-lock.json
+static/preview/

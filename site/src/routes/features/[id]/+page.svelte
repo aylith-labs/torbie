@@ -1,6 +1,6 @@
-<script lang="ts">import { base } from '$app/paths'; let { data } = $props(); const f = $derived(data.feature); const d = $derived(data.detail);</script>
+<script lang="ts">import LivePreview from '$lib/LivePreview.svelte'; import { base } from '$app/paths'; let { data } = $props(); const f = $derived(data.feature); const d = $derived(data.detail);</script>
 <svelte:head><title>{f.title} · Torbie</title><meta name="description" content={f.desc} /></svelte:head>
-<article class="wrap detail"><a href={`${base}/features/`}>All features</a><h1>{f.title}</h1><p class="lead">{f.desc}</p>
+<article class="wrap detail"><a href={`${base}/features/`}>All features</a><h1>{f.title}</h1><p class="lead">{f.desc}</p><LivePreview compact scenario={f.cat === 'claude' ? 'plugins' : f.cat === 'ui' ? 'appearance' : f.cat === 'builds' ? 'tests' : f.cat === 'diagnostics' ? 'logs' : 'claude'} />
 {#if d.problem}<details class="feature-disclosure" data-guide-title={f.title} data-guide={f.desc}><summary>The problem<span aria-hidden="true">+</span></summary><div><p>{@html d.problem}</p></div></details>{/if}
 {#if d.how}<details class="feature-disclosure" data-guide-title={f.title} data-guide={f.desc}><summary>How it works<span aria-hidden="true">+</span></summary><div><p>{@html d.how}</p></div></details>{/if}
 {#if d.steps?.length}<details class="feature-disclosure" data-guide-title={f.title} data-guide={f.desc}><summary>Try it<span aria-hidden="true">+</span></summary><div><ol>{#each d.steps as step}<li>{@html step}</li>{/each}</ol></div></details>{/if}

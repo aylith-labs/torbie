@@ -2,9 +2,9 @@ name: Deploy site
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'docs/**', '.github/workflows/deploy-site.yml']
+    paths: ['site/**', 'docs/**', 'app/src/**', 'app/assets/**', 'app/index.pug', 'tabby-core/**', 'tabby-terminal/**', 'tabby-settings/**', 'tabby-web/**', 'tabby-claude/**', 'locale/**', '.github/workflows/deploy-site.yml']
   pull_request:
-    paths: ['site/**', 'docs/**', '.github/workflows/deploy-site.yml']
+    paths: ['site/**', 'docs/**', 'app/src/**', 'app/assets/**', 'app/index.pug', 'tabby-core/**', 'tabby-terminal/**', 'tabby-settings/**', 'tabby-web/**', 'tabby-claude/**', 'locale/**', '.github/workflows/deploy-site.yml']
   release:
     types: [published]
   workflow_dispatch:
@@ -27,10 +27,25 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - run: npm ci
         working-directory: site
+      - run: npm ci --prefix preview && npm run build:preview
+        working-directory: site
       - run: npm run lint && npm run check && npm test && npm run build && npm run check:links
         working-directory: site
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check the actual browser demo
+        working-directory: site
+        run: |
+          npx playwright install --with-deps chromium
+          npm run preview -- --host 127.0.0.1 --port 5870 > /tmp/torbie-site-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid"' EXIT
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:5870/torbie/ > /dev/null && break; sleep 1; done
+          npm run test:preview
+      - uses: actions/upload-artifact@v7
+        with:
+          name: verified-site
+          path: site/build
       - name: Verify catalogue against full upstream history
         run: |
           git fetch https://github.com/Eugeny/tabby.git master:refs/remotes/upstream/master
@@ -44,16 +59,10 @@ jobs:
       contents: read
       pages: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/download-artifact@v8
         with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: site/package-lock.json
-      - run: npm ci && npm run build
-        working-directory: site
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: verified-site
+          path: site/build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
