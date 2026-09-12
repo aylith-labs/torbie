@@ -321,9 +321,15 @@ ng-template(#buildList)
                     td.no-wrap([ngbTooltip]='absoluteTime(build.builtAt)', container='body') {{humanAgo(build.builtAt)}}
                     td {{build.arch || '—'}}
                     td.mono {{build.git?.branch || '—'}}
-                    td.mono.no-wrap
+                    //- `builtFrom → head` read as a range rather than as "and
+                    //- the checkout has since moved on", so the second commit
+                    //- is labelled and the whole cell says it in words.
+                    td.mono.no-wrap(
+                        [ngbTooltip]='provenanceTooltip(build)',
+                        container='body'
+                    )
                         span(*ngIf='build.git?.builtFrom') {{build.git.builtFrom}}
-                        span.muted.ms-1(*ngIf='isStale(build)') → {{build.git.head}}
+                        span.muted.ms-1(*ngIf='isStale(build)') · HEAD {{build.git.head}}
                         span.muted(*ngIf='!build.git?.builtFrom') —
                     td.path-cell(
                         [ngbTooltip]='pathTooltip(build)',

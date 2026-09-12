@@ -498,6 +498,27 @@ export class BuildsSettingsTabComponent extends BaseComponent {
         return !!build.git?.builtFrom && !!build.git.head && build.git.builtFrom !== build.git.head
     }
 
+    /**
+     * The Built from column in words.
+     *
+     * Two commits and an arrow read as a *range* — as though the build spanned
+     * them — when what they mean is "compiled from this one, and the checkout
+     * is now at that one". The column has room for the short form only, so the
+     * sentence lives here.
+     */
+    provenanceTooltip (build: TabbyBuild): string {
+        if (!build.git?.builtFrom) {
+            return this.translate.instant('This kind of build records no commit')
+        }
+        if (!this.isStale(build)) {
+            return this.translate.instant('Compiled from {commit}, which is what the checkout still points at',
+                { commit: build.git.builtFrom })
+        }
+        return this.translate.instant(
+            'Compiled from {commit}. The checkout has since moved to {head}, so this build is behind it — rebuild to catch up',
+            { commit: build.git.builtFrom, head: build.git.head })
+    }
+
     pidList (build: TabbyBuild): string {
         return build.processes.map(x => x.pid).join(', ')
     }
