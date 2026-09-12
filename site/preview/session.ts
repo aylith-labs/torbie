@@ -9,10 +9,10 @@ export class DemoSession extends BaseSession{
  resize(_columns:number,_rows:number){}
  write(data:Buffer){
   const input=data.toString();
-  if(['shefrd','lazygit'].includes(this.kind)){
+  if(['shefrd','polygit'].includes(this.kind)){
    if(['\x1b[B','j'].includes(input)){this.choice++;this.draw();return}
    if(['\x1b[A','k'].includes(input)){this.choice=(this.choice+2)%3;this.draw();return}
-   if(input===' '&&this.kind==='lazygit'){this.emitOutput(Buffer.from('\r\n\x1b[32m✓ File staged in the demo\x1b[0m\r\n'));return}
+   if(input===' '&&this.kind==='polygit'){this.emitOutput(Buffer.from('\r\n\x1b[32mResult: 3 repositories checked · 2 updated · 1 up-to-date · 0 errors\x1b[0m\r\n'));return}
    if(input==='\r'&&this.kind==='shefrd'){this.emitOutput(Buffer.from('\r\nSelected agent: '+['Claude','Codex','tests'][this.choice%3]+'\r\n'));return}
    if(input==='q'){this.kind='claude';this.draw();return}
   }

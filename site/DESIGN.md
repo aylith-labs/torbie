@@ -166,3 +166,21 @@ exercise actual Torbie layout/configuration APIs, without a live MCP connection.
 The feature pages share the workspace playground; this does not imply every
 native feature is available in the browser. Text remains in disclosures and
 short, contextual hints. Existing reduced-motion guide behavior is preserved.
+
+## Immersive preview refinement (12 September 2026)
+
+| Before | After | Reason |
+| --- | --- | --- |
+| Technical feature synopsis fills the first screen | Short Torbie benefit line; technical background in a closed accordion | Let visitors explore before reading implementation details |
+| Try it here scrolls, underlining its arrow | Direct immersive entry; underline only the label | Make the primary demo action predictable |
+| Guide snaps to a fixed corner or flees | Explicit park/follow states, eased obstacle routes, approach pause | Keep the guide reachable and out of controls |
+| Native page selects overlap the guide | Keyboard-operable listboxes with viewport-aware placement | Consistent control behavior and measurable avoidance |
+| Preview discards configuration and recovers incomplete tabs | Browser-tab storage, demo recovery provider, initialized split recovery | Preserve the workspace across feature navigation |
+| Generic logs/tests and a Git staging fixture | Vite, Playwright and Polygit's multi-repository dashboard | Show recognizable agent workflows |
+| One plugin card | Thirteen scoped plugin entries with optional details | Explain desktop availability without pretending to install plugins |
+| Dark boot can paint white; footer is a gray strip | Parent theme resolved before paint; transparent footer with themed text | Match the page and retain readable contrast |
+
+The preview remains the actual Angular interface with seeded session boundaries.
+Immersive mode keeps its heading, scenarios, actions and MCP hover/focus popover
+available. Reset and Plugins stay grouped on one row. The guide respects reduced
+motion and stays outside the iframe, menus, inputs and buttons.

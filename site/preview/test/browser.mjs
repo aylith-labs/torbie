@@ -12,7 +12,7 @@ for(const width of [1440,390]){
  const frame=page.frameLocator('.preview-window iframe');await expect(frame.locator('demo-terminal')).toHaveCount(1);
  await page.getByRole('button',{name:'Shefrd',exact:true}).click();await expect(frame.locator('body')).toContainText('SHEFRD');
  await frame.locator('demo-terminal').last().click();await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');await expect(frame.locator('body')).toContainText('Selected agent: Codex');
- for(const name of ['LazyGit','Neovim','btop','Logs','Tests','Codex','Claude Code']){await page.getByRole('button',{name,exact:true}).click()}
+ for(const name of ['Polygit','Neovim','btop','Vite dev server','Playwright','Codex','Claude Code']){await page.getByRole('button',{name,exact:true}).click()}
  await enable.click();await expect(frame.locator('body')).toContainText('Build the workspace');await expect(page.getByRole('button',{name:'Disable Claude Code',exact:true})).toBeVisible();
  await page.screenshot({path:`.review/angular-integrated-${width}-light.png`});
  await page.getByRole('button',{name:'Disable Claude Code',exact:true}).click();
@@ -27,4 +27,4 @@ for(const width of [1440,390]){
  await page.close();
 }
 console.log(JSON.stringify(results,null,2));await browser.close();
-if(results.some(r=>r.overflow||r.errors.length||r.externalRequests.length||r.state.theme!=='dark'))process.exitCode=1;
+if(results.some(r=>r.overflow||r.errors.length||r.externalRequests.length||r.state.theme!=='auto'))process.exitCode=1;
