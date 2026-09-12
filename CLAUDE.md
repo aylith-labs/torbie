@@ -395,7 +395,11 @@ registry table above used to record: `deploy-alert-targets.json` watches
     --verify-tag --generate-notes`); more than one fails the run with the ids,
     because uploading into that state is how a split happens. It runs on
     branch pushes too and does nothing, so the platform jobs `needs:` it
-    unconditionally.
+    unconditionally. **It has no checkout, so `gh release create` needs
+    `--repo`** — without it gh infers the repository from git and fails with
+    *"not a git repository"*, which is how the first run of this job went.
+    The command was then proven from a directory with no `.git` before it
+    was pushed again; a probe draft made that way was deleted on a fresh read.
   - **Recovery from a split:** delete *every* draft for the tag, then push the
     tag once. Delete on a fresh read, per the bullet above.
 - The draft is `draft: true`, so a release is never public until somebody

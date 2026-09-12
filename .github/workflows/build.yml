@@ -65,7 +65,9 @@ jobs:
         elif [ "$count" -eq 1 ]; then
           echo "Reusing release $ids for $TAG"
         else
-          gh release create "$TAG" --draft --verify-tag --title "$TAG" --generate-notes
+          # `--repo` is not optional: this job has no checkout, and without it
+          # gh tries to infer the repository from git and fails.
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "$TAG" --generate-notes
           echo "Created the draft for $TAG"
         fi
 
