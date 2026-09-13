@@ -28,8 +28,11 @@ export function safePoint(wanted:Point,area:Rect,blocks:Rect[]):Point|null {
 /** Route around controls instead of easing straight through them. */
 export function route(start:Point,end:Point,area:Rect,blocks:Rect[]):Point[] {
  if(clearPath(start,end,blocks))return[end];
- const nodes=[start,end,...blocks.flatMap(r=>[r.left-1,r.right+1].flatMap(x=>[r.top-1,r.bottom+1].map(y=>({x,y}))))]
-  .filter((p,i)=>i<2||(p.x>=area.left&&p.x<=area.right&&p.y>=area.top&&p.y<=area.bottom&&!blocks.some(r=>inside(p,r))));
+ const corners=blocks.flatMap(r=>[r.left-1,r.right+1].flatMap(x=>[r.top-1,r.bottom+1].map(y=>({x,y}))))
+  .filter(p=>(p.x>=area.left&&p.x<=area.right&&p.y>=area.top&&p.y<=area.bottom&&!blocks.some(r=>inside(p,r))))
+  .sort((a,b)=>(distance(start,a)+distance(a,end))-(distance(start,b)+distance(b,end)))
+  .slice(0,40);
+ const nodes=[start,end,...corners];
  const costs=nodes.map(()=>Infinity),previous=nodes.map(()=>-1),done=new Set<number>();costs[0]=0;
  for(let iteration=0;iteration<nodes.length;iteration++) {
   let current=-1;

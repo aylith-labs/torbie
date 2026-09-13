@@ -1,6 +1,6 @@
 {
   "name": "torbie-site",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "test": "node --test scripts/*.test.mjs",
     "check:links": "node scripts/check-links.mjs",
     "build:preview": "npm --prefix preview run build",
-    "test:preview": "node preview/test/browser.mjs && node preview/test/refinements.mjs && node preview/test/views.mjs"
+    "test:preview": "node preview/test/browser.mjs && node preview/test/refinements.mjs && node preview/test/views.mjs && node preview/test/responsiveness.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -32,7 +32,9 @@
     "vite": "^8.3.0"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.8.0",
     "@fontsource-variable/dm-sans": "^5.3.0",
-    "@fontsource-variable/space-grotesk": "^5.3.0"
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@fortawesome/free-solid-svg-icons": "^7.3.1"
   }
 }

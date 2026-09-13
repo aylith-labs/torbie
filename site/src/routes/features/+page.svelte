@@ -1,4 +1,5 @@
 <script lang="ts">
+ import Icon from '$lib/Icon.svelte';
  import SelectMenu from '$lib/SelectMenu.svelte';
  import { browser } from '$app/environment'; import { base } from '$app/paths'; import { page } from '$app/state'; import { goto } from '$app/navigation';
  let { data } = $props();
@@ -13,4 +14,4 @@
 <div class="wrap index-page"><h1>Features, with evidence.</h1><p>{data.features.length} features across {categories.length} categories. Every entry links to the commits that shipped it.</p>
 <form class="filters" onsubmit={event => event.preventDefault()} role="search"><label>Search features<input name="q" type="search" value={query} oninput={event => change('q',event.currentTarget.value)} placeholder="Search by name or behaviour" /></label><SelectMenu label="Category" value={category} options={categoryOptions} onchange={value => change('category',value)} /><SelectMenu label="Sort" value={sort} options={[{value:'newest',label:'Newest first'},{value:'oldest',label:'Oldest first'},{value:'title',label:'Title A–Z'}]} onchange={value => change('sort',value)} /></form>
 <p aria-live="polite" class="result-count">{filtered.length} {filtered.length === 1 ? 'feature' : 'features'}</p>
-<div class="feature-list">{#each filtered as feature}<article><div><h2><a href={`${base}/features/${feature.id}/`}>{feature.title}</a></h2><details class="feature-peek" data-guide-title={feature.title} data-guide={feature.desc}><summary>Quick look <span aria-hidden="true">+</span></summary><p>{feature.desc}</p></details></div><span>{feature.catLabel}</span></article>{:else}<div class="empty"><h2>No features match.</h2><p>Try a different phrase or clear the filters.</p><a href={`${base}/features/`}>Clear filters</a></div>{/each}</div></div>
+<div class="feature-list">{#each filtered as feature}<article><div><h2><a href={`${base}/features/${feature.id}/`}>{feature.title}</a></h2><details class="feature-peek" data-guide-title={feature.title} data-guide={feature.desc}><summary>Quick look <span aria-hidden="true"><Icon name="plus"/></span></summary><p>{feature.desc}</p></details></div><span>{feature.catLabel}</span></article>{:else}<div class="empty"><h2>No features match.</h2><p>Try a different phrase or clear the filters.</p><a href={`${base}/features/`}>Clear filters</a></div>{/each}</div></div>

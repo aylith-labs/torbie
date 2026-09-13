@@ -3,7 +3,7 @@ import {load as loadYaml} from 'js-yaml';
 Object.assign(window,{setImmediate:setTimeout,clearImmediate:clearTimeout,pluginModules:[]});
 import 'core-js/proposals/reflect-metadata';
 import '@angular/compiler';
-import {Component,Injector,NgModule,enableProdMode} from '@angular/core';
+import {Component,Injector,NgModule,NgZone,enableProdMode} from '@angular/core';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 import {take} from 'rxjs';
 import {CommonModule} from '@angular/common';
@@ -62,14 +62,15 @@ class DemoRecovery extends TabRecoveryProvider<DemoTerminal>{async applicableTo(
 class DemoProfiles extends ProfileProvider<any>{id='demo';name='Demo';configDefaults={options:{}};async getBuiltinProfiles(){return demos.map(d=>({id:'demo:'+d.id,type:'demo',name:d.name,icon:d.icon,isBuiltin:true,options:{demo:d.id}}))};async getNewTabParameters(profile:any){return{type:DemoTerminal,inputs:{profile}}};getDescription(){return 'Browser demo'}}
 @NgModule({imports:[CoreModule,TerminalModule,SettingsModule,WebModule,DemoPluginModule,CommonModule,FormsModule,NgbModule],declarations:[DemoTerminal],providers:[{provide:ProfileProvider,useClass:DemoProfiles,multi:true},{provide:TabRecoveryProvider,useClass:DemoRecovery,multi:true}]})
 class DemoModule{
- constructor(app:AppService,config:ConfigService,tabs:TabsService,recovery:TabRecoveryService){
+ constructor(app:AppService,config:ConfigService,tabs:TabsService,recovery:TabRecoveryService,zone:NgZone){
   app.tabsChanged$.subscribe(()=>{void recovery.saveTabs(app.tabs)});
   const openDemo=(id:string)=>{
    const d=demos.find(d=>d.id===id)||demos[0];
    const existing=app.tabs.find((tab:any)=>tab.getAllTabs?.().some((pane:any)=>pane.profile?.options?.demo===d.id));
-   if(existing){app.selectTab(existing);return (existing as any).getAllTabs().find((pane:any)=>pane.profile?.options?.demo===d.id)}
+   if(existing){const pane=(existing as SplitTabComponent).getAllTabs().find((pane:any)=>pane.profile?.options?.demo===d.id) as DemoTerminal;app.selectTab(existing);(existing as SplitTabComponent).focus(pane);return pane}
    return app.openNewTab({type:DemoTerminal,inputs:{profile:{id:'demo:'+d.id,type:'demo',name:d.name,options:{demo:d.id}}}});
   };
+  let requestedScenario='';
   const settings=(id:string)=>{const old=app.tabs.find(t=>t instanceof SettingsTabComponent);if(old instanceof SettingsTabComponent){old.activeTab=id;app.selectTab(old)}else app.openNewTabRaw({type:SettingsTabComponent,inputs:{activeTab:id}})};
   app.ready$.subscribe(async()=>{
    // Core readiness can precede its asynchronous recovery transaction.
@@ -79,33 +80,33 @@ class DemoModule{
    const tab=openDemo('claude');
    if(config.store.sidePanel.enabled&&config.store.sidePanel.activePanel==='claude')void enableClaude(config,true);
    tab.frontendReady$.pipe(take(1)).subscribe(()=>requestAnimationFrame(()=>{window.parent.postMessage({type:'torbie-demo-ready'},location.origin);window.parent.postMessage({type:'torbie-demo-config',tabsLocation:config.store.appearance.tabsLocation},location.origin)}));
-   window.addEventListener('message',async event=>{
+   window.addEventListener('message',event=>{void zone.run(async()=>{
     if(event.source!==window.parent||event.origin!==location.origin||!event.data||typeof event.data!=='object')return;
     const {type,theme,action,scenario}=event.data;
     if(type==='torbie-action'&&action==='tab-location'&&['left','right','top','bottom'].includes(event.data.value)){config.store.appearance.tabsLocation=event.data.value;await config.save();window.parent.postMessage({type:'torbie-demo-config',tabsLocation:config.store.appearance.tabsLocation},location.origin);return}
     if(type==='torbie-theme'&&['light','dark'].includes(theme)){parentTheme=theme;document.documentElement.dataset.previewTheme=theme;document.documentElement.style.colorScheme=theme;if(config.store.appearance.colorSchemeMode==='auto')await config.save();return}
     if(type==='torbie-scenario'&&typeof scenario==='string'){
-     if(scenario==='plugins')settings('demo-plugins');else if(scenario==='appearance')settings('terminal-appearance');else openDemo(scenario);return;
+     if(scenario==='plugins')settings('demo-plugins');else if(scenario==='appearance')settings('terminal-appearance');else {requestedScenario=scenario;const pane=openDemo(scenario);pane.frontendReady$.subscribe({complete:()=>requestAnimationFrame(()=>{if(requestedScenario===scenario)window.parent.postMessage({type:'torbie-demo-scenario',scenario},location.origin)})});}return;
     }
     if(type!=='torbie-action')return;
     if(action==='plugins'){settings('demo-plugins');return}
     if(action==='claude'){await enableClaude(config,!pluginState.enabled);return}
     if(action==='split'){
-     const current=openDemo('claude');const parent=current.parent as SplitTabComponent;
+     const active=app.activeTab;const current=(active instanceof SplitTabComponent?active.getFocusedTab():null)||openDemo('claude');const parent=current.parent as SplitTabComponent;
      if(parent?.getAllTabs().length>=4){window.parent.postMessage({type:'torbie-demo-tool',tool:'split_tab',result:'This demo supports four panes per tab. Reset the demo to start a fresh layout.'},location.origin);return;}
      const kind=event.data.kind==='claude'?'claude':'tests',direction=event.data.direction==='b'?'b':'r';
      const pane=tabs.create({type:DemoTerminal,inputs:{profile:{id:'demo:'+kind,type:'demo',name:kind==='claude'?'Claude Code':'Playwright',options:{demo:kind}}}});
      await parent.addTab(pane,current,direction);
-     window.parent.postMessage({type:'torbie-demo-tool',tool:'split_tab',result:`${kind==='claude'?'An agent':'A test'} pane opened ${direction==='b'?'below':'beside'} the agent.`},location.origin);
+     window.parent.postMessage({type:'torbie-demo-tool',tool:'split_tab',result:`Playwright opened ${direction==='b'?'below':'beside'} ${current.title}.`},location.origin);
     }
     if(action==='test'){
      const active:any=app.activeTab;const panes=active instanceof SplitTabComponent?active.getAllTabs():[];
-     const pane=panes.find((p:any)=>p.profile?.options?.demo==='tests')||openDemo('tests');
+     const pane=(panes.find((p:any)=>p.profile?.options?.demo==='tests')||openDemo('tests')) as DemoTerminal;
      pane.session?.write(Buffer.from('npm test\r'));
      window.parent.postMessage({type:'torbie-demo-tool',tool:'exec_command',result:'18 demo checks passed. Read the output in the test pane.'},location.origin);
     }
     if(action==='list')window.parent.postMessage({type:'torbie-demo-tool',tool:'list_tabs',result:app.tabs.map(t=>t.title).join(' · ')},location.origin);
-   });
+   }).catch(error=>window.parent.postMessage({type:'torbie-demo-error',message:String(error)},location.origin));});
   });
  }
 }

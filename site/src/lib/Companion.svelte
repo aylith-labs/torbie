@@ -1,11 +1,21 @@
 <script lang="ts">
+ import Icon from '$lib/Icon.svelte';
  import {onMount} from 'svelte';
+ import {base} from '$app/paths';
+ import {autoUpdate,computePosition,offset,flip,shift} from '@floating-ui/dom';
  import {clearPath,distance,inside,route,safePoint,type Point,type Rect} from '$lib/guide-motion';
- let parked=$state(true),open=$state(false),ready=$state(false),visible=$state(true),canFollow=$state(false);
- let title=$state('Explore Torbie'),hint=$state('Try the workspace above, or open Features to explore what Torbie can do.');
+ let parked=$state(false),open=$state(false),ready=$state(false),canFollow=$state(false);
+ let title=$state('Meet Torbie'),hint=$state('A terminal for working with coding agents. Try Claude Code, Codex and other terminal apps right in your browser.');
  let x=$state(0),y=$state(0),gazeX=$state(0),gazeY=$state(0);
  let host:HTMLDivElement;
  let resume=()=>{};
+ function anchor(panel:HTMLElement){
+  let mounted=true;
+  const cleanup=autoUpdate(host,panel,()=>{void computePosition(host,panel,{strategy:'fixed',placement:'top',middleware:[offset(12),flip({padding:16}),shift({padding:16})]}).then(({x,y})=>{if(mounted)Object.assign(panel.style,{left:`${x}px`,top:`${y}px`,visibility:'visible'})});});
+  return {destroy(){mounted=false;cleanup()}};
+ }
+ function tryDemo(){closeGuide(false);window.dispatchEvent(new CustomEvent('torbie-open-preview'));}
+
  const save=()=>{try{localStorage.setItem('torbie-guide-mode',parked?'parked':'follow')}catch{}};
  function closeGuide(focus=true){open=false;if(focus)host?.querySelector('button')?.focus({preventScroll:true});}
  function togglePark(){parked=!parked;save();closeGuide(false);(document.activeElement as HTMLElement)?.blur();resume();}
@@ -14,7 +24,7 @@
   let pointer:Point|null=null,lastMove=0,lastTick=0,lastPlan=0,frame=0,angle=.7,approached=false;
   let blocks:Rect[]=[],path:Point[]=[];
   let area:Rect={left:42,top:42,right:innerWidth-42,bottom:innerHeight-42};
-  try{parked=localStorage.getItem('torbie-guide-mode')!=='follow'}catch{}
+  try{parked=localStorage.getItem('torbie-guide-mode')==='parked'}catch{}
   x=innerWidth-58;y=innerHeight-58;ready=true;
   function measure(){
    area={left:42,top:42,right:innerWidth-42,bottom:innerHeight-42};
@@ -22,30 +32,32 @@
     .filter(el=>!el.closest('.companion,#guide-panel')&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden')
     .map(el=>el.getBoundingClientRect()).filter(r=>r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth)
     .map(r=>({left:r.left-45,right:r.right+45,top:r.top-45,bottom:r.bottom+45}));
-   const current={x,y};
-   if(x<area.left||x>area.right||y<area.top||y>area.bottom||blocks.some(r=>inside(current,r))){
-    const safe=safePoint(current,area,blocks);visible=!!safe;
-    // If a menu opens underneath us, get out of its way before the next paint.
-    if(safe){x=safe.x;y=safe.y;}path=[];
-   }else visible=true;
   }
   function schedule(){if(!frame)frame=requestAnimationFrame(tick);}
   function tick(now:number){
    frame=0;const dt=Math.min(32,now-(lastTick||now-16));lastTick=now;
-   if(!visible||open||parked||!canFollow||!pointer||approached)return;
-   if(now-lastPlan>100){
-    measure();lastPlan=now;
-    if(now-lastMove<650)angle+=dt*.0018;
-    const wanted={x:pointer.x+Math.cos(angle)*126,y:pointer.y+Math.sin(angle)*102};
+   if(open||!canFollow||host.closest('[inert]'))return;
+   const current={x,y},overlapping=blocks.filter(r=>inside(current,r));
+   const outside=x<area.left||x>area.right||y<area.top||y>area.bottom;
+   const escaping=overlapping.length>0||outside;
+   if(!escaping&&(parked||!canFollow||!pointer||approached))return;
+   if(now-lastPlan>140||escaping){
+    lastPlan=now;
+    if(pointer&&now-lastMove<650)angle+=dt*.0018;
+    const wanted=escaping||!pointer?current:{x:pointer.x+Math.cos(angle)*126,y:pointer.y+Math.sin(angle)*102};
     const goal=safePoint(wanted,area,blocks);
-    path=goal?route({x,y},goal,area,blocks):[];
+    // A scrolling control can move under us. Leave it smoothly; never teleport.
+    const obstacles=blocks.filter(r=>!overlapping.includes(r));
+    path=goal?route(current,goal,area,obstacles):[];
    }
    const next=path[0];
-   if(next){const factor=1-Math.exp(-dt/130),position={x:x+(next.x-x)*factor,y:y+(next.y-y)*factor};
-    if(clearPath({x,y},position,blocks)){x=position.x;y=position.y;}else path=[];
-    if(distance({x,y},next)<2)path.shift();
+   if(next){
+    const length=distance(current,next),step=Math.min(length*(1-Math.exp(-dt/180)),dt*.32);
+    const position={x:x+(next.x-x)*step/(length||1),y:y+(next.y-y)*step/(length||1)};
+    if(clearPath(current,position,blocks.filter(r=>!overlapping.includes(r)))){x=position.x;y=position.y;}else path=[];
+    if(distance({x,y},next)<1)path.shift();
    }
-   if(path.length||now-lastMove<650)schedule();
+   if(path.length||escaping||(pointer&&now-lastMove<650))schedule();
   }
   resume=()=>{path=[];lastPlan=0;approached=false;measure();if(!parked&&pointer){lastMove=performance.now();schedule();}};
   function move(e:PointerEvent){
@@ -60,8 +72,8 @@
   function inspect(e:Event){
    if(open||(e.target as Element)?.closest('.companion,#guide-panel'))return;
    const element=(e.target as Element)?.closest('[data-guide]');
-   title=element?.getAttribute('data-guide-title')||'Explore Torbie';
-   hint=element?.getAttribute('data-guide')||'Try the workspace above, or open Features to explore what Torbie can do.';
+   title=element?.getAttribute('data-guide-title')||'Meet Torbie';
+   hint=element?.getAttribute('data-guide')||'A terminal for working with coding agents. Try Claude Code, Codex and other terminal apps right in your browser.';
   }
   function preference(){canFollow=fine.matches&&!motion.matches&&document.documentElement.dataset.motion!=='off';measure();resume();}
   function geometry(){measure();lastPlan=0;schedule();}
@@ -73,16 +85,17 @@
   return()=>{cancelAnimationFrame(frame);observer.disconnect();preferences.disconnect();window.removeEventListener('pointermove',move);document.removeEventListener('pointerover',inspect);document.removeEventListener('focusin',inspect);window.removeEventListener('scroll',geometry);window.removeEventListener('resize',geometry);window.removeEventListener('keydown',keys);motion.removeEventListener('change',preference);fine.removeEventListener('change',preference);};
  });
 </script>
-<div role="complementary" aria-label="Torbie guide control" hidden={!ready || !visible} bind:this={host} class="companion" class:ready class:parked={parked} style:left={`${x-29}px`} style:top={`${y-29}px`}>
- <span class="companion-label">Explore Torbie</span>
+<div role="complementary" aria-label="Torbie guide control" hidden={!ready} bind:this={host} class="companion" class:ready class:parked={parked} style:left={`${x-29}px`} style:top={`${y-29}px`}>
+ <span class="companion-label" hidden={open}>Explore Torbie</span>
  <button class="creature" aria-label={open ? 'Close Torbie guide' : 'Open Torbie guide'} aria-expanded={open} aria-controls="guide-panel" onclick={()=>{open=!open;}}>
   <span aria-hidden="true" class="ear left"></span><span aria-hidden="true" class="ear right"></span><span aria-hidden="true" class="face"><span class="eyes" style:transform={`translate(${gazeX}px,${gazeY}px)`}><i></i><i></i></span><span class="nose"></span></span>
  </button>
 </div>
 {#if open}
- <aside id="guide-panel" class="guide-panel" aria-label="Torbie guide">
-  <div class="guide-heading"><span class="guide-status"></span><span>Torbie guide</span><button aria-label="Close guide" onclick={()=>closeGuide()}>×</button></div>
+ <aside use:anchor id="guide-panel" class="guide-panel" aria-label="Torbie guide">
+  <div class="guide-heading"><span class="guide-status"></span><span>Torbie guide</span><button aria-label="Close guide" onclick={()=>closeGuide()}><Icon name="close"/></button></div>
   <h2>{title}</h2><p>{hint}</p>
+  <div class="guide-links"><button onclick={tryDemo}>Try Torbie in your browser</button><a href={`${base}/features/`} onclick={()=>closeGuide(false)}>Explore features</a></div>
   <div class="guide-bottom"><span>{canFollow ? (parked ? 'Stays where you leave it.' : 'Stops when you approach.') : 'Movement is off on this device.'}</span><button aria-pressed={!parked} disabled={!canFollow && parked} onclick={togglePark}>{parked ? 'Follow pointer' : 'Park here'}</button></div>
  </aside>
 {/if}
@@ -94,7 +107,7 @@
  @keyframes ear-flick{0%,65%,73%,100%{transform:rotate(13deg)}68%{transform:rotate(23deg)}70%{transform:rotate(8deg)}}
  @keyframes breathe{0%,100%{translate:0 0}50%{translate:0 -1.5px}}
  @media(prefers-reduced-motion:no-preference){:global(html[data-motion=on]) .eyes i{animation:blink 5.6s infinite;transform-origin:center}:global(html[data-motion=on]) .ear.right{animation:ear-flick 8.3s infinite;transform-origin:bottom left}:global(html[data-motion=on]) .face{animation:breathe 3.8s ease-in-out infinite}}
- .guide-panel{position:fixed;right:28px;bottom:104px;z-index:31;width:min(340px,calc(100vw - 32px));max-height:calc(100dvh - 140px);overflow:auto;padding:20px;background:var(--canvas);border:1px solid var(--line);border-radius:20px;box-shadow:0 16px 70px #0002;transform-origin:bottom right}.guide-heading{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.guide-heading button{margin-left:auto;font-size:24px;border:0;background:none;color:var(--ink);width:36px;height:36px;cursor:pointer}.guide-status{width:6px;height:6px;border-radius:50%;background:#62976b}.guide-panel h2{font-size:22px;margin:14px 0 12px}.guide-panel p{font-size:15px;line-height:1.6;margin-bottom:20px}.guide-bottom{border-top:1px solid var(--line);padding-top:12px;display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted)}.guide-bottom button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font:inherit;padding:8px;min-height:40px;white-space:nowrap;cursor:pointer}
+ .guide-panel{position:fixed;left:0;top:0;visibility:hidden;z-index:31;width:min(340px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;background:var(--canvas);border:1px solid var(--line);border-radius:20px;box-shadow:0 16px 70px #0002;transform-origin:bottom right}.guide-heading{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.guide-heading button{margin-left:auto;display:flex;align-items:center;justify-content:center;font-size:16px;border:0;background:none;color:var(--ink);width:36px;height:36px;cursor:pointer}.guide-status{width:6px;height:6px;border-radius:50%;background:#62976b}.guide-panel h2{font-size:22px;margin:14px 0 12px}.guide-panel p{font-size:15px;line-height:1.6;margin-bottom:20px}.guide-bottom{border-top:1px solid var(--line);padding-top:12px;display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted)}.guide-bottom button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font:inherit;padding:8px;min-height:40px;white-space:nowrap;cursor:pointer}
  @media(prefers-reduced-motion:no-preference){.guide-panel{transition:opacity 160ms ease-out,transform 180ms cubic-bezier(.23,1,.32,1);@starting-style{opacity:0;transform:translateY(6px) scale(.97)}}.creature{transition:transform 120ms ease-out}}
- @media(max-width:650px){.guide-panel{right:16px;bottom:92px}}
+ .guide-links{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}.guide-links button{background:var(--ink);color:var(--canvas);border:0;border-radius:8px;padding:12px;font:inherit;font-size:13px;cursor:pointer}.guide-links a{font-size:13px;text-align:center}
 </style>

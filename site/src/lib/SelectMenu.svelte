@@ -1,6 +1,7 @@
 <script lang="ts">
+ import Icon from './Icon.svelte';
  import { tick } from 'svelte';
- let { label, value, options, onchange, disabled=false }: { label: string; value: string; disabled?:boolean; options: { value: string; label: string; count?: number; disabled?: boolean }[]; onchange: (value: string) => void } = $props();
+ let { label, value, options, onchange, disabled=false, inlineLabel=false }: { label: string; inlineLabel?:boolean; value: string; disabled?:boolean; options: { value: string; label: string; count?: number; disabled?: boolean }[]; onchange: (value: string) => void } = $props();
  const id = $props.id();
  const selected = $derived(options.find(option => option.value === value) ?? options[0]);
  let open = $state(false); let above=$state(false);
@@ -32,22 +33,24 @@
 </script>
 <svelte:window onpointerdown={event => { if(open && !root?.contains(event.target as Node)) close(); }} />
 <div class="select-menu" bind:this={root} onfocusout={event => { if(!root?.contains(event.relatedTarget as Node)) close(); }}>
- <span id={`${id}-label`} class="select-label">{label}</span>
+ <span id={`${id}-label`} class="select-label" class:inline-label={inlineLabel}>{label}</span>
  <button bind:this={trigger} type="button" class="select-trigger" {disabled} aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-list`} onclick={() => open ? close() : show()} onkeydown={key}>
-  <span id={`${id}-value`}>{selected.label}</span>{#if selected.count !== undefined}<span class="count-badge">{selected.count}</span>{/if}
+  <span id={`${id}-value`}>{#if inlineLabel}{label}: {/if}{selected.label}</span>{#if selected.count !== undefined}<span class="count-badge">{selected.count}</span>{/if}
   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
  </button>
  {#if open}
   <ul bind:this={list} id={`${id}-list`} class="select-options" class:above role="listbox" tabindex="0" aria-labelledby={`${id}-label`} aria-activedescendant={`${id}-option-${active}`} onkeydown={key}>
    {#each options as option, index}
     <li id={`${id}-option-${index}`} role="option" aria-selected={option.value === value} aria-disabled={option.disabled || undefined} class:active={active === index} onpointermove={() => active = index} onclick={() => choose(index)} onkeydown={event => { event.stopPropagation(); key(event); }}>
-     <span>{option.label}</span>{#if option.count !== undefined}<span class="count-badge">{option.count}</span>{/if}<span class="selected-mark" aria-hidden="true">{option.value === value ? '✓' : ''}</span>
+     <span>{option.label}</span>{#if option.count !== undefined}<span class="count-badge">{option.count}</span>{/if}<span class="selected-mark" aria-hidden="true">{#if option.value === value}<Icon name="check"/>{/if}</span>
     </li>
    {/each}
   </ul>
  {/if}
 </div>
 <style>
+ .inline-label{position:absolute!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+
  .select-menu{position:relative;min-width:0;font-size:14px}.select-label{display:block;margin-bottom:8px}.select-trigger{display:flex;align-items:center;gap:10px;min-height:48px;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--canvas);color:var(--ink);font:inherit;text-align:left;cursor:pointer}.select-trigger>svg{margin-left:auto;flex-shrink:0}.count-badge{display:inline-grid;place-items:center;min-width:25px;height:23px;padding:0 6px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);background:var(--panel);line-height:1}.select-options{position:absolute;z-index:40;top:calc(100% + 6px);left:0;min-width:100%;width:max-content;max-width:calc(100vw - 40px);max-height:320px;overflow-y:auto;overscroll-behavior:contain;list-style:none;padding:5px;margin:0;background:var(--canvas);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px #0002}.select-options.above{top:auto;bottom:calc(100% + 6px)}.select-trigger:disabled{opacity:.55;cursor:wait}.select-options li{display:flex;align-items:center;gap:14px;min-height:42px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:14px}.select-options li[aria-disabled=true]{opacity:.5;cursor:default}.select-options li.active{background:var(--panel);outline:1px solid var(--line);outline-offset:-1px}.select-options li>span:first-child{flex:1}.selected-mark{width:14px;color:var(--accent);font-size:14px}.select-trigger:focus-visible,.select-options:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media(max-width:650px){.select-menu{flex:1}.select-options{width:100%;min-width:190px}.select-menu:last-child .select-options{left:auto;right:0}}
 </style>

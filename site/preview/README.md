@@ -69,4 +69,27 @@ must be parsed as YAML even though the initial bootstrap fixture is JSON.
 The host offers independent Full screen (with demo controls) and Immersive
 (app only, one exit button) views. Switching changes layout without reloading
 the iframe. `test/views.mjs` checks exact viewport coverage, workspace identity,
-focus restoration, iframe Shift+Escape, and the mobile fullscreen fallback.
+focus restoration, iframe Shift+Escape, and that neither desktop nor mobile calls the browser Fullscreen API.
+
+The view split button defaults to a viewport-filling modal; its menu also offers
+Inline and Immersive. Secondary commands live in Actions. Split right/below adds
+Playwright beside the currently focused pane, without switching to Claude first.
+Host scenario highlights wait for the terminal readiness acknowledgment. The
+message bridge enters Angular's zone explicitly, including after async recovery.
+
+`test/responsiveness.mjs` checks scenario response with 4× CPU throttling, aligned
+controls, guide anchoring and per-frame motion during abrupt scrolling. The guide
+uses Floating UI for its panel, freezes while open, follows by default on devices
+that support motion, and remembers an explicit parked preference. Obstacle routing
+has a bounded waypoint budget and position updates only happen in animation frames.
+The website uses selected Font Awesome Free SVG icons; see `/fontawesome-license.txt`.
+
+Floating UI menus initially render hidden: move keyboard focus only after the
+position calculation makes the menu visible. Focusing earlier leaves focus on
+the caret, so Escape can reach the surrounding viewport modal. Both menu types
+have a focus-and-Escape regression check in `test/views.mjs`.
+
+The embedded terminal waits for `document.fonts.ready` instead of a fixed second
+per tab. The browser loader also stops attachment and queued resize work after
+destruction; the responsiveness suite closes newly mounting terminals repeatedly
+to exercise that race. These adaptations are scoped to the preview build.
