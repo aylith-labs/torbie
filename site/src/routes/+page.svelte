@@ -9,7 +9,7 @@
   <a class="intro-kicker" href={`${base}/features/torbie/`} data-guide-title="A familiar starting point" data-guide="Torbie derives from Tabby and preserves its plugin API. Your existing plugin package names and module imports stay in place."><span></span>Built on Tabby. A little more curious.<span aria-hidden="true">↗</span></a>
   <h1>Give your agents room to <em>work.</em></h1>
   <p>A terminal your agents can drive. A workspace you can explore.</p>
-  <div class="intro-actions"><a class="button" href={`${base}/download/`}>Get Torbie <span aria-hidden="true">↗</span></a><button class="quiet-action" onclick={()=>preview.openImmersive()}><span class="action-label">Try it here</span><span aria-hidden="true">↗</span></button></div>
+  <div class="intro-actions"><a class="button" href={`${base}/download/`}>Get Torbie <span aria-hidden="true">↗</span></a><button class="quiet-action" onclick={()=>preview.openFullScreen()}><span class="action-label">Try it here</span><span aria-hidden="true">↗</span></button></div>
   <span class="platform-note">Windows · macOS · Linux</span>
  </section>
  <section class="workspace-tour wrap" id="explore" aria-label="Explore Torbie"><LivePreview bind:this={preview} /></section>

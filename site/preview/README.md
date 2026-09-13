@@ -65,3 +65,8 @@ recovery transaction finishes. Wait for recovery to be enabled and each split's
 initialized observable before opening the default scenario; otherwise navigation
 creates a duplicate Claude tab. ConfigService writes YAML, so saved configuration
 must be parsed as YAML even though the initial bootstrap fixture is JSON.
+
+The host offers independent Full screen (with demo controls) and Immersive
+(app only, one exit button) views. Switching changes layout without reloading
+the iframe. `test/views.mjs` checks exact viewport coverage, workspace identity,
+focus restoration, iframe Shift+Escape, and the mobile fullscreen fallback.

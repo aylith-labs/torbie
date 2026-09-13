@@ -184,3 +184,23 @@ The preview remains the actual Angular interface with seeded session boundaries.
 Immersive mode keeps its heading, scenarios, actions and MCP hover/focus popover
 available. Reset and Plugins stay grouped on one row. The guide respects reduced
 motion and stays outside the iframe, menus, inputs and buttons.
+
+## Separate view modes (13 September 2026)
+
+Full screen retains the preview heading, scenario bar, actions and MCP activity;
+Try it here opens this mode. It uses the browser Fullscreen API when available
+and fills the viewport otherwise. Immersive is a separate page-filling app view:
+only the running Torbie iframe and a top-right Exit immersive view button remain.
+Neither mode recreates the iframe. Exit restores focus and page scrolling;
+Shift+Escape exits from inside the terminal; plain Escape stays available to terminal programs. Page content outside the
+expanded preview is inert so keyboard navigation cannot disappear behind it.
+
+| Before | After | Why |
+| --- | --- | --- |
+| One framed mode called immersive | Distinct Full screen and app-only Immersive options | Match the two requested experiences |
+| Escape handled only by the parent page | Exit handled inside the same-origin iframe too | Keep a reliable way out while typing |
+| Hidden page controls remain keyboard reachable | Outside content becomes inert until exit | Keep focus within the expanded workspace |
+
+Open page menus temporarily make the iframe inert: delayed terminal autofocus
+can no longer steal listbox focus and dismiss a selection. A regression test
+attempts to focus the terminal while the tab-position menu is open.
