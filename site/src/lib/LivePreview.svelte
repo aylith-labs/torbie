@@ -19,11 +19,17 @@
   if(view!=='fullscreen'){if(document.fullscreenElement===host)await document.exitFullscreen();return}
   await tick();host.querySelector<HTMLButtonElement>('.fullscreen-toggle')?.focus({preventScroll:true});
  }
+ function focusApp(){
+  frame?.focus({preventScroll:true});
+  const doc=frame?.contentDocument,current=doc?.activeElement;
+  const input=current?.matches('.xterm-helper-textarea')&&current.closest('.content-tab-active')?current as HTMLElement:doc?.querySelector<HTMLElement>('.content-tab-active .xterm-helper-textarea');
+  input?.focus({preventScroll:true});
+ }
  async function openImmersive(){
   if(view==='inline')returnFocus=document.activeElement as HTMLElement;
   activate();view='immersive';activity=false;splitOpen=false;
   if(document.fullscreenElement===host)await document.exitFullscreen();
-  await tick();if(view==='immersive')frame?.focus({preventScroll:true});
+  await tick();if(view==='immersive')focusApp();
  }
  async function exitView(){
   view='inline';
@@ -85,7 +91,7 @@
   const mutation=new MutationObserver(sync);mutation.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});preference.addEventListener('change',sync);
   const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){active=true;observer.disconnect();startTimer()}},{rootMargin:'160px'});observer.observe(host);
   const receive=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==frame?.contentWindow||!event.data)return;
-   if(event.data.type==='torbie-demo-ready'){ready=true;failed=false;clearTimeout(timer);send({type:'torbie-theme',theme});choose(chosen)}
+   if(event.data.type==='torbie-demo-ready'){ready=true;failed=false;clearTimeout(timer);send({type:'torbie-theme',theme});choose(chosen);if(view==='immersive')requestAnimationFrame(focusApp)}
    if(event.data.type==='torbie-demo-config')tabLocation=event.data.tabsLocation;
    if(event.data.type==='torbie-demo-plugin')plugin=event.data.enabled===true;
    if(event.data.type==='torbie-demo-tool'){lastTool=event.data.tool;toolResult=event.data.result}
