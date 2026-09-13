@@ -10,6 +10,7 @@ try {
  await expect.poll(async()=>{const r=await cat.boundingBox();return Math.hypot(r.x-start.x,r.y-start.y)}).toBeGreaterThan(100);
  await page.getByRole('button',{name:'Open Torbie guide',exact:true}).click();
  const panel=page.getByRole('complementary',{name:'Torbie guide',exact:true});await expect(panel).toBeVisible();
+ await expect(panel).toHaveCSS('transform','none');
  const c=await cat.boundingBox(),p=await panel.boundingBox();
  expect(Math.min(Math.abs(c.y-p.y-p.height),Math.abs(p.y-c.y-c.height))).toBeLessThan(20);
  expect(p.x).toBeGreaterThanOrEqual(12);expect(p.x+p.width).toBeLessThanOrEqual(1428);
