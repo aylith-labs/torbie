@@ -239,59 +239,59 @@
   dependencies:
     tslib "^1.9.0"
 
-"@biomejs/biome@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/biome/-/biome-2.5.12.tgz#76848cbbc1702d7bdc78ff7ae150845489e6fffd"
-  integrity sha512-Lw4VHZRebrReBBnlHa12JQjnIBm3JJAA55PDB9LbBVBF0q4RYphm6KfmIjqtPhf61MxZ5Q9KoK8R8x+7per5Aw==
+"@biomejs/biome@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/biome/-/biome-2.5.13.tgz#e7e5b5f79837d18d120062b921e523908f1aba77"
+  integrity sha512-+SEC/mFk1a+5mvUANZgbZTaiZXs1nj4iMhL/PHiqDT5TPUEPFIlliEtkKKZB4N862yylHC3UI+/Sj2I0HJEqhA==
   optionalDependencies:
-    "@biomejs/cli-darwin-arm64" "2.5.12"
-    "@biomejs/cli-darwin-x64" "2.5.12"
-    "@biomejs/cli-linux-arm64" "2.5.12"
-    "@biomejs/cli-linux-arm64-musl" "2.5.12"
-    "@biomejs/cli-linux-x64" "2.5.12"
-    "@biomejs/cli-linux-x64-musl" "2.5.12"
-    "@biomejs/cli-win32-arm64" "2.5.12"
-    "@biomejs/cli-win32-x64" "2.5.12"
+    "@biomejs/cli-darwin-arm64" "2.5.13"
+    "@biomejs/cli-darwin-x64" "2.5.13"
+    "@biomejs/cli-linux-arm64" "2.5.13"
+    "@biomejs/cli-linux-arm64-musl" "2.5.13"
+    "@biomejs/cli-linux-x64" "2.5.13"
+    "@biomejs/cli-linux-x64-musl" "2.5.13"
+    "@biomejs/cli-win32-arm64" "2.5.13"
+    "@biomejs/cli-win32-x64" "2.5.13"
 
-"@biomejs/cli-darwin-arm64@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-arm64/-/cli-darwin-arm64-2.5.12.tgz#8d59c7eccc2a829d156379ea2e1d6b5aadb469ac"
-  integrity sha512-lCRY1rwgNeWNgTr4DI/u6ZwXTRwRLHAvbaio1YLLGS+4r1nhvB2ssyPqIpfUSmRveNfv0fn/N58C7CAdK2XVrg==
+"@biomejs/cli-darwin-arm64@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-arm64/-/cli-darwin-arm64-2.5.13.tgz#e35c7cfd3fd029a106b93ecfb70e212f04c04c0e"
+  integrity sha512-nYSuDJ6zgVqZUkAkJkvhXxsF2PYIrUk/g638K4voCXz7foI9f7b6C2/7+oAihsHQlivZNMUrm/y8ywlcHQtZOw==
 
-"@biomejs/cli-darwin-x64@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-x64/-/cli-darwin-x64-2.5.12.tgz#a50e0972c22beedd4f958d44a77d282da26852b4"
-  integrity sha512-vhPgwnh+6tN3ArdAXuET99xaNbFt7CG82Bqn+omHVLC5xdVx45JsYjGPmUIGNzjDek5XdNCP1HKksK7fn8+3bQ==
+"@biomejs/cli-darwin-x64@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-x64/-/cli-darwin-x64-2.5.13.tgz#dfcd29bb1bd588c7be67d33bf76c019a84e51419"
+  integrity sha512-KVy1ceEDuJ3AzFxjT9kkxbVy+UANw1pjEMUS6lvKfxjJ+fmkRvc7sQn1Xo6ETgseEI7wUQoV03KSga3XfE8YRQ==
 
-"@biomejs/cli-linux-arm64-musl@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64-musl/-/cli-linux-arm64-musl-2.5.12.tgz#d03b38a40c01cbac4b7526a9111d786f552fb2ac"
-  integrity sha512-couHYjFLL5uuI8ne6zhT7KwEsXo5YP7ry/2xmEqah7qanu0YmfDi3mwJg47YXSuv/NpZj22CZzcRH/5c4gjPSQ==
+"@biomejs/cli-linux-arm64-musl@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64-musl/-/cli-linux-arm64-musl-2.5.13.tgz#e9787fe0101dbfee3c31569a056f59a882e5b15f"
+  integrity sha512-CH32xpep3dNS5EVJpAHlYchkBYznxyVZQrx0b6YYYlPL9u9ZeD2NtqiK/6s64+HFS2a7hGnryLlqqZAOh8ax5g==
 
-"@biomejs/cli-linux-arm64@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64/-/cli-linux-arm64-2.5.12.tgz#8fb9286bc2c7b25abe08df3f933c4dd0d829f6d4"
-  integrity sha512-2gp8aVwXYKdAtmBfRFCUuyDMcfN1ahHqUkGfLYrZlNRFmryMATLVvJgWKvyA8wu4Rwn5OSxM1UcUmOuOFNGeBQ==
+"@biomejs/cli-linux-arm64@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64/-/cli-linux-arm64-2.5.13.tgz#f77ce57efdfad31ad4541fe478fba75bd4025f47"
+  integrity sha512-VlNMtoxOqs0dUR6drxxHr18SNUvI7xxAuHZlH4s/dstYSf3g6RaqVgo8JRnhcOhKz9afWrvtJTboNG1JuYlIDQ==
 
-"@biomejs/cli-linux-x64-musl@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64-musl/-/cli-linux-x64-musl-2.5.12.tgz#f4e310d03e94e67a1178daf323ba5f3931ca57a9"
-  integrity sha512-8A0oDW58/w9f/PQNYuq0sGUZtGtGrkNF4Z6n0PUoXpLCshi85vtKTv1XSznQawhdE4MXJ8ufpzHXyLFe87M/+w==
+"@biomejs/cli-linux-x64-musl@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64-musl/-/cli-linux-x64-musl-2.5.13.tgz#424914c95cd877a248de01b9c28eca65eea0be3d"
+  integrity sha512-F3pmwl+VHoUuVJN/tbNLKeLt0SVK3EIyN1jXlMcNyQGYRQQTVqXF+GgkP0/CjGXFN87e/mv0sBfUnWqWza5PKQ==
 
-"@biomejs/cli-linux-x64@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64/-/cli-linux-x64-2.5.12.tgz#89eb17630bbb0e5b97c45a5b6e56140a33d67d25"
-  integrity sha512-SnvOs3TSTiuia4SQOUNe1aWC9RT4+YkjcKnOhL/nsKOV0k5ycgBkDzF0lUxKn1V7Q8CLTRq6iV23ZAivHomRoA==
+"@biomejs/cli-linux-x64@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64/-/cli-linux-x64-2.5.13.tgz#5637565847ecd40c9d81652382597cf5491a460c"
+  integrity sha512-Fi6gIxbUaJ3ZCIXeG3ggIBPF76O2DjDN67WrPX/ODRv54GeXPm2gbEPC96Yb0yrJoiH0Eax1JLx1Pi0XbsNFZQ==
 
-"@biomejs/cli-win32-arm64@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-arm64/-/cli-win32-arm64-2.5.12.tgz#748e1eb0d1525214fcaf74c715e5f1d0dc6f152e"
-  integrity sha512-b9vtoZFsuZt1pdjNwJvXl0f+BpayRzV008uS2+JpmwIKdSE2qdu4A/l04FESwLoou5g2E/Qlec0xwJydZplH+A==
+"@biomejs/cli-win32-arm64@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-arm64/-/cli-win32-arm64-2.5.13.tgz#cab49a7ccd5298aa1629ea524d209af2b84b9674"
+  integrity sha512-+WD13qshXrr0Icv4BfsAdzm8Fs3TL+nZ59zEQxsYNd8lcgZJ0A5+OrlwsL1PipVCmWeRpxgIPD6DAcEd7smkCQ==
 
-"@biomejs/cli-win32-x64@2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-2.5.12.tgz#cc1ff66c54783aa7325faa3d2ef165a22ee8ce4e"
-  integrity sha512-B1R/l+CwEpKFSuqiwePzPNRk1EiJN8kc0UhdafNz6MZN9v5OFP9HYP1irptvWzHrwVI4blVNGMbxc5zt70m3IA==
+"@biomejs/cli-win32-x64@2.5.13":
+  version "2.5.13"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-2.5.13.tgz#37336709d07473c1bad65d47d944896e716d0453"
+  integrity sha512-VOofU/nW761XWzUeUNE8zzYNyPrxuMuNFMizL0qz7J75yeV8N7WFheUlk1/K6dOkaFpH9wJ+lDKlwjAbw0346w==
 
 "@discoveryjs/json-ext@^0.6.3":
   version "0.6.3"
@@ -519,10 +519,10 @@
   dependencies:
     tslib "^2.3.0"
 
-"@ngtools/webpack@^22.1.7":
-  version "22.1.7"
-  resolved "https://registry.yarnpkg.com/@ngtools/webpack/-/webpack-22.1.7.tgz#509bc3d516b2276988468a1caf79a985df6b154e"
-  integrity sha512-1cqXgu5DnINuZ1pJ4ZsiyLOFDXzEGkKNdMcBuQ73WVXRhE8CwN0bdHyjEW+gOff2QXAsB2uulk7e3XO52QCA3w==
+"@ngtools/webpack@^22.1.8":
+  version "22.1.8"
+  resolved "https://registry.yarnpkg.com/@ngtools/webpack/-/webpack-22.1.8.tgz#e705d3425f9237b19defbb9009a712aac171c6c6"
+  integrity sha512-U8VA7iaxDjSWaUOmYmcK1JjrQczoGQeq4QbBwFHo1ET3ArshIDtaiXkvuIwUDHBL4N2yGHAgEZZee8ChJvz77w==
 
 "@noble/hashes@1.4.0":
   version "1.4.0"
@@ -1011,19 +1011,19 @@
   resolved "https://registry.yarnpkg.com/@types/ms/-/ms-2.1.0.tgz#052aa67a48eccc4309d7f0191b7e41434b90bb78"
   integrity sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==
 
-"@types/node@*", "@types/node@^22":
-  version "22.20.2"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.20.2.tgz#daae777b5f5965a587f50cc80d5364c2ddf27e36"
-  integrity sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw==
-  dependencies:
-    undici-types "~6.21.0"
-
-"@types/node@^24.9.0":
+"@types/node@*", "@types/node@^24.9.0":
   version "24.13.4"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-24.13.4.tgz#e54f74ceae6838bff57a814b7d31f5042a0f9074"
   integrity sha512-YJ7EqCstVTzIr0fMr7qul/977en+pQHrfmuKIo6Zr9i75Be21dr3MovcfvGtyvi2HAUrRerWps5sMO9I7WaxDw==
   dependencies:
     undici-types "~7.18.0"
+
+"@types/node@^22":
+  version "22.20.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.20.2.tgz#daae777b5f5965a587f50cc80d5364c2ddf27e36"
+  integrity sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw==
+  dependencies:
+    undici-types "~6.21.0"
 
 "@types/parse5@^5":
   version "5.0.3"
@@ -1535,11 +1535,6 @@ bcrypt-pbkdf@^1.0.0:
   integrity sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==
   dependencies:
     tweetnacl "^0.14.3"
-
-big.js@^3.1.3:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/big.js/-/big.js-3.2.0.tgz#a5fc298b81b9e0dca2e458824784b65c52ba588e"
-  integrity sha512-+hN/Zh2D08Mx65pZ/4g5bsmNiZUuChDiQfTUQ7qJr4/kuopCr88xZsAXv6mBoZEsUI4OuGHlX59qE94K2mMW8Q==
 
 big.js@^5.2.2:
   version "5.2.2"
@@ -2369,9 +2364,9 @@ electron-to-chromium@^1.5.420:
   integrity sha512-QvPtl41EUOnuT1HBvMKgxXRIaHNcagBPs50u7VULzhZXaGfqTbZyE16LQsctZ/RQHlGu+FOWeDTR4mY6YbeF1g==
 
 electron@43:
-  version "43.6.0"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-43.6.0.tgz#9b4a9fa1790e53f65bb9331d94499622c1a77a07"
-  integrity sha512-DqVKYV+FXheMSLTxcMQ+NCo78BDgpnToSyIzXctlUtbP3lRGEuoo1P+C2n/90rJ7TvHgzP0bpP9fbbXxp4noIg==
+  version "43.7.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-43.7.0.tgz#d8f5905a0cc5ee5059b3229f9b65316edcecbcaa"
+  integrity sha512-m98FUehwnoo6q2D9Mr+n602Natb2CRFeKD81GhTdJlKh/Iyud0R1X8hChjpaMBLSsIX9r2ZEFnz0sdIALiO9ZQ==
   dependencies:
     "@electron-internal/extract-zip" "^1.0.1"
     "@electron/get" "^5.0.0"
@@ -2404,11 +2399,6 @@ emoji-regex@^9.2.2:
   version "9.2.2"
   resolved "https://registry.yarnpkg.com/emoji-regex/-/emoji-regex-9.2.2.tgz#840c8803b0d8047f4ff0cf963176b32d4ef3ed72"
   integrity sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==
-
-emojis-list@^2.0.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/emojis-list/-/emojis-list-2.1.0.tgz#4daa4d9db00f9819880c79fa457ae5b09a1fd389"
-  integrity sha512-knHEZMgs8BB+MInokmNTg/OyPlAddghe1YBgNwJBc5zsJi/uyIcXoSDsL/W9ymOsBoBGdPIHXYJ9+qKFwRwDng==
 
 emojis-list@^3.0.0:
   version "3.0.0"
@@ -3639,11 +3629,6 @@ json-stringify-safe@^5.0.1, json-stringify-safe@~5.0.1:
   resolved "https://registry.yarnpkg.com/json-stringify-safe/-/json-stringify-safe-5.0.1.tgz#1296a2d58fd45f19a0f6ce01d65701e2c735b6eb"
   integrity sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA==
 
-json5@^0.5.0:
-  version "0.5.1"
-  resolved "https://registry.yarnpkg.com/json5/-/json5-0.5.1.tgz#1eade7acc012034ad84e2396767ead9fa5495821"
-  integrity sha512-4xrs1aW+6N5DalkqSVA8fxh458CXvR99WU8WLKmq4v8eWAL86Xo3BVqyd3SkA9wEVjCMqyvvRRkshAdOnBp5rw==
-
 json5@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/json5/-/json5-1.0.2.tgz#63d98d60f21b313b77c4d6da18bfa69d80e1d593"
@@ -3735,16 +3720,6 @@ linkify-it@^5.0.2:
   integrity sha512-ONTm2jCMAVZjgQa/Fy1kScXsuOoF5NPTsoFBdE1KVIZ2vAh/r9+Bqo+0jINCBYnavTPQZz38QzFTme79ENoN3Q==
   dependencies:
     uc.micro "^2.0.0"
-
-loader-utils@^0.2.17:
-  version "0.2.17"
-  resolved "https://registry.yarnpkg.com/loader-utils/-/loader-utils-0.2.17.tgz#f86e6374d43205a6e6c60e9196f17c0299bfb348"
-  integrity sha512-tiv66G0SmiOx+pLWMtGEkfSEejxvb6N6uRrQjfWJIT79W9GMpgKeCAmm9aVBKtd4WEgntciI8CsGqjpDoCWJug==
-  dependencies:
-    big.js "^3.1.3"
-    emojis-list "^2.0.0"
-    json5 "^0.5.0"
-    object-assign "^4.0.1"
 
 loader-utils@^1.0.0, loader-utils@^1.1.0:
   version "1.4.2"
@@ -4713,13 +4688,13 @@ pug-filters@^4.0.0:
     pug-walk "^2.0.0"
     resolve "^1.15.1"
 
-pug-html-loader@1.1.5:
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/pug-html-loader/-/pug-html-loader-1.1.5.tgz#b46855a7790a306e43ec5db297dbdbb7995f4b5a"
-  integrity sha512-EOcLK0z0vJ1fSXsDypqL8SsPXVaevS9Oy8JA1RpYYkgAOV9qJXCSedvMYw499hSXxmoXAXIV1qEF2fNFBTwyEQ==
+pug-html-loader@1.1.7:
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/pug-html-loader/-/pug-html-loader-1.1.7.tgz#7623984275114400237c4a66bc794a10ae7c61ad"
+  integrity sha512-vibake+o7XL3Zu762WjiGlELGnyUcvsD08vQRkE7UFuqAT3/qQ/DFdvcdxnyZUL7SSxC8V7rwdKUpLm6QpW3kA==
   dependencies:
-    loader-utils "^0.2.17"
-    pug "^2.0.0-rc.2"
+    loader-utils "^2.0.0"
+    pug "^3.0.2"
 
 pug-lexer@^4.1.0:
   version "4.1.0"
@@ -4826,7 +4801,7 @@ pug-walk@^2.0.0:
   resolved "https://registry.yarnpkg.com/pug-walk/-/pug-walk-2.0.0.tgz#417aabc29232bb4499b5b5069a2b2d2a24d5f5fe"
   integrity sha512-yYELe9Q5q9IQhuvqsZNwA5hfPkMJ8u92bQLIMcsMxf/VADjNtEYptU+inlufAFYcWdHlwNfZOEnOOQrZrcyJCQ==
 
-pug@3, pug@^2.0.0-alpha7, pug@^2.0.0-rc.2, pug@^3:
+pug@3, pug@^2.0.0-alpha7, pug@^2.0.0-rc.2, pug@^3, pug@^3.0.2:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/pug/-/pug-3.0.4.tgz#9043ae8dd85fc8beb5becf09dd8e4b754b94b29f"
   integrity sha512-kFfq5mMzrS7+wrl5pLJzZEzemx34OQ0w4SARfhy/3yxTlhbstsudDwJzhf1hP02yHzbjoVMSXUj/Sz6RNfMyXg==
@@ -5997,10 +5972,10 @@ webcrypto-core@^1.9.2:
     asn1js "^3.0.10"
     tslib "^2.8.1"
 
-webpack-bundle-analyzer@^5.3.2:
-  version "5.3.2"
-  resolved "https://registry.yarnpkg.com/webpack-bundle-analyzer/-/webpack-bundle-analyzer-5.3.2.tgz#f8ed8ff2efa89034d1e216d2b8581f0a5d5ac424"
-  integrity sha512-IagCa/GrdxSz+ba9OMgK7UCfQp97HtXbgjXu7ObcqmRo9PTp0d+24rgY+mIFOx7JPQ9bo6FGsqZhA55rYRZrrQ==
+webpack-bundle-analyzer@^5.3.3:
+  version "5.3.3"
+  resolved "https://registry.yarnpkg.com/webpack-bundle-analyzer/-/webpack-bundle-analyzer-5.3.3.tgz#38f97c927d990b6e476395c97271ef8ff924e103"
+  integrity sha512-kr/bzg3sORg1xAnxpg1uaIPGDDNwaRIsClOv22HzCIMX9X64FbvIBNjP2ulPdfCgZw7ekrv7JGAPc30W+0b7rA==
   dependencies:
     "@discoveryjs/json-ext" "^0.6.3"
     acorn "^8.0.4"
