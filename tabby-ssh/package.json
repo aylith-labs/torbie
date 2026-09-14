@@ -21,7 +21,7 @@
   "author": "Aylith Labs",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "22",
+    "@types/node": "26",
     "ansi-colors": "^4.1.1",
     "strip-ansi": "^7.2.0"
   },
