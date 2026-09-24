@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as remote from '@electron/remote'
 import { PluginInfo } from '../../tabby-core/src/api/mainProcess'
 import { PLUGIN_BLACKLIST } from './pluginBlacklist'
+import { timed } from '../lib/diagnostics'
 
 const nodeModule = require('module') // eslint-disable-line @typescript-eslint/no-var-requires
 
@@ -335,8 +336,12 @@ export async function loadPlugins (foundPlugins: PluginInfo[], progress: Progres
     for (const foundPlugin of foundPlugins) {
         pluginsPromises.push(new Promise(x => {
             console.info(`Loading ${foundPlugin.name}: ${nodeRequire.resolve(foundPlugin.path)}`)
+            const started = performance.now()
             try {
                 const packageModule = nodeRequire(foundPlugin.path)
+                // Its module evaluation, which is most of what a plugin costs
+                // before Angular constructs anything of it.
+                timed('plugin-loaded', performance.now() - started, { name: foundPlugin.name, builtin: foundPlugin.isBuiltin })
                 if (foundPlugin.packageName.startsWith('tabby-')) {
                     cachedBuiltinModules[foundPlugin.packageName.replace('tabby-', 'terminus-')] = packageModule
                 }

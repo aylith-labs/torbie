@@ -2,6 +2,7 @@
 import { ApplicationRef, NgModule, provideZoneChangeDetection } from '@angular/core'
 import { BrowserModule } from '@angular/platform-browser'
 import { ToastrModule } from 'ngx-toastr'
+import { mark } from '../lib/diagnostics'
 
 export function getRootModule (plugins: any[]) {
     const imports = [
@@ -43,10 +44,14 @@ export function getRootModule (plugins: any[]) {
         ],
     }) class RootModule {
         ngDoBootstrap (appRef: ApplicationRef) {
-            (window as any)['requestAnimationFrame'] = window[window['Zone'].__symbol__('requestAnimationFrame')]
+            // Every plugin module is compiled and constructed by now; what
+            // follows is the root component and everything it renders.
+            mark('modules-constructed')
+            ;(window as any)['requestAnimationFrame'] = window[window['Zone'].__symbol__('requestAnimationFrame')]
 
             const componentDef = bootstrap[0]
             appRef.bootstrap(componentDef)
+            mark('root-component-created')
         }
     }
 

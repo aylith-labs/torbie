@@ -46,6 +46,11 @@ process.env.TORBIE_CONFIG_DIRECTORY ??= process.env.TABBY_CONFIG_DIRECTORY
 // window through synchronous IPC, so it is watched on the same terms as one.
 installDiagnostics('main')
 
+// Merges every process's timeline and keeps a history of launches — see
+// `lifecycle.ts`. Straight after diagnostics, so it misses none of the marks.
+import { initLifecycle } from './lifecycle'
+initLifecycle()
+
 app.on('render-process-gone', (_event, _contents, details) => {
     recordFailure('render-process-gone', `${details.reason} (exit ${details.exitCode})`)
 })
@@ -63,6 +68,8 @@ import { loadConfig } from './config'
 import { fatalStartupError } from './fatal'
 import { armBootWatchdog } from './watchdog'
 
+mark('modules-loaded')
+
 const argv = parseArgs(process.argv, process.cwd())
 
 // eslint-disable-next-line @typescript-eslint/init-declarations
@@ -75,10 +82,12 @@ try {
     // could end the process afterwards, so it exits on its own.
     fatalStartupError('config-load-failed', 'Could not read config', err)
 }
+mark('config-loaded')
 
 process.mainModule = module
 
 const application = new Application(configStore)
+mark('application-constructed')
 
 // Register the torbie:// URL scheme, and tabby:// alongside it so a link
 // written before the rename still opens.
@@ -136,9 +145,11 @@ app.on('second-instance', (_event, newArgv, cwd) => {
 })
 
 if (!app.requestSingleInstanceLock()) {
+    mark('single-instance-lock', { held: false })
     app.quit()
     app.exit(0)
 }
+mark('single-instance-lock', { held: true })
 
 app.on('ready', async () => {
     if (process.platform === 'darwin') {

@@ -247,12 +247,119 @@ function resolveLogFile (): string | null {
     return path.join(dir, 'diagnostics.log')
 }
 
+// ── Timeline ────────────────────────────────────────────────────────────────
+
+/**
+ * One moment in this process's life, with a real timestamp.
+ *
+ * Breadcrumbs are a ring of the last few, kept only to explain a stall; the
+ * timeline keeps every mark and note from the start of the process, so a
+ * launch can be read back as a waterfall — Settings → Startup draws it, and
+ * `app/lib/lifecycle.ts` merges every process's timeline and keeps a history
+ * of launches beside `diagnostics.log`.
+ */
+export interface TimelineEntry {
+    /** Epoch ms. For a timed entry, when it *ended*. */
+    t: number
+    role: Role
+    pid: number
+    kind: string
+    /** A boot phase (`mark`), as opposed to a moment (`note`). */
+    phase?: boolean
+    /** How long it took, for an entry that has a duration. */
+    ms?: number
+    detail?: unknown
+}
+
+/** The first entries are the boot, and the boot is the part worth keeping. */
+const TIMELINE_KEEP_HEAD = 300
+const TIMELINE_KEEP_TAIL = 200
+const timeline: TimelineEntry[] = []
+let timelineDropped = 0
+let timelineSink: ((entry: TimelineEntry) => void) | null = null
+
+/** A detail small enough to ship over IPC on every event and to keep. */
+function compactDetail (detail: unknown): unknown {
+    if (detail === undefined || detail === null) {
+        return undefined
+    }
+    if (typeof detail === 'string') {
+        return detail.length > 300 ? `${detail.slice(0, 300)}…` : detail
+    }
+    if (typeof detail === 'number' || typeof detail === 'boolean') {
+        return detail
+    }
+    try {
+        const json = JSON.stringify(detail)
+        return json.length > 400 ? `${json.slice(0, 400)}…` : JSON.parse(json)
+    } catch {
+        return String(detail).slice(0, 300)
+    }
+}
+
+function record (kind: string, detail: unknown, options: { phase?: boolean, ms?: number, t?: number } = {}): void {
+    const entry: TimelineEntry = {
+        t: options.t ?? Date.now(),
+        role,
+        pid: process.pid,
+        kind,
+    }
+    if (options.phase) {
+        entry.phase = true
+    }
+    if (options.ms !== undefined) {
+        entry.ms = Math.round(options.ms * 10) / 10
+    }
+    const compact = compactDetail(detail)
+    if (compact !== undefined) {
+        entry.detail = compact
+    }
+    timeline.push(entry)
+    if (timeline.length > TIMELINE_KEEP_HEAD + TIMELINE_KEEP_TAIL) {
+        timeline.splice(TIMELINE_KEEP_HEAD, 1)
+        timelineDropped++
+    }
+    try {
+        timelineSink?.(entry)
+    } catch {
+        // A lifecycle consumer must never break the thing it is watching.
+    }
+}
+
+/** Everything this process has recorded so far, oldest first. */
+export function getTimeline (): { entries: TimelineEntry[], dropped: number } {
+    return { entries: timeline.slice(), dropped: timelineDropped }
+}
+
+/**
+ * Receive every entry as it is recorded. One consumer: the main process's
+ * lifecycle store, or, in a renderer, the IPC forwarder that feeds it.
+ */
+export function onTimelineEntry (sink: ((entry: TimelineEntry) => void) | null): void {
+    timelineSink = sink
+}
+
+/**
+ * Something that took a measured amount of time, ending now — a plugin's
+ * `require`, say. Recorded with its duration so the waterfall can draw it as
+ * a bar rather than a tick.
+ */
+export function timed (kind: string, ms: number, detail?: unknown): void {
+    record(kind, detail, { ms })
+}
+
+/** Record a moment that happened earlier, at the time it happened. */
+export function recordAt (kind: string, t: number, detail?: unknown, phase = false): void {
+    record(kind, detail, { t, phase })
+}
+
 // ── Breadcrumbs ─────────────────────────────────────────────────────────────
 
 /** Note a boot phase or notable moment, so a stall says what was in progress. */
 export function mark (phase: string, detail?: unknown): void {
     lastPhase = phase
-    note(phase, detail)
+    breadcrumb(phase, detail)
+    record(phase, detail, { phase: true })
 }
 
 /**
@@ -264,14 +371,20 @@ export function mark (phase: string, detail?: unknown): void {
  */
 export function report (kind: string, detail: Record<string, unknown>): void {
     emit({ kind, ...detail, phase: lastPhase })
+    record(kind, detail.summary ?? undefined)
 }
 
-/** Record something worth seeing next to a stall, without making it a phase. */
-export function note (kind: string, detail?: unknown): void {
+function breadcrumb (kind: string, detail?: unknown): void {
     breadcrumbs.push({ at: new Date().toISOString(), kind, detail })
     if (breadcrumbs.length > MAX_BREADCRUMBS) {
         breadcrumbs.shift()
     }
+}
+
+/** Record something worth seeing next to a stall, without making it a phase. */
+export function note (kind: string, detail?: unknown): void {
+    breadcrumb(kind, detail)
+    record(kind, detail)
 }
 
 // ── Spans ───────────────────────────────────────────────────────────────────
@@ -323,7 +436,8 @@ export function span (label: string, detail?: unknown): Span {
                     extra,
                     summary: `${label} took ${ms.toFixed(0)}ms (${Math.round(syncMs)}ms synchronous I/O)`,
                 })
-                note(`slow:${label}`, Math.round(ms))
+                breadcrumb(`slow:${label}`, Math.round(ms))
+                record(`slow:${label}`, detail, { ms })
             }
             return ms
         },
@@ -488,6 +602,7 @@ function reportStall (blockedMs: number): void {
         breadcrumbs: breadcrumbs.slice(-10),
     })
     console.warn(`[diagnostics] ${summary}`)
+    record('stall', summary, { ms: blockedMs })
     resetWindow()
 }
 
@@ -660,7 +775,9 @@ export function installDiagnostics (which: Role): void {
     // that wants to time itself looks this up and degrades to a no-op when it
     // is absent — which is the honest state under tabby-web, where none of
     // this exists.
-    (globalThis as any).__tabbyDiagnostics = { span, mark, note, report, recordFailure }
+    (globalThis as any).__tabbyDiagnostics = { span, mark, note, report, recordFailure, timed, getTimeline }
+
+    startTimeline(which)
 
     emit({
         kind: 'session-start',
@@ -671,6 +788,51 @@ export function installDiagnostics (which: Role): void {
         execPath: process.execPath,
     })
     mark(`${which}-start`)
+}
+
+/**
+ * Anchor the timeline before its first mark, and in a renderer, start sending
+ * it to the main process as it happens.
+ *
+ * `performance.timeOrigin` is the one timestamp from before any of our code
+ * ran: in the main process it is when the process started, and in a renderer
+ * it is the page's navigation start. Everything between there and `*-start` is
+ * Electron, Chromium and module loading, and it is often the largest share.
+ */
+function startTimeline (which: Role): void {
+    const origin = typeof performance !== 'undefined' ? performance.timeOrigin : undefined
+    if (origin && Number.isFinite(origin)) {
+        record(which === 'main' ? 'process-start' : 'navigation-start', undefined, { t: Math.round(origin), phase: true })
+    }
+    if (which !== 'renderer') {
+        return
+    }
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { ipcRenderer } = require('electron')
+        // Replay what was recorded before the sink existed, then stream.
+        for (const entry of timeline) {
+            ipcRenderer.send('lifecycle:event', entry)
+        }
+        onTimelineEntry(entry => ipcRenderer.send('lifecycle:event', entry))
+    } catch {
+        // No IPC (tabby-web): the timeline still exists in this process.
+    }
+    if (typeof PerformanceObserver === 'undefined') {
+        return
+    }
+    try {
+        // The splash is the first thing the user sees; when it painted is the
+        // honest "the window appeared" for this renderer.
+        const observer = new PerformanceObserver(list => {
+            for (const entry of list.getEntries()) {
+                record(entry.name, undefined, { t: Math.round(performance.timeOrigin + entry.startTime) })
+            }
+        })
+        observer.observe({ type: 'paint', buffered: true })
+    } catch {
+        // Paint timing unavailable — nothing to add.
+    }
 }
 
 /** Record an unexpected failure alongside the stall history. */

@@ -159,7 +159,10 @@ export class Window {
         // the only place it is known before the first move event.
         this.windowBounds = this.window.getBounds()
 
+        this.window.once('ready-to-show', () => note('ready-to-show', { window: this.window?.id }))
+        this.window.webContents.once('dom-ready', () => note('dom-ready', { window: this.window?.id }))
         this.window.webContents.once('did-finish-load', () => {
+            note('did-finish-load', { window: this.window.id })
             if (process.platform === 'darwin') {
                 this.window.setVibrancy(macOSVibrancyType)
             } else if (process.platform === 'win32' && this.configStore.appearance?.vibrancy) {
@@ -179,6 +182,7 @@ export class Window {
                 this.window.focus()
                 this.window.moveTop()
                 application.focus()
+                note('window-shown', { window: this.window.id })
             }
         })
 
@@ -243,6 +247,7 @@ export class Window {
             }
             ipcMain.on('app:ready', listener)
         })
+        note('window-constructed', { window: this.window.id })
     }
 
     makeMain (): void {
