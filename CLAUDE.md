@@ -2756,6 +2756,51 @@ render-timing  frames: 327, slowFrames 3, jankFrames 2, worst 150ms, p50 8.3, p9
   alongside it for records that are the finding rather than context for one.
 - Reports only when there is something to say: a healthy hour writes no lines.
 
+## Where the launch went (Settings → Startup & lifecycle)
+
+Every `mark()` and `note()` now lands in a per-process **timeline** with a real
+timestamp (`diagnostics.ts`), not only in the stall breadcrumbs. Renderers stream
+theirs to the main process over `lifecycle:event`; `app/lib/lifecycle.ts` merges
+them, adds window/power/quit events, serves the lot over `lifecycle:get`, and keeps
+the last 30 launches in `<config dir>/launch-history.json` (written once the first
+terminal prints or 15s after `app:ready`, and on quit). `tabby-render-timing` draws
+it as a waterfall under Settings → Development → **Startup & lifecycle**, with a
+history table to compare launches; `waterfall.ts` is pure and fast-tier tested.
+
+- **Anchored at `performance.timeOrigin`** — process start in main, navigation
+  start in a renderer — so the time before any app code ran is on the page too.
+- **A hidden launch is not a visible one.** It never shows its window, never
+  paints until something forces a frame, and its first terminal output waits
+  ~30s because xterm's first fit runs on `requestAnimationFrame`, which a hidden
+  window never fires. The page falls back to `did-finish-load` for "on screen";
+  first-output numbers from hidden runs are artefacts.
+- A phase lasts until the next phase **in the same process**; `plugin-loaded`,
+  stalls and slow spans carry their own duration. Per-plugin *module
+  construction* is not split out — Angular constructs every NgModule inside
+  `bootstrapModule`, so `bootstrapping-angular → modules-constructed` is JIT
+  compile plus all of them.
+
+**What startup cost, measured 2026-09-24** (hidden source build, all builtins,
+median of 3 warm launches; ms from process start):
+
+| milestone | before | after |
+|---|---|---|
+| main modules loaded | 1469 | 207 |
+| Electron `app-ready` | 1569 | 275 |
+| window constructed (now shown) | 1686 | 360 |
+| app bundle evaluated | 1946 | 501 |
+| Angular ready / `app:ready` | 4290 / 4347 | 1766 / 1809 |
+
+The main-process win is **`@npmcli/arborist`** (~1,660 modules, 55% of the main
+script in a CPU profile) and **`electron-updater`** (12%), both now required on
+first use. A cold first launch after a rebuild measured 14.8s for the same module
+loading, which is the shape of the installed build's 2–8s `main-start` stalls.
+The window is also shown at construction instead of at `did-finish-load`. The
+renderer numbers moved partly with machine load; the renderer's own remaining cost
+is requiring the builtins (~0.4–0.75s) and Angular's JIT bootstrap (~0.7–1.0s).
+The installed build's worst stall is not ours: `tabby-claude-status` draining its
+spool blocked the renderer 24.1s on 2026-09-24 (see *Known offenders* above).
+
 ## What upstream has that we don't (`tabby-upstream`)
 
 Settings → **Upstream** compares this checkout against the project the fork
