@@ -36,7 +36,13 @@ window.FEATURES = [
     id: "image-paste", title: "Ctrl+V pastes an image into Claude Code",
     cat: "claude", catLabel: "Claude Code", dateAdded: "2026-09-24",
     commits: ["477b1506"], files: 12, ins: 364, del: 1,
-    desc: "A terminal can only paste text, so Claude Code pastes an image by reading the clipboard itself when it sees Ctrl+V. With Ctrl+V bound to paste, one keystroke sent two things, an empty paste and a raw Ctrl+V, and Claude Code's two clipboard reads raced each other for the Windows clipboard. Paste with an image and no text now sends one Ctrl+V and nothing else, and text paste is unchanged. It can be switched off. The same double delivery still applies to other single-key hotkeys, such as Ctrl+C with nothing selected, and is left as it is.",
+    desc: "A terminal can only paste text, so Claude Code pastes an image by reading the clipboard itself when it sees Ctrl+V. With Ctrl+V bound to paste, one keystroke sent two things, an empty paste and a raw Ctrl+V, and Claude Code's two clipboard reads raced each other for the Windows clipboard. Paste with an image and no text now sends one Ctrl+V and nothing else, and text paste is unchanged. It can be switched off. The double delivery behind it was general to every hotkey and is fixed for all of them; see the next entry.",
+  },
+  {
+    id: "hotkey-consume", title: "A hotkey's key is sent once, not twice",
+    cat: "terminal", catLabel: "Terminal", dateAdded: "2026-09-24",
+    commits: ["df991c35"], files: 9, ins: 637, del: 38,
+    desc: "A key bound to a hotkey that the terminal could also type reached the session twice: once from the hotkey, once from the terminal. It happened from launch until the first ordinary keystroke, and after every multi-chord hotkey, so the first Ctrl+C in a freshly opened Claude Code session sent two interrupts, the second of which can exit it, and Ctrl+C with text selected copied it and interrupted as well. Every hotkey now keeps its key, whatever was typed before. A handler that chooses not to act gives the key back, so copy bound to Ctrl+C with nothing selected still sends one Ctrl+C.",
   },
   {
     id: "builds-conflicts", title: "Another running app that wants the same port, hotkey or Claude events is named",
