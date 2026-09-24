@@ -120,6 +120,13 @@ export class Window {
         })
         const maximized = placement.maximized
 
+        // Before the backing colour is chosen from it: `shouldUseDarkColors`
+        // follows `themeSource`, and the window is now shown before the page
+        // loads, so the colour it is shown in has to be the user's scheme,
+        // not merely the OS's. It must match appearance.colorSchemeMode in
+        // configDefaults.yaml — this reads the raw stored config.
+        this.setDarkMode(this.configStore.appearance?.colorSchemeMode ?? 'auto')
+
         const bwOptions: BrowserWindowConstructorOptions = {
             ...placement.bounds,
             title: 'Torbie',
@@ -207,6 +214,23 @@ export class Window {
 
         this.window.once('ready-to-show', () => note('ready-to-show', { window: this.window?.id }))
         this.window.webContents.once('dom-ready', () => note('dom-ready', { window: this.window?.id }))
+        let presented = false
+        const presentFirst = () => {
+            if (options.hidden || presented) {
+                return
+            }
+            presented = true
+            if (maximized) {
+                this.window.maximize()
+            } else {
+                this.window.show()
+            }
+            this.window.focus()
+            this.window.moveTop()
+            application.focus()
+            note('window-shown', { window: this.window.id })
+        }
+
         this.window.webContents.once('did-finish-load', () => {
             note('did-finish-load', { window: this.window.id })
             if (process.platform === 'darwin') {
@@ -215,21 +239,9 @@ export class Window {
                 this.setVibrancy(true)
             }
 
-            // Must match appearance.colorSchemeMode in configDefaults.yaml —
-            // this reads the raw stored config, which is not merged with defaults.
             this.setDarkMode(this.configStore.appearance?.colorSchemeMode ?? 'auto')
 
-            if (!options.hidden) {
-                if (maximized) {
-                    this.window.maximize()
-                } else {
-                    this.window.show()
-                }
-                this.window.focus()
-                this.window.moveTop()
-                application.focus()
-                note('window-shown', { window: this.window.id })
-            }
+            presentFirst()
         })
 
         // Chromium's own verdict on the renderer, from outside it. It is a
@@ -294,6 +306,17 @@ export class Window {
             ipcMain.on('app:ready', listener)
         })
         note('window-constructed', { window: this.window.id })
+
+        // Shown now, in its opaque backing colour, rather than once the page
+        // has loaded. `did-finish-load` waits for the deferred app bundle to be
+        // fetched and evaluated — measured 0.4s on a warm source build and over
+        // a second on a cold packaged one — and until then a launch showed
+        // nothing at all. The splash follows as soon as the page paints.
+        // A vibrant window is transparent until the page draws, so it keeps
+        // waiting for the page rather than showing the desktop through it.
+        if (!this.configStore.appearance?.vibrancy && process.platform !== 'darwin') {
+            presentFirst()
+        }
     }
 
     makeMain (): void {
