@@ -34,6 +34,12 @@ function arg (name, fallback) {
     return i === -1 ? fallback : process.argv[i + 1]
 }
 
+// `--temp <dir>` points the instance's TEMP and TMP at a scratch directory, so
+// a test can plant what the app reads out of `os.tmpdir()` — claude-status
+// heartbeats, say — without writing into the real one. Only the instance gets
+// it: the launcher keeps the real TEMP, which is where the CDP registry lives
+// and how every other test finds this instance.
+const temp = arg('temp', null)
 const frontend = arg('frontend', 'xterm-webgl')
 const asked = arg('port', null)
 const port = asked ? parseInt(asked, 10) : await cdp.pickPort()
@@ -131,6 +137,7 @@ const child = spawn(electron, [
     cwd: root,
     env: {
         ...process.env,
+        ...(temp ? { TEMP: temp, TMP: temp } : {}),
         // Not empty and not inherited: findPlugins() reads globalPaths, and an
         // inherited NODE_PATH points at the *installed* app's plugins.
         NODE_PATH: path.join(root, 'app', 'node_modules'),
