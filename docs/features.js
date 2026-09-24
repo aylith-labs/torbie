@@ -27,6 +27,12 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "settings-search", title: "Search every setting, ranked, and jump straight to it",
+    cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-24",
+    commits: ["6ca524ac","649d1370","842cffa9"], files: 20, ins: 1884, del: 6,
+    desc: "A search box at the top of the settings nav, on Ctrl+F, finds pages, section headings and individual settings by title and description. Exact matches beat prefixes, which beat word starts, which beat matches inside a word; a page beats a setting at the same kind of match, and loose letter-by-letter matches only appear when nothing else does. Matches are highlighted without moving any text, long descriptions are cut around the match with an ellipsis on each cut side, and Enter opens the page, the inner tab and the collapsed group the setting is in, then scrolls to it and flashes it. The index is read from each page as it renders, so a plugin's own settings page is searchable without the plugin doing anything. The hotkey list and each integration's detail view are not indexed.",
+  },
+  {
     id: "image-paste", title: "Ctrl+V pastes an image into Claude Code",
     cat: "claude", catLabel: "Claude Code", dateAdded: "2026-09-24",
     commits: ["477b1506"], files: 12, ins: 364, del: 1,
