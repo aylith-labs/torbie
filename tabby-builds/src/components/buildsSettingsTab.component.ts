@@ -2,8 +2,10 @@ import { Component } from '@angular/core'
 import { BaseComponent, ConfigService, NotificationsService, PlatformService, TranslateService } from 'tabby-core'
 
 import { BuildKind, BuildsView, HealthFinding, TabbyBuild } from '../api'
+import { ClaudeReader, Conflict, ConflictAction, OtherApp } from '../conflicts'
 import { absoluteTime, humanAgo, humanBytes, humanDuration, shortPath } from '../format'
 import { BuildActionsService } from '../services/buildActions.service'
+import { BuildConflictsService } from '../services/conflicts.service'
 import { BuildDoctorService } from '../services/buildDoctor.service'
 import { BuildProcessesService, normalize } from '../services/buildProcesses.service'
 import { BuildScannerService } from '../services/buildScanner.service'
@@ -37,6 +39,13 @@ const KIND_ICONS: Record<BuildKind, string> = {
 
 /** Filter order, which is also the order builds are grouped in. */
 const KINDS: BuildKind[] = ['installed', 'portable', 'source', 'packaged', 'installer']
+
+// What the conflict getters hand back with no report. Constants rather than
+// literals: a getter returning a fresh `[]` gives *ngFor a new array on every
+// pass, which is the shape of the Integrations freeze.
+const NO_CONFLICTS: Conflict[] = []
+const NO_READERS: ClaudeReader[] = []
+const NO_APPS: OtherApp[] = []
 
 /** One tab's worth of builds. */
 export interface BuildGroup {
@@ -119,6 +128,7 @@ export class BuildsSettingsTabComponent extends BaseComponent {
     constructor (
         public config: ConfigService,
         private actions: BuildActionsService,
+        public conflicts: BuildConflictsService,
         private doctor: BuildDoctorService,
         private notifications: NotificationsService,
         private platform: PlatformService,
@@ -154,6 +164,7 @@ export class BuildsSettingsTabComponent extends BaseComponent {
 
     ngOnInit (): void {
         void this.rescan()
+        void this.conflicts.checkIfStale()
         this.pollTimer = setInterval(() => void this.poll(), this.config.store.builds.processPollMs)
         this.rescanTimer = setInterval(() => void this.rescan(true), this.config.store.builds.rescanMs)
         this.clock = setInterval(() => {
@@ -466,6 +477,70 @@ export class BuildsSettingsTabComponent extends BaseComponent {
             return null
         }
         return this.builds.reduce((sum, x) => sum + (x.size?.bytes ?? 0), 0)
+    }
+
+    // ── Other running apps ───────────────────────────────────────────────
+
+    /** While another Tabby or Torbie runs, or a port move still has a command to copy. */
+    get showConflicts (): boolean {
+        return this.conflicts.enabled && (!!this.conflicts.report?.others.length || !!this.conflicts.mcpMove)
+    }
+
+    // Fields of the report, never arrays built here: the report is replaced
+    // once per check, so *ngFor sees one array per check and not one per pass.
+    get conflictList (): Conflict[] {
+        return this.conflicts.report?.conflicts ?? NO_CONFLICTS
+    }
+
+    get claudeReaderList (): ClaudeReader[] {
+        return this.conflicts.report?.claudeReaders ?? NO_READERS
+    }
+
+    get otherApps (): OtherApp[] {
+        return this.conflicts.report?.others ?? NO_APPS
+    }
+
+    recheckConflicts (): void {
+        void this.conflicts.check(true)
+    }
+
+    runConflictAction (action: ConflictAction): void {
+        this.conflicts.run(action.id).catch(err => this.notifications.error(String(err)))
+    }
+
+    copyMcpCommand (): void {
+        if (!this.conflicts.mcpMove) {
+            return
+        }
+        this.platform.setClipboard({ text: this.conflicts.mcpMove.command })
+        this.notifications.notice(this.translate.instant('Copied'))
+    }
+
+    dismissMcpMove (): void {
+        this.conflicts.mcpMove = null
+    }
+
+    readerTooltip (reader: ClaudeReader): string {
+        const pids = reader.pids.length ? `PID ${reader.pids.join(', ')}` : ''
+        return reader.legacy
+            ? `${pids} — ${this.translate.instant('an older tabby-claude-status, which does not say, so it is counted as reading them')}`
+            : pids
+    }
+
+    trackConflict (_index: number, conflict: Conflict): string {
+        return conflict.id
+    }
+
+    trackAction (_index: number, action: ConflictAction): string {
+        return action.id
+    }
+
+    trackReader (_index: number, reader: ClaudeReader): string {
+        return reader.key
+    }
+
+    trackApp (_index: number, app: OtherApp): string {
+        return app.executable
     }
 
     // ── Per-build display ────────────────────────────────────────────────

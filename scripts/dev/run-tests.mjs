@@ -37,6 +37,7 @@ const root = path.resolve(url.fileURLToPath(new URL('.', import.meta.url)), '..'
 const FAST = [
     'scripts/dev/cdp.test.cjs',
     'tabby-builds/test/newBuildChoice.test.js',
+    'tabby-builds/test/conflicts.test.js',
     'tabby-claude/test/herdr.test.js',
     'tabby-links/test/delimitedLinks.test.js',
     'tabby-links/test/integrationAccounts.test.js',
@@ -86,6 +87,7 @@ const CDP = [
     'app/test/watchdog.test.js',
     'app/test/windowGeometry.test.js',
     'tabby-builds/test/asarDelete.cdp.js',
+    'tabby-builds/test/conflicts.cdp.js',
     'tabby-builds/test/tableView.cdp.js',
     'tabby-links/test/attribution.cdp.js',
     'tabby-links/test/card.cdp.js',

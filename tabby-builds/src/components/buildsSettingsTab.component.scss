@@ -17,6 +17,93 @@
     container: builds-page / inline-size;
 }
 
+// ── Other running apps ──────────────────────────────────────────────────
+
+// A conflict is drawn as a card's finding — the same border, icon, chips and
+// hint — because it is the same kind of thing: something on this machine that
+// has to be read before anything else on the page.
+.conflicts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .finding {
+        margin-top: 0;
+    }
+}
+
+.conflicts-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+}
+
+.conflicts-heading {
+    font-weight: 600;
+}
+
+.conflicts-clear {
+    font-size: 12px;
+}
+
+// Information rather than a warning: the port has moved, and this is the one
+// command that finishes the job.
+.finding.note {
+    border-color: var(--theme-primary-text);
+}
+
+.finding-items-label {
+    font-size: 11px;
+    color: var(--theme-muted-fg);
+    margin-top: 5px;
+}
+
+// Beside the explanation while there is room, underneath it once there is not
+// — the body's 200px basis decides which, as it does for a card's fix button.
+.conflict-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.command-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 5px;
+    min-width: 0;
+}
+
+// Copied whole, so it scrolls inside itself rather than wrapping: a wrapped
+// command pasted into a shell is two commands.
+.command {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(128, 128, 128, 0.2);
+    color: inherit;
+}
+
+.readers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+}
+
+.readers-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--theme-muted-fg);
+}
+
 .summary-bar {
     display: flex;
     flex-wrap: wrap;

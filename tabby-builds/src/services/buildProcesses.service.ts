@@ -10,6 +10,8 @@ import { fs } from '../nodeFs'
 export interface RunningProcess extends BuildProcess {
     /** Absolute path of the executable, normalized for comparison. */
     executable: string
+    /** The same path as the OS reported it, for saying which app this is. */
+    displayExecutable: string
 }
 
 /**
@@ -136,7 +138,7 @@ export class BuildProcessesService {
         const key = normalize(executable)
         return this.last
             .filter(x => x.executable === key)
-            .map(({ executable: _, ...rest }) => rest)
+            .map(({ executable: _, displayExecutable: __, ...rest }) => rest)
             .sort((a, b) => (a.startedAt ?? 0) - (b.startedAt ?? 0))
     }
 
@@ -161,6 +163,7 @@ export class BuildProcessesService {
         return rows.map((row: any) => ({
             pid: row.pid,
             executable: normalize(row.exe),
+            displayExecutable: row.exe,
             memoryBytes: row.mem ?? 0,
             startedAt: row.started ?? null,
             cpuMs: row.cpu ?? 0,
@@ -199,6 +202,7 @@ export class BuildProcessesService {
                 out.push({
                     pid: parseInt(entry, 10),
                     executable: normalize(exe),
+                    displayExecutable: exe,
                     // statm reports pages resident; page size is 4 KB everywhere
                     // Tabby runs.
                     memoryBytes: parseInt(statm.split(' ')[1], 10) * 4096,
@@ -247,6 +251,7 @@ export class BuildProcessesService {
             out.push({
                 pid: parseInt(match[1], 10),
                 executable: normalize(exe),
+                displayExecutable: exe,
                 memoryBytes: parseInt(match[2], 10) * 1024,
                 startedAt: elapsed === null ? null : Date.now() - elapsed * 1000,
                 cpuMs: 0,

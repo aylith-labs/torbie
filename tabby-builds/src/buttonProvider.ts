@@ -2,11 +2,12 @@ import { Injectable } from '@angular/core'
 import { Observable } from 'rxjs'
 import { ConfigService, ToolbarButton, ToolbarButtonProvider, TranslateService } from 'tabby-core'
 
+import { BuildConflictsService } from './services/conflicts.service'
 import { NewBuildWatcherService } from './services/newBuildWatcher.service'
 
 /**
  * The toolbar affordance for a newer build, and the thing that starts the
- * watcher.
+ * watcher and the conflict check.
  *
  * Toolbar providers are constructed at startup, which is what makes this the
  * natural home for a background watch — the same trick tabby-settings uses to
@@ -19,6 +20,7 @@ export class BuildsButtonProvider extends ToolbarButtonProvider {
 
     constructor (
         config: ConfigService,
+        conflicts: BuildConflictsService,
         private translate: TranslateService,
         private watcher: NewBuildWatcherService,
     ) {
@@ -28,7 +30,10 @@ export class BuildsButtonProvider extends ToolbarButtonProvider {
         // config has loaded, so reading a setting here throws and takes the
         // whole boot down with it — the app comes up to a splash screen and
         // stays there.
-        config.ready$.subscribe(() => this.watcher.start())
+        config.ready$.subscribe(() => {
+            this.watcher.start()
+            conflicts.start()
+        })
     }
 
     provide (): ToolbarButton[] {

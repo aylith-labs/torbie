@@ -24,6 +24,7 @@
     "builds.activeExecutable",
     "builds.autoDiagnose",
     "builds.autoSize",
+    "builds.detectConflicts",
     "builds.devProfileDirectory",
     "builds.includeInstallers",
     "builds.pauseWhenUnfocused",

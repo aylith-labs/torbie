@@ -2139,6 +2139,111 @@ a button that would have deleted the install.
 - `tabby-builds/test/newBuildChoice.test.js` (fast tier) holds each rule as a
   case, the reported dialog first.
 
+### Another running app that wants the same resources
+
+`BuildConflictsService` notices when another running Tabby or Torbie wants what
+this app has — the MCP server's port, the global hotkey, the Claude hook spool —
+names it, says what goes wrong, and offers what *this* app can do. It never
+stops, restarts or reconfigures the other app. Written the day Torbie 1.0.0 was
+installed beside a Tabby running six processes with live Claude Code sessions:
+Torbie copied Tabby's profile, so it carried the same plugins and the same
+`Ctrl-Space`.
+
+- **All three collisions were silent.** tabby-mcp-server serves
+  `config.mcp.port || 3001` at boot and reports EADDRINUSE only to its own log;
+  `app/lib/app.ts` ignores what `globalShortcut.register` returns, so whichever
+  app registers second just has no hotkey; and the claude-status spool is
+  consume-and-delete, so two consumers split the events between them.
+- **Pure logic over snapshots** (`conflicts.ts`), I/O in the service.
+  `test/conflicts.test.js` (fast tier, 110 checks) holds every rule to a
+  snapshot, and reads `registerGlobalHotkey`, `shouldRegisterGlobalHotkeys`,
+  `portable.ts` and the plugin loader so the rules fail when those move.
+- **When it runs**: 15s after config is ready, long enough for the plugin to
+  have bound its port or failed to; then on window focus, at most every 30s,
+  never while unfocused, because a check is a PowerShell spawn plus `netstat`.
+  Opening the Builds page checks when the last answer is older than that.
+  `builds.detectConflicts` turns it off. With no other Tabby or Torbie running,
+  the process probe is all it pays for.
+- **The other app is named by its executable**, grouped from the process probe,
+  which now carries the path as reported so the name keeps its case. A `data`
+  entry beside the executable means portable with its config there, whatever
+  the executable is called, because that is the whole of `portable.ts`'s rule.
+  An install under `%LOCALAPPDATA%\Programs\<Product>` or Program Files keeps it
+  in `%APPDATA%\<product>`, and so does an unpacked build. An `electron.exe`
+  source build's profile is whatever `--user-data-dir` it was given, which a
+  process listing does not show, so it is reported unknown rather than guessed.
+- **MCP reads `netstat -ano`, not `-p TCP`**, which lists IPv4 only. The plugin's
+  `listen(port)` is dual-stack and shows in both tables (measured: `0.0.0.0:3001`
+  and `[::]:3001`, both PID 5716), but a listener bound only to `::1` would be
+  missed. A listening row is recognised by its remote port being 0, not by the
+  word LISTENING, which a localized Windows translates. The check runs only when
+  the plugin is loaded here — in `installedPlugins`, not in the boot-time
+  blacklist, and `config.store.mcp` present to prove its ConfigProvider ran.
+  - *Another app listens on this app's port*: its name and PID, that this
+    app's server did not start, how many clients are connected to it (measured:
+    seven, all from WSL), and the Claude Code entries on that port. Not a
+    conflict once this app has `mcp.startOnBoot: false`.
+  - *This app listens on a port another running app is set to serve MCP on*
+    (plugin in its `plugins\node_modules`, not blacklisted, `startOnBoot` not
+    false, same port): that app cannot start its server. Asked of the other
+    app's port, so a port this app was moved off but still holds until its
+    server restarts still counts.
+  - **Claude Code entries on this machine's own addresses count, not just
+    loopback.** The `.claude.json` inside WSL here points `tabby-mcp` at
+    `http://172.22.144.1:3001/mcp`, the host's WSL adapter, which reaches a
+    wildcard listener exactly as `localhost` does. Only the Windows file is read —
+    `$CLAUDE_CONFIG_DIR/.claude.json`, else `~/.claude.json`, which is where
+    Claude Code itself looks (read out of its bundle) — and not the one inside a
+    distro, which is why the connection count is shown. Headers and query
+    strings are never kept.
+  - **Actions.** *Use a free port here* writes the first port from 3002 that
+    nothing lists and that actually binds — Windows reserves ranges for Hyper-V
+    and WSL that no socket table shows — and keeps
+    `claude mcp add --transport http torbie-mcp http://localhost:<port>/mcp` on
+    screen, because only the MCP page's Restart or a reload applies the port.
+    *Don't start MCP here* writes `mcp.startOnBoot: false`. 3001 is never offered.
+- **The hotkey is asked of Electron**: `globalShortcut.isRegistered` through
+  `@electron/remote`, for each accelerator converted exactly as
+  `registerGlobalHotkey` converts it. It answers only for this process, which is
+  the question. False means something else holds the chord: a running Tabby or
+  Torbie whose config binds it is named as the *likely* holder, compared
+  canonically so `Control-Space` is `Ctrl+Space`, and otherwise the page says
+  Windows does not report who. True, with another running app binding it, means
+  that app cannot use it. Skipped when `hacks.globalHotkey` stops registration.
+  Actions: clear this app's `toggle-window`, or open Settings → Hotkeys.
+- **Claude events come from tabby-claude-status's heartbeats** in
+  `%TEMP%\tabby-claude-status.windows`, read and never written. Fresh means
+  under 8s, the plugin's own `STALE_MS`; the live one here refreshed every 1-2s.
+  A heartbeat with `app: { exe, name, pid }` names its app and says whether it is
+  `consuming`; one without is legacy, attributed through the PID prefix of its
+  id and counted as consuming. It is a conflict only when this app and another
+  both consume, and no action is offered: which app consumes is that plugin's
+  decision.
+- **Toasts are keyed by conflict id**, which is stable across checks: one per
+  appearance, and a conflict that clears and comes back is toasted again.
+  Tapping one opens Settings → Builds, where a section above the tabs draws each
+  conflict as a card's finding — border, chips, hint — with its actions. Every
+  array it iterates is a field of the report, replaced once per check.
+- `test/conflicts.cdp.js` launches its own hidden instance, because the
+  conditions are the test. The other app is a helper Electron started from a
+  hard-linked copy of `electron.exe` in scratch — a second executable path in
+  about 200ms and no disk — with a `data\config.yaml` beside it, holding a
+  scratch port and the first free `Ctrl+Alt+Shift+F<n>`: F11 is already taken on
+  this machine. The real tabby-mcp-server is loaded on the scratch port, so its
+  own failed bind is what is measured. `launch-hidden.mjs --temp` gives the
+  instance a scratch TEMP for planted heartbeats while the CDP registry stays
+  where tests look for it; `CLAUDE_CONFIG_DIR` moves `.claude.json` to scratch;
+  the `tabby://` and `torbie://` keys are exported first and imported back; and
+  every window's `isVisible()` is polled, a visible one stopping the instance.
+- **A `--hidden` launch used to show its window when boot finished.** That poll
+  caught it: `isVisible()` false 2.5s in, true at the end of boot.
+  `app/lib/index.ts` called `window.focus()` after `await window.ready` with no
+  `--hidden` guard (upstream's, `86a5bfa7`), while the `did-finish-load` path in
+  `window.ts` was guarded; on Windows, focusing a hidden window activates it.
+  Fixed — see *Verifying the UI without stealing focus* — and the suite now
+  passes end to end: 62 checks, no window visible in any of 33 one-second
+  samples, and the Torbie/Tabby process count unchanged (2026-09-24).
+
 ## The jump list wears the profiles' own icons
 
 Right-clicking Tabby in the taskbar or the Start menu offers your profiles.

@@ -57,6 +57,13 @@ export class BuildsConfigProvider extends ConfigProvider {
             watchIntervalMs: 300000,
 
             /**
+             * Notice when another running Tabby or Torbie wants the same MCP
+             * port, global hotkey or Claude hook spool, and say so. Checks on
+             * focus, at most every 30 seconds, and never acts on the other app.
+             */
+            detectConflicts: true,
+
+            /**
              * Extra environment for launching a source build. The dev build
              * must not share a config directory with the installed app —
              * Electron's single-instance lock is keyed on it, and the installed

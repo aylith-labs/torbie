@@ -31,6 +31,7 @@ export default class BuildsModule { } // eslint-disable-line @typescript-eslint/
 
 export * from './api'
 export { BuildActionsService } from './services/buildActions.service'
+export { BuildConflictsService } from './services/conflicts.service'
 export { BuildProcessesService } from './services/buildProcesses.service'
 export { BuildScannerService } from './services/buildScanner.service'
 export { BuildSizeService } from './services/buildSize.service'

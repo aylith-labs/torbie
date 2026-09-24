@@ -36,6 +36,86 @@ h3.mb-3(translate) Builds
 
 .alert.alert-danger(*ngIf='error') {{error}}
 
+//- Another running Tabby or Torbie that wants what this app has: its MCP port,
+//- its global hotkey, the Claude hook spool. Above the tabs, because what it
+//- explains is silent everywhere else — a hotkey that does nothing, or Claude
+//- sessions reaching the other app.
+.conflicts.mb-3(*ngIf='showConflicts')
+    .conflicts-head
+        span.conflicts-heading(translate) Also running
+        span.badge.kind-chip(
+            *ngFor='let app of otherApps; trackBy: trackApp',
+            [ngbTooltip]='app.displayExecutable',
+            container='body'
+        )
+            span {{app.name}}
+            span.ms-1 · {{app.pids.length}} {{(app.pids.length === 1 ? 'process' : 'processes')|translate}}
+        .flex-fill
+        .live-note(*ngIf='conflicts.report')
+            span {{'Checked'|translate}} {{humanAgo(conflicts.report.checkedAt)}}
+        button.btn.btn-sm.btn-secondary.conflicts-recheck(
+            (click)='recheckConflicts()',
+            [disabled]='conflicts.checking',
+            [ngbTooltip]='"Check again"|translate',
+            container='body'
+        )
+            i.fas.fa-fw.fa-arrows-rotate([class.fa-spin]='conflicts.checking')
+
+    .finding.conflict(
+        *ngFor='let conflict of conflictList; trackBy: trackConflict',
+        [attr.data-conflict]='conflict.id'
+    )
+        i.fas.fa-fw.fa-triangle-exclamation.mt-1
+        .finding-body
+            .finding-title {{conflict.title}}
+            .finding-detail {{conflict.consequence}}
+            .finding-items-label(*ngIf='conflict.itemsLabel') {{conflict.itemsLabel}}
+            .finding-items(*ngIf='conflict.items.length')
+                code.finding-chip(*ngFor='let item of conflict.items') {{item}}
+            .finding-path(
+                *ngIf='conflict.location',
+                [ngbTooltip]='conflict.location',
+                container='body'
+            ) {{shortPath(conflict.location, 70)}}
+            .finding-hint(*ngIf='conflict.hint') {{conflict.hint}}
+        .conflict-actions(*ngIf='conflict.actions.length')
+            button.btn.btn-sm.btn-outline-secondary(
+                *ngFor='let action of conflict.actions; trackBy: trackAction',
+                [attr.data-action]='action.id',
+                (click)='runConflictAction(action)'
+            ) {{action.label|translate}}
+
+    .finding.note.mcp-move(*ngIf='conflicts.mcpMove')
+        i.fas.fa-fw.fa-circle-info.mt-1
+        .finding-body
+            .finding-title {{'This app’s MCP server is now set to port'|translate}} {{conflicts.mcpMove.port}}
+            .finding-detail(translate) The MCP page's Restart button, or a reload, applies it. Point Claude Code at the new port with:
+            .command-line
+                code.command {{conflicts.mcpMove.command}}
+                button.btn.btn-sm.btn-outline-secondary.flex-shrink-0((click)='copyMcpCommand()')
+                    i.fas.fa-fw.fa-copy.me-1
+                    span(translate) Copy
+            .finding-hint {{'Claude Code entries still pointing at port'|translate}} {{conflicts.mcpMove.previous}} {{'reach whichever app holds it.'|translate}}
+        button.btn.btn-sm.btn-link.flex-shrink-0(
+            (click)='dismissMcpMove()',
+            [ngbTooltip]='"Dismiss"|translate',
+            container='body'
+        )
+            i.fas.fa-fw.fa-xmark
+
+    .muted.conflicts-clear(*ngIf='!conflictList.length && !conflicts.mcpMove', translate) No conflicts with them over the MCP port, the global hotkey or Claude events.
+
+    .readers(*ngIf='claudeReaderList.length')
+        span.readers-label(translate) Claude events
+        span.badge.kind-chip.reader(
+            *ngFor='let reader of claudeReaderList; trackBy: trackReader',
+            [ngbTooltip]='readerTooltip(reader)',
+            container='body'
+        )
+            span {{reader.name}}
+            span.ms-1(*ngIf='reader.consuming') · {{'reads them'|translate}}
+            span.ms-1(*ngIf='!reader.consuming') · {{'does not read them'|translate}}
+
 ul.nav-tabs(ngbNav, #nav='ngbNav', [(activeId)]='activeTab')
     li(ngbNavItem='builds')
         a(ngbNavLink, draggable='false')
@@ -544,6 +624,17 @@ ng-template(#options)
             .description(translate) Stop polling while this window is in the background
         toggle(
             [(ngModel)]='config.store.builds.pauseWhenUnfocused',
+            (ngModelChange)='saveConfiguration()',
+        )
+
+    h4.mt-4.mb-2(translate) Other running apps
+
+    .form-line
+        .header
+            .title(translate) Detect conflicts with other running apps
+            .description(translate) When another Tabby or Torbie is running, check whether it wants the same MCP port or global hotkey, and which app reads Claude events. Runs when this window gains focus, at most every 30 seconds, and never changes the other app
+        toggle(
+            [(ngModel)]='config.store.builds.detectConflicts',
             (ngModelChange)='saveConfiguration()',
         )
 
