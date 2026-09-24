@@ -3209,14 +3209,9 @@ text copied beside an image, pastes exactly as before.
   2.1.281 in a WSL pane: an empty paste alone attached 0, 2, 1, 0 images over four
   tries; empty paste then 0x16, 30ms apart, attached one each time with a "No image
   found" notice on three; 0x16 alone, 3/3 clean; after the fix, Ctrl+V 4/4 clean.
-- **Why the key leaked: `matchActiveHotkey(true)` never matches a single-chord
-  hotkey** (`partial ? lastIndex > 0 : matched` — `lastIndex` stays 0 for one
-  chord), so xterm's key handler lets every such key through as well. It is
-  upstream's code, and it is general: Ctrl+C with no selection sends ^C twice and
-  Ctrl+Left sends `ESC[1;5D` twice (both measured). It only shows when xterm can
-  encode the key, which Ctrl-Shift chords it cannot. **Fixed for `paste` alone**
-  (`suppressesTerminalKey`): the rest have handlers and plugins — Shift-Enter in
-  `tabby-backslash-newline` — built around today's behaviour.
+- **Why the key leaked** was general to every hotkey, and is fixed for all of
+  them: see *A hotkey's key is the hotkey's* below. The paste-only rule
+  (`suppressesTerminalKey`) that first fixed it is gone.
 - **Windows Terminal sends the empty bracketed paste** ("LOAD BEARING", in
   `TerminalPage.cpp`) and relies on the app to look; it has no stray 0x16, so it
   works. Sending 0x16 is chosen over copying that because it is Claude Code's
@@ -3229,6 +3224,53 @@ text copied beside an image, pastes exactly as before.
 - `imagePaste.test.js` (fast) holds the decision; `imagePaste.cdp.js` sends
   trusted Ctrl+V key events and reads what reaches the session, with the
   platform's clipboard reads stubbed so the user's clipboard is never touched.
+
+## A hotkey's key is the hotkey's (`HotkeysService.consumedKeyEvent`)
+
+A key that fires a hotkey is not also typed into the terminal. xterm's key
+handler pushes each event to `HotkeysService` and then asks
+`consumedKeyEvent(event)`: yes when a hotkey fired on that very keydown and its
+handler did not give it back. A handler that decides not to act calls
+`hotkeys.passThrough()`, synchronously while handling, and the key reaches the
+terminal as if it were unbound — `copy` does this with nothing selected, so copy
+bound to Ctrl-C still sends ^C, once, as in Windows Terminal.
+
+- **The bug: the old check answered from history, not from the key.** xterm
+  asked `matchActiveHotkey(true)`, whose partial rule is `lastIndex > 0` —
+  whether the matched chord sat past index 0 of *every keystroke recorded since
+  the history was last cleared*. For a one-chord hotkey that is just "has any
+  plain key been recorded yet". So a key was the hotkey's alone in steady state,
+  and typed **twice** from launch until the first plain keystroke, again after
+  every multi-chord hotkey (which clears the history), and after the hotkey
+  recorder opens. The key completing a multi-chord hotkey was always typed too,
+  because the match clears the history before xterm asks. Upstream code since
+  `7b59ba4b7` (2021), not a fork regression; the Web platform's `preventDefault`
+  used the same check and now uses the new one.
+- **Measured, hidden dev build, the user's bindings, empty history** (bytes that
+  reached the session, before → after): Ctrl+C nothing selected `^C^C` → `^C`;
+  Ctrl+C with a selection copied *and* sent `^C` → copies, sends nothing;
+  Ctrl+Left `ESC[1;5D` ×2 → ×1, Ctrl+Right likewise; Ctrl+Backspace `^W^H` →
+  `^W`; Ctrl+Delete `ESC d ESC[3;5~ ESC[3;5~` → one; Home/End `ESC[H` ×2 → ×1;
+  Shift+Enter (tabby-backslash-newline) ` \`+LF+CR → ` \`+LF. After a typed key
+  the old code already gave the "after" bytes — so the fix makes the first
+  keystroke behave like every other, and changes nothing a warmed-up session did,
+  bar two deliberate differences: copy with nothing selected now lets the key
+  through (before: swallowed, with a "Copied" toast), and the key completing a
+  multi-chord hotkey is no longer typed.
+- **Plugins' hotkeys are consumed too**, with no change on their side: their
+  handlers run inside the emit, and a plugin that wants the key typed as well
+  calls `passThrough()`. `tabby-backslash-newline` wants it gone: its text is a
+  line continuation, and the CR after it ran the command.
+- **A multi-chord hotkey's first chord is still typed** — it cannot be known to
+  be one until the second arrives. Only the completing key is kept.
+- The keydown is what is consumed: `preventDefault` on it also stops the
+  keypress, and the keyup is left alone. `xtermFrontend` routes xterm's keyup
+  and keypress through the same handler under the name `'keydown'`; the
+  timestamp de-dup in `pushKeyEvent` is what keeps those from firing the hotkey
+  again, so it must not be loosened.
+- `hotkeyConsume.test.js` (fast, tabby-core) runs the real service, every case
+  from an empty history and after a typed key; `hotkeyEcho.cdp.js` presses the
+  keys in a dev build and asserts the exact bytes, both histories.
 
 ## Changed upstream defaults
 

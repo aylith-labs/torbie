@@ -247,7 +247,13 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
                     }
                     break
                 case 'copy':
-                    this.frontend?.copySelection()
+                    // Nothing to copy: let the key through, so copy
+                    // bound to Ctrl-C still sends ^C (once), as in Windows Terminal.
+                    if (!this.frontend?.getSelection()) {
+                        this.hotkeys.passThrough()
+                        break
+                    }
+                    this.frontend.copySelection()
                     this.frontend?.clearSelection()
                     this.notifications.notice(this.translate.instant('Copied'))
                     break

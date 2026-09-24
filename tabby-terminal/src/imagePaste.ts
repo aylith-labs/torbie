@@ -21,19 +21,3 @@ export const CTRL_V = '\x16'
 export function imagePasteInput (text: string, hasImage: boolean, enabled: boolean): string | null {
     return enabled && text === '' && hasImage ? CTRL_V : null
 }
-
-/**
- * Whether a hotkey that fired on this keydown must also stop the key from
- * reaching the terminal as its own bytes.
- *
- * `HotkeysService.matchActiveHotkey(true)` never matches a single-chord hotkey,
- * so a hotkey xterm can also encode (Ctrl-V, Ctrl-C, Ctrl-Left) is delivered
- * twice: once by the hotkey, once by xterm. For paste that is two clipboard
- * reads by the app — Claude Code starts two concurrent powershell.exe reads and
- * they contend for the Windows clipboard — and, in a shell, a stray ^V that
- * quotes the next key. Limited to paste on purpose: the others have handlers
- * and plugins built around today's behaviour.
- */
-export function suppressesTerminalKey (hotkey: string | null): boolean {
-    return hotkey === 'paste'
-}

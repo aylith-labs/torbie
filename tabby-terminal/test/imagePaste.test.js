@@ -82,13 +82,8 @@ check('text beside an image pastes as text', ip.imagePasteInput('https://x.test/
 check('whitespace is still text', ip.imagePasteInput(' ', true, true), null)
 check('a newline is still text', ip.imagePasteInput('\n', true, true), null)
 
-// ── which hotkeys keep their key from the terminal ────────────────────────────
-
-check('paste does', ip.suppressesTerminalKey('paste'), true)
-check('no hotkey does not', ip.suppressesTerminalKey(null), false)
-check('ctrl-c is left alone', ip.suppressesTerminalKey('ctrl-c'), false)
-check('previous-word is left alone', ip.suppressesTerminalKey('previous-word'), false)
-check('a plugin hotkey is left alone', ip.suppressesTerminalKey('shift-enter-newline'), false)
+// Keeping the paste hotkey's key from also reaching xterm as a raw 0x16 is no
+// longer paste's own rule but every hotkey's: tabby-core/test/hotkeyConsume.test.js.
 
 console.log(`\n${passed} passed, ${failed} failed`)
 process.exit(failed ? 1 : 0)

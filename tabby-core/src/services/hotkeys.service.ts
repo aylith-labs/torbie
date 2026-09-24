@@ -78,6 +78,10 @@ export class HotkeysService {
     private suppressNextKeyupKeystroke = false
     private lastEventTimestamp = 0
     private lastWheelTimestamp: number|null = null
+    // The key event a hotkey fired on and kept, and whether the handler that
+    // got it gave it back. See consumedKeyEvent() and passThrough().
+    private consumedEvent: Event|null = null
+    private passedThrough = false
 
     private constructor (
         private zone: NgZone,
@@ -99,7 +103,7 @@ export class HotkeysService {
                     }
                     this._keyEvent.next(event)
                     this.pushKeyEvent(eventType, event)
-                    if (hostApp.platform === Platform.Web && this.matchActiveHotkey(true) !== null) {
+                    if (hostApp.platform === Platform.Web && this.consumedKeyEvent(event)) {
                         event.preventDefault()
                         event.stopPropagation()
                     }
@@ -212,7 +216,13 @@ export class HotkeysService {
         this.zone.run(() => {
             if (matched) {
                 if (this.recognitionPhase) {
+                    this.passedThrough = false
                     this.emitHotkeyOn(matched)
+                    // Handlers run synchronously inside emitHotkeyOn, so by now
+                    // the one that acted has had its chance to give the key back.
+                    if (eventName === 'keydown' && !this.passedThrough) {
+                        this.consumedEvent = nativeEvent
+                    }
                     if (eventName === 'wheel' || eventName === 'mouseup' || eventName === 'auxclick') {
                         this.emitHotkeyOff(matched)
                     }
@@ -299,6 +309,32 @@ export class HotkeysService {
             this.clearCurrentKeystrokes()
         }
         return matches[0].id
+    }
+
+    /**
+     * Whether a hotkey fired on this keydown and kept it, so whatever else
+     * would act on the key (xterm typing it into the session, the browser's
+     * default action) must not. Asked after pushKeyEvent() has seen the event.
+     *
+     * Replaces `matchActiveHotkey(true) !== null` at both call sites.
+     * That re-matched the key against the hotkey config and, for a one-chord
+     * hotkey, came back null whenever no plain keystroke had been recorded yet
+     * — after launch, and after every multi-chord hotkey — so the key reached
+     * the terminal as well: Ctrl-C sent ^C twice, Ctrl-Left the word jump twice.
+     * This answers from what actually happened to the event instead.
+     */
+    consumedKeyEvent (event: Event): boolean {
+        return this.consumedEvent === event
+    }
+
+    /**
+     * Called by a hotkey handler, synchronously while handling the hotkey, when
+     * it decided not to act: the keystroke then reaches the terminal as if it
+     * were not bound. `copy` with nothing selected does this, so Ctrl-C bound
+     * to copy still sends ^C, once.
+     */
+    passThrough (): void {
+        this.passedThrough = true
     }
 
     clearCurrentKeystrokes (): void {

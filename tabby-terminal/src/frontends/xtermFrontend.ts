@@ -15,7 +15,6 @@ import { ImageAddon } from '@xterm/addon-image'
 import { BaseTerminalProfile } from '../api/interfaces'
 import { getXtermBackgroundColor } from '../helpers'
 import { generatePalette } from '../generatePalette'
-import { suppressesTerminalKey } from '../imagePaste'
 import './xterm.css'
 
 const COLOR_NAMES = [
@@ -176,11 +175,11 @@ export class XTermFrontend extends Frontend {
 
             this.hotkeysService.pushKeyEvent(name, event)
 
+            // A key a hotkey acted on is the hotkey's alone: typing it as well
+            // is how Ctrl-C sent ^C twice and paste sent a stray ^V. A handler
+            // that did not act gives it back with passThrough().
             let ret = true
-            if (
-                this.hotkeysService.matchActiveHotkey(true) !== null ||
-                event.type === 'keydown' && suppressesTerminalKey(this.hotkeysService.matchActiveHotkey())
-            ) {
+            if (this.hotkeysService.consumedKeyEvent(event)) {
                 event.stopPropagation()
                 event.preventDefault()
                 ret = false
