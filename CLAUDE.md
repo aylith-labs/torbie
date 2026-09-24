@@ -168,7 +168,8 @@ HACKING.md, used by every test here, and already sitting in shell profiles and
 Windows shortcuts, where an unset variable is not an error but a default.
 `app/lib/env.ts` mirrors every variable to the other spelling once at startup, so
 a caller may use either and forty read sites go on reading the name they already
-read. `tabby://` stays registered beside `torbie://` for the same reason.
+read. `tabby://` stays registered beside `torbie://` for the same reason — but
+only where no Tabby is installed, since it is Tabby's scheme first (`app/lib/protocols.ts`).
 `TABBY_SESSION` is deliberately **not** aliased in `tabby-local/src/session.ts`:
 it is a pane identity that `tabby-resume`'s WSL probe greps for, and a pane
 started before the rename is still carrying it.
@@ -966,11 +967,16 @@ throughout, where the build before these fixes turned visible about ten
 seconds in. A hidden launch that shows a window is a bug to fix, not a test to
 stop running.
 
-Still wrong, and left alone by decision: the protocol registration in
-`index.ts` passes `process.argv[1]` as the app path for a source launch, which
-is `--user-data-dir=…` whenever switches come first. So every dev launch
-re-registers `tabby://` and `torbie://` to a command that cannot start the app;
-record both handlers before a launch and put them back after.
+A dev launch no longer touches the URL-scheme handlers. It used to: `index.ts`
+registered `tabby://` and `torbie://` on every launch, passing `process.argv[1]`
+as the app path, which is `--user-data-dir=…` whenever switches come first — so
+both schemes ended up on a command that cannot start the app. Now
+`app/lib/protocols.ts` lets only the **installed** build register (packaged,
+`Uninstall <Product>.exe` beside it, no `--user-data-dir`/`--dev`), and it takes
+`tabby://` only while no Tabby is installed or when the handler is already its
+own exe — never from a Tabby. The context-menu integration
+(`shellIntegration.service.ts`) follows the same rule for its launch-time
+rewrite. Pinned by `app/test/protocols.test.js` (fast tier).
 
 ```bash
 NODE_PATH=<repo>/app/node_modules TABBY_PLUGINS= TABBY_DEV=1 \

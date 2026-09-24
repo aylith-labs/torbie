@@ -111,9 +111,28 @@ export class ShellIntegrationService {
         }
     }
 
+    /**
+     * Only the installed build rewrites the context menu by itself. Upstream
+     * re-ran `install()` on every launch of every build, so a source launch
+     * pointed "Open Torbie here" at a bare electron.exe that cannot start the
+     * app, and a build slot took it from the installed build. The same rule as
+     * `app/lib/protocols.ts`: packaged, with the installer's uninstaller beside
+     * it. Installing from Settings stays available to any build — that one is
+     * asked for.
+     */
+    private async isInstalledBuild (): Promise<boolean> {
+        const app = this.electron.app
+        if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_FILE) {
+            return false
+        }
+        const exe = app.getPath('exe')
+        const product = path.basename(exe).replace(/\.exe$/i, '')
+        return fs.exists(path.join(path.dirname(exe), `Uninstall ${product}.exe`))
+    }
+
     private async updatePaths (): Promise<void> {
         // Update paths in case of an update
-        if (this.hostApp.platform === Platform.Windows) {
+        if (this.hostApp.platform === Platform.Windows && await this.isInstalledBuild()) {
             if (await this.isInstalled()) {
                 await this.install()
             }

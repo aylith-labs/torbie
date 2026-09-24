@@ -67,6 +67,8 @@ import electronDebug from 'electron-debug'
 import { loadConfig } from './config'
 import { fatalStartupError } from './fatal'
 import { armBootWatchdog } from './watchdog'
+import { readProtocolCommand, schemesToRegister } from './protocols'
+import * as fs from 'fs'
 
 mark('modules-loaded')
 
@@ -90,13 +92,19 @@ const application = new Application(configStore)
 mark('application-constructed')
 
 // Register the torbie:// URL scheme, and tabby:// alongside it so a link
-// written before the rename still opens.
-for (const scheme of ['torbie', 'tabby']) {
-    if (process.defaultApp) {
-        if (process.argv.length >= 2) {
-            app.setAsDefaultProtocolClient(scheme, process.execPath, [process.argv[1]])
-        }
-    } else {
+// written before the rename still opens — from the installed build only, and
+// tabby:// never away from an installed Tabby. See `protocols.ts`.
+{
+    const facts = {
+        platform: process.platform,
+        defaultApp: !!process.defaultApp,
+        isPackaged: app.isPackaged,
+        execPath: process.execPath,
+        argv: process.argv,
+        env: process.env,
+        exists: (p: string) => fs.existsSync(p),
+    }
+    for (const scheme of schemesToRegister(facts, readProtocolCommand)) {
         app.setAsDefaultProtocolClient(scheme)
     }
 }
