@@ -20,6 +20,28 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "builds-conflicts": {
+    problem:
+      "Torbie 1.0.0 was installed beside a Tabby running six processes with live Claude Code sessions. It copied Tabby's profile, so both carried the same plugins and the same hotkey, and three resources collided with nothing said anywhere: tabby-mcp-server reports EADDRINUSE only to its own log, the app ignores whether <code>globalShortcut.register</code> succeeded, and the Claude hook spool is consume-and-delete, so two readers split the events between them.",
+    how:
+      "When the window gains focus, at most every 30 seconds, <code>BuildConflictsService</code> groups running Tabby and Torbie processes by executable, finds each other app's config (beside a portable build, under <code>%APPDATA%</code> for an installed one, unknown for an <code>electron.exe</code> source build) and compares. The MCP port comes from <code>netstat -ano</code>, attributed by PID; the hotkey from <code>globalShortcut.isRegistered</code>, for each accelerator converted the way <code>registerGlobalHotkey</code> converts it; Claude events from tabby-claude-status's heartbeat files. Each new conflict raises one toast naming the other app, and Settings → Builds says what goes wrong and what this app can do about it.",
+    sample: {
+      label: "netstat -ano on the machine this was written on: Tabby's MCP server, once per address family",
+      text: "  TCP    0.0.0.0:3001           0.0.0.0:0              LISTENING       5716\n  TCP    [::]:3001              [::]:0                 LISTENING       5716",
+    },
+    notes: [
+      "The MCP actions move this app's server to the first free port from 3002, with <code>claude mcp add --transport http torbie-mcp http://localhost:&lt;port&gt;/mcp</code> ready to copy, or stop it starting here. The hotkey actions clear this app's <code>toggle-window</code> or open Settings → Hotkeys. Nothing is ever done to the other app.",
+      "Claude Code entries are read from <code>$CLAUDE_CONFIG_DIR/.claude.json</code>, else <code>~/.claude.json</code>, and matched on loopback and on this machine's own addresses, since an entry naming the WSL adapter address reaches the same server. Query strings and headers are never shown.",
+      "A heartbeat with no <code>app</code> field comes from an older tabby-claude-status; it is attributed through the PID in its id and counted as reading events.",
+      "<code>builds.detectConflicts</code> (on) turns it off, from Builds → Options.",
+    ],
+    caveats: [
+      "The MCP port is checked on Windows only, because the socket table comes from <code>netstat</code>. The hotkey and Claude checks run elsewhere but have only been exercised on Windows.",
+      "The hotkey holder is a likely one: Windows does not say which application registered a chord, so a running app whose settings bind it is named.",
+      "A Claude Code config inside a WSL distro is not read, so entries there are not listed; the count of connections to the port still reflects those clients.",
+    ],
+  },
+
   "readable-everywhere": {
     problem:
       "On a light scheme, settings descriptions sat in pale grey on grey panels, the profile selector's ENTER hint was white on light grey, an SSH badge was white on near-white and a Telnet one black on bright blue. Accordions were stacked grey slabs, and on a dark scheme a full-height white stripe ran between the vertical tab bar and the tab.",
@@ -912,7 +934,7 @@ window.FEATURE_DETAILS = {
       { key: "builds.pauseWhenUnfocused", def: "true", note: "Stop polling while the window is unfocused — it costs a subprocess." },
       { key: "builds.autoSize", def: "true", note: "Walk each build's size off the render path, one at a time, and cache it." },
       { key: "builds.autoDiagnose", def: "true", note: "Health-check each build on every scan." },
-      { key: "builds.watchForNewBuilds", def: "true", note: "Offer to switch when a newer slot or installed build of the same product appears. An installed release is never offered one, and only a slot that is not the active build can be deleted on the way out." },
+      { key: "builds.watchForNewBuilds", def: "true", note: "Offer to switch when a newer slot or installed build of the same product appears. An installed release is never offered one, a build of the running commit or of an ancestor of it is not newer however recently it was copied, and only a slot that is not the active build can be deleted on the way out." },
     ],
     notes: [
       "<strong>Processes are attributed by executable path</strong>, from one PowerShell call per poll. <code>tasklist</code> cannot report a path, and two builds both called <code>Tabby.exe</code> are otherwise indistinguishable. Linux reads <code>/proc</code> directly rather than spawning <code>ps</code>.",

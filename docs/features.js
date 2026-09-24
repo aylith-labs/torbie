@@ -27,6 +27,12 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "builds-conflicts", title: "Another running app that wants the same port, hotkey or Claude events is named",
+    cat: "builds", catLabel: "Builds", dateAdded: "2026-09-24",
+    commits: ["5e4911ae","b3f66181"], files: 16, ins: 3146, del: 3,
+    desc: "Running Torbie beside Tabby made three collisions silent: the MCP plugin's port, the global hotkey, and the consume-and-delete Claude hook spool. Torbie now checks when its window gains focus, names the other app and its PID, says what goes wrong in one sentence, and offers what this app can do: move its own MCP server to a free port and show the Claude Code command to match, stop starting it, or clear its own hotkey. It never touches the other app.",
+  },
+  {
     id: "readable-everywhere", title: "Text reads on every surface, and accordions are outlines",
     cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-12",
     commits: ["a65c43d2", "101900fc"], files: 6, ins: 489, del: 54,
@@ -399,8 +405,8 @@ window.FEATURES = [
     cat: "builds", catLabel: "Builds",
     standout: true,
     dateAdded: "2026-08-10",
-    commits: ["9fe5587d","5a999661","fad4b2bb","2c20ac31","be8412bc","81dd27d2","95b0e643","69ae9766","ec3870c4","925a1b2b","d0637cfd","5eacc8cc","09250c45"],
-    files: 83, ins: 4473, del: 194,
+    commits: ["9fe5587d","5a999661","fad4b2bb","2c20ac31","be8412bc","81dd27d2","95b0e643","69ae9766","ec3870c4","925a1b2b","d0637cfd","5eacc8cc","09250c45","d9e2ea2f"],
+    files: 89, ins: 4660, del: 220,
     desc: "Settings → Builds lists the installed app, the webpack output this fork runs from, electron-builder output inside a checkout, frozen build slots and installer files — with live process counts, memory and uptime, size on disk, build time, arch, branch and provenance. Processes are attributed by executable path, because two builds both called Tabby.exe are otherwise indistinguishable.",
   },
   {
