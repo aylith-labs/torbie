@@ -1,5 +1,7 @@
 .content
-    ul.nav-pills(ngbNav, #nav='ngbNav', [activeId]='activeTab', orientation='vertical')
+    ul.nav-pills(ngbNav, #nav='ngbNav', [activeId]='activeTab', orientation='vertical', (navChange)='search.open = false')
+        li.nav-search(role='presentation')
+            settings-search(#search, [nav]='nav', [providers]='settingsProviders')
         li.nav-group-label(role='presentation') {{navGroups[0].title|translate}}
         li(ngbNavItem='application')
             a(ngbNavLink, draggable='false')
@@ -155,7 +157,8 @@
                             i.fas.fa-external-link-square-alt.me-2
                             span(translate) Show config file
 
-    div([ngbNavOutlet]='nav')
+    div([ngbNavOutlet]='nav', [class.search-covered]='search.open')
+    settings-search-results(*ngIf='search.open', [search]='search')
 
 button.btn.btn-warning.btn-block(
     *ngIf='config.restartRequested',

@@ -1,0 +1,38 @@
+// Global: these reach elements the search does not own.
+
+// The stage the index renders every page into. Laid out, so pages draw as they
+// would on screen, but never painted, hit or focused.
+.settings-search-index {
+    position: fixed;
+    left: -100000px;
+    top: 0;
+    width: 640px;
+    visibility: hidden;
+    pointer-events: none;
+    contain: layout paint style;
+}
+
+// A row the search opened. Background and a shadow only: nothing that changes
+// the row's box, so the page does not shift under the reader.
+@keyframes settings-search-flash {
+    0%, 35% {
+        background-color: color-mix(in srgb, var(--theme-warning, #e5c07b) 22%, transparent);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-warning, #e5c07b) 80%, transparent);
+    }
+
+    100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 2px transparent;
+    }
+}
+
+.settings-search-flash {
+    border-radius: 4px;
+    animation: settings-search-flash 1.6s ease-out;
+}
+
+body.no-animations .settings-search-flash {
+    animation: none;
+    background-color: color-mix(in srgb, var(--theme-warning, #e5c07b) 22%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-warning, #e5c07b) 80%, transparent);
+}

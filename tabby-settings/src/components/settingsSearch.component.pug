@@ -1,0 +1,30 @@
+.settings-search-box
+    i.fas.fa-search.search-icon(aria-hidden='true')
+    input.form-control(
+        #input,
+        type='text',
+        role='combobox',
+        autocomplete='off',
+        spellcheck='false',
+        aria-autocomplete='list',
+        aria-controls='settings-search-results',
+        [attr.aria-expanded]='open',
+        [attr.aria-activedescendant]='open && view.length ? "settings-search-result-" + activeIndex : null',
+        [attr.aria-label]='placeholder',
+        [placeholder]='placeholder',
+        [(ngModel)]='query',
+        (ngModelChange)='onQuery()',
+        (focus)='onFocus()',
+        (keydown)='onKeyDown($event)'
+    )
+    button.clear(
+        *ngIf='query',
+        type='button',
+        tabindex='-1',
+        [attr.aria-label]='"Clear"|translate',
+        (mousedown)='$event.preventDefault()',
+        (click)='clear(); focus()'
+    )
+        i.fas.fa-times
+    kbd.shortcut(*ngIf='!query', aria-hidden='true') Ctrl+F
+ng-container(#indexHost)

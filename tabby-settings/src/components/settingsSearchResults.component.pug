@@ -1,0 +1,37 @@
+.results-inner
+    .summary(*ngIf='search.indexing')
+        i.fas.fa-circle-notch.fa-spin.me-2
+        span(translate) Indexing settings…
+    .summary(*ngIf='!search.indexing && !search.view.length')
+        span(translate) No settings match your search
+    #settings-search-results(role='listbox', [attr.aria-label]='"Search results"|translate')
+        .result(
+            *ngFor='let item of search.view; let i = index; trackBy: trackIndex',
+            role='option',
+            [id]='"settings-search-result-" + i',
+            [class.active]='i === search.activeIndex',
+            [attr.aria-selected]='i === search.activeIndex',
+            [attr.data-kind]='item.result.entry.kind',
+            (mouseenter)='search.activeIndex = i',
+            (mousedown)='$event.preventDefault()',
+            (click)='search.openResult(i)'
+        )
+            .crumbs
+                i(class='fas fa-fw fa-{{item.icon}}', aria-hidden='true')
+                span.crumb(
+                    *ngFor='let crumb of item.crumbs',
+                    [class.leading]='crumb.leading',
+                    [class.trailing]='crumb.trailing'
+                )
+                    span(*ngFor='let s of crumb.segments', [class.match]='s.match') {{s.text}}
+            .title(
+                [class.leading]='item.title.leading',
+                [class.trailing]='item.title.trailing'
+            )
+                span(*ngFor='let s of item.title.segments', [class.match]='s.match') {{s.text}}
+            .description(
+                *ngIf='item.description',
+                [class.leading]='item.description.leading',
+                [class.trailing]='item.description.trailing'
+            )
+                span(*ngFor='let s of item.description.segments', [class.match]='s.match') {{s.text}}

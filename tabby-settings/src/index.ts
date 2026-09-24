@@ -13,6 +13,8 @@ import { HotkeySettingsTabComponent } from './components/hotkeySettingsTab.compo
 import { MultiHotkeyInputComponent } from './components/multiHotkeyInput.component'
 import { SettingsTabComponent } from './components/settingsTab.component'
 import { SettingsTabBodyComponent } from './components/settingsTabBody.component'
+import { SettingsSearchComponent } from './components/settingsSearch.component'
+import { SettingsSearchResultsComponent } from './components/settingsSearchResults.component'
 import { WindowSettingsTabComponent } from './components/windowSettingsTab.component'
 import { VaultSettingsTabComponent }  from './components/vaultSettingsTab.component'
 import { SetVaultPassphraseModalComponent } from './components/setVaultPassphraseModal.component'
@@ -57,6 +59,8 @@ import { HotkeySettingsTabProvider, WindowSettingsTabProvider, VaultSettingsTabP
         ProfilesSettingsTabComponent,
         SettingsTabComponent,
         SettingsTabBodyComponent,
+        SettingsSearchComponent,
+        SettingsSearchResultsComponent,
         SetVaultPassphraseModalComponent,
         VaultSettingsTabComponent,
         WindowSettingsTabComponent,

@@ -33,6 +33,13 @@ export abstract class SettingsTabProvider {
      * pages that section does not already list.
      */
     group?: string
+    /**
+     * One line saying what the page is for. Optional and add-only: settings
+     * search matches it after the page's title, and shows it under the page in
+     * the results. A page with none is described by id when this app knows it
+     * (`SETTINGS_PAGE_DESCRIPTIONS`), and otherwise by its title alone.
+     */
+    description?: string
 
     getComponentType (): any {
         return null

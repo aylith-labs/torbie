@@ -29,6 +29,7 @@
     }
 
     > .content {
+        position: relative;
         display: flex;
         min-height: 0;
         flex: 1 0 0;
@@ -43,6 +44,18 @@
             // A section heading, not a page. It carries no `.nav-link`, so the
             // arrow keys (ngbNav walks its links), the active state, and every
             // test that finds pages by `.nav-link` pass straight over it.
+            // The search box stays in reach while the nav scrolls. The negative
+            // margin takes back the nav's own padding so the sticky strip covers
+            // links scrolling under it edge to edge.
+            > .nav-search {
+                position: sticky;
+                top: -20px;
+                z-index: 2;
+                margin: -20px -10px 6px;
+                padding: 20px 10px 8px;
+                background: var(--body-bg);
+            }
+
             > .nav-group-label {
                 margin: 16px 0 4px;
                 // The link's own horizontal padding, so the label starts where
@@ -66,6 +79,20 @@
                     margin-top: 0;
                 }
             }
+        }
+
+        // Results are drawn over the page, which keeps its scroll position
+        // and state underneath for when the search is dismissed.
+        > settings-search-results {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 222px;
+            right: 0;
+        }
+
+        > .tab-content.search-covered {
+            visibility: hidden;
         }
 
         > .tab-content {

@@ -1,0 +1,107 @@
+:host {
+    display: block;
+    overflow-y: auto;
+    padding: 20px 30px;
+}
+
+.results-inner {
+    max-width: 760px;
+}
+
+.summary {
+    padding: 4px 12px 10px;
+    font-size: 12px;
+    color: var(--theme-muted-fg);
+}
+
+.result {
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    // An inset shadow, not a border: the active row must not move its text.
+    box-shadow: inset 3px 0 0 transparent;
+
+    &.active {
+        background: var(--theme-bg-more);
+        box-shadow: inset 3px 0 0 var(--theme-accent, var(--bs-primary));
+    }
+}
+
+.crumbs {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--theme-muted-fg);
+
+    > i {
+        flex: none;
+        font-size: 10px;
+    }
+}
+
+.crumb {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+// The separator is drawn beside the crumb, not inside it, so a crumb's own
+// leading ellipsis still sits against its text.
+.crumb + .crumb {
+    position: relative;
+    padding-left: 14px;
+
+    // Absolutely placed so it takes no part in the crumb's text run.
+    > :first-child::before {
+        content: '›';
+        position: absolute;
+        left: 2px;
+    }
+}
+
+.title {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--theme-fg);
+}
+
+.description {
+    font-size: 12px;
+    line-height: 17px;
+    color: var(--theme-muted-fg);
+}
+
+// Cut text is marked by the ellipsis alone. It is drawn by CSS, so no template
+// whitespace can land between it and the text.
+.leading::before {
+    content: '…';
+}
+
+.trailing::after {
+    content: '…';
+}
+
+// The match is marked by colour alone. No padding, margin, border or weight:
+// any of those would widen the run and move every character after it, which
+// is exactly what a highlight must not do while the query is being typed.
+.match {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    color: var(--theme-fg);
+    // A quarter-strength tint keeps full-strength text above 4.5:1 on a dark
+    // scheme as well as a light one (40% measured 3.57:1 on Afterglow); the
+    // underline carries the rest of the cue.
+    background: color-mix(in srgb, var(--theme-warning, #e5c07b) 25%, transparent);
+    border-radius: 2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--theme-warning, #e5c07b) 85%, var(--theme-fg));
+    text-underline-offset: 2px;
+}
