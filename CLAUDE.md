@@ -564,7 +564,7 @@ Run the dev build **only** with an isolated profile and a scrubbed environment:
 
 ```bash
 PROFILE='<scratch>/tabby-profile'
-NODE_PATH='C:\Users\steve\projects\tabby\app\node_modules' \
+NODE_PATH='C:\Users\steve\projects\torbie\app\node_modules' \
 TABBY_PLUGINS= TABBY_DEV=1 TABBY_CONFIG_DIRECTORY="$PROFILE" \
   ./node_modules/electron/dist/electron.exe --user-data-dir="$PROFILE" app --enable-logging=stderr
 ```
@@ -2349,7 +2349,7 @@ by reading `%APPDATA%\Microsoft\Windows\Recent\CustomDestinations` — the files
 are shell links, so the paths inside are greppable as UTF-16:
 
 - **The dev build keeps its own file.** Its entries name
-  `…\projects\tabby\node_modules\electron\dist\electron.exe`; a packaged
+  `…\projects\torbie\node_modules\electron\dist\electron.exe`; a packaged
   build's name a `Torbie.exe` or a `Tabby.exe`. So running a dev instance does
   not overwrite a packaged build's list — but that is asserted, not relied on:
   `app/test/jumpList.test.js` hashes every jump list file naming either

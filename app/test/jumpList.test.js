@@ -24,7 +24,7 @@
 // to this electron.exe — is hashed before the run and must hash the same after.
 // Measured on this machine before writing any of it, the dev build already
 // keeps its own file (its entries name
-// `…\projects\tabby\node_modules\electron\dist\electron.exe`) separate from the
+// `…\projects\torbie\node_modules\electron\dist\electron.exe`) separate from the
 // packaged builds' (`…\Tabby\builds\dev\Tabby.exe`), so the two identities are
 // genuinely distinct — but "genuinely distinct" is exactly the kind of thing
 // that stops being true quietly, so the run asserts it instead of relying on it.
