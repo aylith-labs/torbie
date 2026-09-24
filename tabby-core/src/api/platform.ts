@@ -161,6 +161,15 @@ export abstract class PlatformService {
 
     abstract readClipboard (): string
     abstract setClipboard (content: ClipboardContent): void
+
+    /**
+     * Whether the clipboard holds an image. Not abstract, so a plugin's platform
+     * that cannot tell keeps compiling and answers no, which leaves paste as it was.
+     */
+    clipboardHasImage (): boolean {
+        return false
+    }
+
     abstract loadConfig (): Promise<string>
     abstract saveConfig (content: string): Promise<void>
 

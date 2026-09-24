@@ -3104,6 +3104,45 @@ selection searches as ordinary terms.
   spaces — a terminal selection can be megabytes, and a multi-line one has to
   search, and label, as one line.
 
+## Pasting an image (`tabby-terminal/src/imagePaste.ts`)
+
+A terminal can only paste text, so Claude Code pastes images by reading the OS
+clipboard itself when it sees Ctrl+V (0x16) — on WSL through `powershell.exe`,
+where its own keybinding table maps `ctrl+v` to `chat:imagePaste`. Paste with
+an image and **no** text on the clipboard now sends that byte instead of an
+empty paste; `terminal.forwardCtrlVForImages` (on) turns it off. Text, including
+text copied beside an image, pastes exactly as before.
+
+- **The bug was two triggers, not zero.** With Ctrl-V bound to `paste` (the
+  user's config; the Windows default is Ctrl-Shift-V), one keystroke sent
+  `ESC[200~ESC[201~` from the paste hotkey *and* a raw 0x16 from xterm. Claude
+  Code treats an empty bracketed paste on WSL/macOS as an image paste too, so it
+  started two concurrent `powershell.exe` clipboard reads, which contend for the
+  Windows clipboard. Measured in a hidden dev build against the real Claude Code
+  2.1.281 in a WSL pane: an empty paste alone attached 0, 2, 1, 0 images over four
+  tries; empty paste then 0x16, 30ms apart, attached one each time with a "No image
+  found" notice on three; 0x16 alone, 3/3 clean; after the fix, Ctrl+V 4/4 clean.
+- **Why the key leaked: `matchActiveHotkey(true)` never matches a single-chord
+  hotkey** (`partial ? lastIndex > 0 : matched` — `lastIndex` stays 0 for one
+  chord), so xterm's key handler lets every such key through as well. It is
+  upstream's code, and it is general: Ctrl+C with no selection sends ^C twice and
+  Ctrl+Left sends `ESC[1;5D` twice (both measured). It only shows when xterm can
+  encode the key, which Ctrl-Shift chords it cannot. **Fixed for `paste` alone**
+  (`suppressesTerminalKey`): the rest have handlers and plugins — Shift-Enter in
+  `tabby-backslash-newline` — built around today's behaviour.
+- **Windows Terminal sends the empty bracketed paste** ("LOAD BEARING", in
+  `TerminalPage.cpp`) and relies on the app to look; it has no stray 0x16, so it
+  works. Sending 0x16 is chosen over copying that because it is Claude Code's
+  own key on WSL, macOS and Linux, and measured more reliable than its empty-paste
+  path. The cost: in a shell, 0x16 is readline's quoted-insert, so pasting an
+  image at a bash prompt quotes the next key.
+- `clipboardHasImage()` is **not abstract** on `PlatformService`, so a plugin's
+  platform keeps compiling and answers no. Electron's reads `availableFormats()`
+  rather than decoding the bitmap; a Windows DIB is listed as `image/png`.
+- `imagePaste.test.js` (fast) holds the decision; `imagePaste.cdp.js` sends
+  trusted Ctrl+V key events and reads what reaches the session, with the
+  platform's clipboard reads stubbed so the user's clipboard is never touched.
+
 ## Changed upstream defaults
 
 Kept to a minimum — every one is a line that conflicts on rebase.

@@ -47,6 +47,7 @@ const FAST = [
     'tabby-settings/test/navGroups.test.js',
     'tabby-terminal/test/webSearch.test.js',
     'tabby-terminal/test/colorSchemeTone.test.js',
+    'tabby-terminal/test/imagePaste.test.js',
 ]
 
 /**
@@ -110,6 +111,7 @@ const CDP = [
     'tabby-settings/test/navGroups.cdp.js',
     'tabby-terminal/test/colorSchemePage.cdp.js',
     'tabby-terminal/test/glyphs.cdp.js',
+    'tabby-terminal/test/imagePaste.cdp.js',
     'tabby-terminal/test/webSearch.cdp.js',
     'tabby-upstream/test/forkMarks.cdp.js',
     'tabby-upstream/test/upstream.cdp.js',

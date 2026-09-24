@@ -80,6 +80,12 @@ export class ElectronPlatformService extends PlatformService {
         return this.electron.clipboard.readText()
     }
 
+    clipboardHasImage (): boolean {
+        // The format list, not readImage(): that decodes the whole bitmap to
+        // answer a yes/no. A Windows DIB is listed as image/png.
+        return this.electron.clipboard.availableFormats().some(format => format.startsWith('image/'))
+    }
+
     setClipboard (content: ClipboardContent): void {
         require('@electron/remote').clipboard.write(content)
     }

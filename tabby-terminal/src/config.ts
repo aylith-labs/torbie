@@ -24,6 +24,10 @@ export class TerminalConfigProvider extends ConfigProvider {
             linePadding: 0,
             bell: 'off',
             bracketedPaste: true,
+            // Paste with an image and no text on the clipboard sends Ctrl+V
+            // (0x16) so the app reads the image itself - Claude Code's image
+            // paste. See imagePaste.ts.
+            forwardCtrlVForImages: true,
             background: 'theme',
             ligatures: false,
             cursor: 'block',

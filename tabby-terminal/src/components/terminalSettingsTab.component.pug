@@ -146,6 +146,15 @@ div.mt-4
 
     .form-line
         .header
+            .title.fork-mark(translate) Let apps paste clipboard images
+            .description(translate) When the clipboard holds an image and no text, paste sends Ctrl+V so the app can read the image itself, as Claude Code does
+        toggle(
+            [(ngModel)]='config.store.terminal.forwardCtrlVForImages',
+            (ngModelChange)='config.save()',
+        )
+
+    .form-line
+        .header
             .title(translate) Warn on multi-line paste
             .description(translate) Show a confirmation box when pasting multiple lines
         toggle(

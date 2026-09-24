@@ -14,6 +14,7 @@ import { TerminalDecorator } from './decorator'
 import { SearchPanelComponent } from '../components/searchPanel.component'
 import { MultifocusService } from '../services/multifocus.service'
 import { getTerminalBackgroundColor } from '../helpers'
+import { imagePasteInput } from '../imagePaste'
 
 
 const INACTIVE_TAB_UNLOAD_DELAY = 1000 * 30
@@ -529,6 +530,17 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
 
     async paste (): Promise<void> {
         let data = this.platform.readClipboard()
+        // An image and no text: hand the app its own Ctrl+V so it can read the
+        // clipboard itself (Claude Code's image paste). See imagePaste.ts.
+        const imageInput = imagePasteInput(
+            data,
+            data === '' && this.platform.clipboardHasImage(),
+            this.config.store.terminal.forwardCtrlVForImages,
+        )
+        if (imageInput !== null) {
+            this.sendInput(imageInput)
+            return
+        }
         if (this.hostApp.platform === Platform.Windows) {
             data = data.replaceAll('\r\n', '\r')
         } else {

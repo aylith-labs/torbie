@@ -15,6 +15,7 @@ import { ImageAddon } from '@xterm/addon-image'
 import { BaseTerminalProfile } from '../api/interfaces'
 import { getXtermBackgroundColor } from '../helpers'
 import { generatePalette } from '../generatePalette'
+import { suppressesTerminalKey } from '../imagePaste'
 import './xterm.css'
 
 const COLOR_NAMES = [
@@ -176,7 +177,10 @@ export class XTermFrontend extends Frontend {
             this.hotkeysService.pushKeyEvent(name, event)
 
             let ret = true
-            if (this.hotkeysService.matchActiveHotkey(true) !== null) {
+            if (
+                this.hotkeysService.matchActiveHotkey(true) !== null ||
+                event.type === 'keydown' && suppressesTerminalKey(this.hotkeysService.matchActiveHotkey())
+            ) {
                 event.stopPropagation()
                 event.preventDefault()
                 ret = false

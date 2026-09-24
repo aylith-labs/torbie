@@ -106,6 +106,7 @@
     "sidePanel.side",
     "sidePanel.size",
     "terminal.fallbackFont",
+    "terminal.forwardCtrlVForImages",
     "terminal.webSearchQueryURL",
     "upstream",
     "upstream.branch",
