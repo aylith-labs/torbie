@@ -1,7 +1,13 @@
 import { Injectable } from '@angular/core'
 import { BaseTerminalTabComponent, TerminalDecorator } from 'tabby-terminal'
 
+import { first } from 'rxjs'
+
+import { lifecycleNote } from './lifecycle'
 import { RenderTiming } from './timing'
+
+/** Once per process: the launch timeline wants the first, not every one. */
+let firstOutputSeen = false
 
 /**
  * Attaches the write-path timer to every terminal.
@@ -17,6 +23,14 @@ export class RenderTimingDecorator extends TerminalDecorator {
     private nextId = 1
 
     attach (tab: BaseTerminalTabComponent<any>): void {
+        if (!firstOutputSeen) {
+            this.subscribeUntilDetached(tab, tab.output$.pipe(first()).subscribe(() => {
+                if (!firstOutputSeen) {
+                    firstOutputSeen = true
+                    lifecycleNote('first-terminal-output', { title: tab.title })
+                }
+            }))
+        }
         const xterm = (tab.frontend as any)?.xterm
         if (!xterm) {
             // A frontend that is not xterm-backed, or not ready yet. Nothing to
@@ -33,6 +47,7 @@ export class RenderTimingDecorator extends TerminalDecorator {
         // has to have been kept here rather than looked up from the tab.
         this.undo.get(tab)?.()
         this.undo.delete(tab)
+        super.detach(tab)
         if (!this.undo.size) {
             // Last terminal closed: flush whatever the session accumulated
             // rather than discarding it.

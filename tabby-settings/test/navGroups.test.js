@@ -99,7 +99,7 @@ check('the nav, in order', render(real), [
     '#links', 'link-tooltip', 'integrations',
     '#claude', 'claude',
     '#plugins', 'plugins',
-    '#development', 'builds', 'upstream',
+    '#development', 'builds', 'upstream', 'startup',
     '#configuration', 'config-sync', 'config-file',
 ])
 check('nothing is lost or doubled', real.flatMap(g => g.providers).length, builtins.length)

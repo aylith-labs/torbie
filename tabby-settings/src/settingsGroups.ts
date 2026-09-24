@@ -39,7 +39,7 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroupDefinition[] = [
     // plugin is not installed the id matches nothing and costs nothing.
     { id: 'claude', title: _('Claude'), pages: ['claude', 'claude-status'] },
     { id: 'plugins', title: _('Plugins'), pages: ['plugins'] },
-    { id: 'development', title: _('Development'), pages: ['builds', 'upstream'] },
+    { id: 'development', title: _('Development'), pages: ['builds', 'upstream', 'startup'] },
     { id: 'configuration', title: _('Configuration'), pages: ['config-sync', 'config-file'] },
 ]
 

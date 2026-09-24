@@ -1,0 +1,369 @@
+// Everything here takes its colour from the app theme's variables, so the page
+// follows light and dark (and the chosen scheme) with nothing of its own to
+// switch. Fallbacks keep it legible under a theme that defines none of them.
+$muted: var(--theme-muted-fg, color-mix(in srgb, currentColor 60%, transparent));
+$rule: color-mix(in srgb, currentColor 14%, transparent);
+$track: var(--theme-bg-more, color-mix(in srgb, currentColor 6%, transparent));
+$phase: var(--theme-primary, #3b82f6);
+$timed: var(--theme-success, #16a34a);
+$stall: var(--theme-warning, #d97706);
+$failure: var(--theme-danger, #dc2626);
+
+:host {
+    display: block;
+    container: startup-page / inline-size;
+}
+
+.summaries {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+}
+
+.summary {
+    border: 1px solid $rule;
+    border-radius: 6px;
+    padding: 10px 12px;
+
+    .value {
+        font-size: 24px;
+        font-weight: 300;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .label {
+        font-weight: 600;
+        margin-top: 2px;
+    }
+
+    .hint, .delta {
+        font-size: 12px;
+        color: $muted;
+    }
+
+    .delta.worse {
+        color: var(--theme-warning-text, $muted);
+        font-weight: 600;
+    }
+
+    .delta.better {
+        color: var(--theme-success-text, $muted);
+    }
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    .launch {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .meta {
+        color: $muted;
+        font-size: 12px;
+    }
+
+    .controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+}
+
+// ── Waterfall ───────────────────────────────────────────────────────────────
+
+$label-w: minmax(180px, 30%);
+
+.waterfall {
+    border: 1px solid $rule;
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.wf-head, .wf-row {
+    display: grid;
+    grid-template-columns: $label-w 76px 70px 62px 1fr;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0 10px;
+}
+
+.wf-head {
+    color: $muted;
+    font-weight: 600;
+    height: 26px;
+    border-bottom: 1px solid $rule;
+
+    .wf-track {
+        height: 100%;
+    }
+
+    .tick {
+        position: absolute;
+        top: 5px;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        font-weight: normal;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.wf-row {
+    height: 22px;
+    border-left: 3px solid transparent;
+
+    &:hover {
+        background: $track;
+    }
+
+    &.role-main { border-left-color: color-mix(in srgb, currentColor 45%, transparent); }
+    &.role-renderer { border-left-color: transparent; }
+}
+
+.wf-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+
+    .text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.dot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: $muted;
+}
+
+.wf-proc, .wf-at, .wf-dur {
+    color: $muted;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.wf-at, .wf-dur {
+    text-align: right;
+}
+
+.wf-track {
+    position: relative;
+    height: 12px;
+}
+
+.grid {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 1px;
+    background: $rule;
+}
+
+.bar {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    min-width: 2px;
+    border-radius: 2px;
+    background: $muted;
+}
+
+.pin {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    width: 2px;
+    margin-left: -1px;
+    background: $muted;
+}
+
+@mixin coloured ($c) {
+    .dot, .bar, .pin, .swatch { background: $c; }
+}
+
+.type-phase { @include coloured($phase); }
+.type-timed { @include coloured($timed); }
+.type-stall {
+    @include coloured($stall);
+    .wf-label .text { font-weight: 600; }
+}
+.type-failure {
+    @include coloured($failure);
+    .wf-label .text { font-weight: 600; }
+}
+
+.empty {
+    padding: 10px;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 12px;
+    color: $muted;
+    margin-top: 6px;
+
+    .key {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 8px;
+        border-radius: 2px;
+
+        &.outline {
+            background: transparent;
+            border-left: 3px solid transparent;
+            border-radius: 0;
+            height: 12px;
+            width: 3px;
+        }
+    }
+
+    .role-main .swatch.outline { border-left-color: color-mix(in srgb, currentColor 45%, transparent); }
+    .role-renderer .swatch.outline { border-left-color: $rule; }
+}
+
+// ── Later events ────────────────────────────────────────────────────────────
+
+.later {
+    border: 1px solid $rule;
+    border-radius: 6px;
+    max-height: 260px;
+    overflow: auto;
+    font-size: 12px;
+}
+
+.later-row {
+    display: grid;
+    grid-template-columns: 90px 80px 1fr 80px 70px;
+    gap: 8px;
+    padding: 2px 10px;
+    align-items: center;
+
+    &:nth-child(even) { background: $track; }
+
+    .clock, .at, .proc, .took {
+        color: $muted;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .at, .took { text-align: right; }
+
+    &.type-stall .what { color: var(--theme-warning-text, inherit); font-weight: 600; }
+    &.type-failure .what { color: var(--theme-danger-text, inherit); font-weight: 600; }
+}
+
+// ── History ─────────────────────────────────────────────────────────────────
+
+.history {
+    border: 1px solid $rule;
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.h-row {
+    display: grid;
+    grid-template-columns: 150px minmax(120px, 190px) 64px 64px 64px 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+
+    &:hover { background: $track; }
+    &.selected { border-left-color: $phase; background: $track; }
+
+    &.h-head {
+        cursor: default;
+        color: $muted;
+        font-weight: 600;
+        border-bottom: 1px solid $rule;
+        &:hover { background: none; }
+    }
+
+    .badge {
+        background: $phase;
+        color: var(--theme-primary-contrast-fg, #fff);
+        font-weight: 600;
+    }
+}
+
+.h-build {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: $muted;
+}
+
+.h-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.h-bar {
+    position: relative;
+    height: 12px;
+    background: $track;
+    border-radius: 2px;
+
+    .h-head & { background: none; height: auto; }
+}
+
+.seg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    // A hairline of the page between stages, so neighbours stay apart
+    // whatever the scheme.
+    box-shadow: inset -1px 0 0 var(--body-bg, transparent);
+}
+
+// One hue in steps: the stages are a sequence, not categories.
+.seg.stage-electron { background: $phase; }
+.seg.stage-window { background: color-mix(in srgb, #{$phase} 72%, transparent); }
+.seg.stage-boot { background: color-mix(in srgb, #{$phase} 48%, transparent); }
+.seg.stage-terminal { background: $timed; }
+
+.legend {
+    .stage-electron .swatch { background: $phase; }
+    .stage-window .swatch { background: color-mix(in srgb, #{$phase} 72%, transparent); }
+    .stage-boot .swatch { background: color-mix(in srgb, #{$phase} 48%, transparent); }
+    .stage-terminal .swatch { background: $timed; }
+}
+
+@container startup-page (max-width: 640px) {
+    .wf-head, .wf-row {
+        grid-template-columns: minmax(120px, 40%) 0 56px 52px 1fr;
+    }
+
+    .wf-proc { visibility: hidden; }
+
+    .h-row {
+        grid-template-columns: 110px 0 56px 56px 56px 1fr;
+    }
+
+    .h-build { visibility: hidden; }
+}

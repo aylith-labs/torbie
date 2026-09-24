@@ -1,0 +1,135 @@
+h3.mb-2(translate) Startup & lifecycle
+
+.text-muted.mb-3(translate) Every mark this run recorded, from the process starting to the first terminal printing and everything after — main process and each window — and the launches before it.
+
+.alert.alert-info(*ngIf='loading')
+    i.fas.fa-fw.fa-circle-notch.fa-spin.me-2
+    span(translate) Reading the timeline…
+
+.alert.alert-warning(*ngIf='unavailable')
+    span(translate) This build does not record a lifecycle timeline.
+
+ng-container(*ngIf='!loading && snapshot && selected')
+    .summaries.mb-3
+        .summary(*ngFor='let s of summaries')
+            .value {{formatMs(s.value)}}
+            .label {{s.label}}
+            .hint {{s.hint}}
+            .delta([class]='deltaClass(s)', *ngIf='delta(s)') {{delta(s)}}
+
+    .toolbar.mb-2
+        .launch
+            strong(*ngIf='isCurrent', translate) This launch
+            strong(*ngIf='!isCurrent') {{selected.startedAt | date:'medium'}}
+            span.meta
+                | {{selected.version}} · {{selected.packaged ? 'packaged' : 'source'}}{{selected.dev ? ' (dev)' : ''}} · pid {{selected.pid}}
+            button.btn.btn-link.btn-sm(*ngIf='!isCurrent', (click)='select(snapshot.current)', translate) Back to this launch
+        .controls
+            .btn-group.btn-group-sm
+                button.btn([class.btn-primary]='scope === "boot"', [class.btn-secondary]='scope !== "boot"', (click)='setScope("boot")', translate) Boot
+                button.btn([class.btn-primary]='scope === "all"', [class.btn-secondary]='scope !== "all"', (click)='setScope("all")', translate) Whole run
+            button.btn.btn-sm.btn-secondary.ms-2((click)='togglePlugins()')
+                i.fas.fa-fw.me-1([class.fa-square-check]='showPlugins', [class.fa-square]='!showPlugins')
+                span(translate) Plugin loads
+            button.btn.btn-sm.btn-secondary.ms-2((click)='refresh()')
+                i.fas.fa-fw.fa-rotate.me-1
+                span(translate) Refresh
+            button.btn.btn-sm.btn-secondary.ms-2((click)='copy()')
+                i.fas.fa-fw.fa-copy.me-1
+                span(translate) Copy JSON
+
+    .waterfall
+        .wf-head
+            .wf-label(translate) Event
+            .wf-proc(translate) Process
+            .wf-at(translate) At
+            .wf-dur(translate) Took
+            .wf-track
+                .tick(*ngFor='let t of ticks', [style.left]='left(t)') {{formatMs(t)}}
+        .wf-row(*ngFor='let row of rows; trackBy: trackRow', [class]='"type-" + row.type + " role-" + row.role', [attr.title]='row.detail || null')
+            .wf-label
+                span.dot
+                span.text {{row.label}}
+            .wf-proc {{process(row)}}
+            .wf-at {{at(row)}}
+            .wf-dur {{row.duration ? formatMs(row.duration) : ''}}
+            .wf-track
+                .grid(*ngFor='let t of ticks', [style.left]='left(t)')
+                .bar(*ngIf='row.duration', [style.left]='left(row.start)', [style.width]='width(row)')
+                .pin(*ngIf='!row.duration', [style.left]='left(row.start)')
+        .empty.text-muted(*ngIf='!rows.length', translate) Nothing recorded.
+
+    .legend.mb-4
+        span.key.type-phase
+            span.swatch
+            span(translate) phase (until the next one in that process)
+        span.key.type-timed
+            span.swatch
+            span(translate) timed operation
+        span.key.type-stall
+            span.swatch
+            span(translate) event loop blocked
+        span.key.type-failure
+            span.swatch
+            span(translate) failure
+        span.key.role-main
+            span.swatch.outline
+            span(translate) main process
+        span.key.role-renderer
+            span.swatch.outline
+            span(translate) window
+
+    ng-container(*ngIf='scope === "boot" && later.length')
+        h4.mb-2(translate) After the boot
+        .later.mb-4
+            .later-row(*ngFor='let row of later; trackBy: trackRow', [class]='"type-" + row.type', [attr.title]='row.detail || null')
+                span.clock {{clock(row)}}
+                span.at {{at(row)}}
+                span.what {{row.label}}
+                span.proc {{process(row)}}
+                span.took(*ngIf='row.duration') {{formatMs(row.duration)}}
+
+    h4.mb-2(translate) Launches
+    .text-muted.mb-2(translate) Kept in launch-history.json beside diagnostics.log. Click one to see its waterfall.
+    .history
+        .h-row.h-head
+            .h-when(translate) Started
+            .h-build(translate) Build
+            .h-num(translate) Shown
+            .h-num(translate) Ready
+            .h-num(translate) Output
+            .h-bar(translate) Stages
+        .h-row(
+            *ngFor='let h of history; trackBy: trackHistory',
+            [class.current]='h.current',
+            [class.selected]='h.record.id === selected.id',
+            (click)='select(h.record)',
+        )
+            .h-when
+                span {{h.when | date:'MMM d, HH:mm:ss'}}
+                span.badge.ms-1(*ngIf='h.current', translate) now
+            .h-build {{h.record.version}} · {{h.record.packaged ? 'packaged' : 'source'}}
+            .h-num {{formatMs(h.shown)}}
+            .h-num {{formatMs(h.ready)}}
+            .h-num {{formatMs(h.output)}}
+            .h-bar
+                .seg(
+                    *ngFor='let s of h.stages',
+                    [class]='"stage-" + s.id',
+                    [style.left]='left(s.start, historyScale)',
+                    [style.width]='width(s, historyScale)',
+                    [attr.title]='s.label + ": " + formatMs(s.duration)',
+                )
+    .legend.mt-2
+        span.key.stage-electron
+            span.swatch
+            span(translate) process → Electron ready
+        span.key.stage-window
+            span.swatch
+            span(translate) → window on screen
+        span.key.stage-boot
+            span.swatch
+            span(translate) → app ready
+        span.key.stage-terminal
+            span.swatch
+            span(translate) → first output
