@@ -953,6 +953,25 @@ in use — and CDP checks layout better than a screenshot: read
 `getComputedStyle(...).gridTemplateAreas` and `getBoundingClientRect()` and
 assert the panel and terminal tile without overlap.
 
+**That promise was broken twice, so every hidden launch showed its window at
+the end of boot.** `index.ts` called `window.focus()` once the window was ready,
+with no `--hidden` check, and on Windows focusing a hidden window shows it. And
+`parseArgs` kept Electron's own `app` argument in a source launch, so
+`OpenPathCLIHandler` opened a tab in `app/` and asked for `bringToFront`, which
+the main process answers with `present()`. Both are fixed. The app path is
+found by value, because switches such as `--user-data-dir` come before it.
+Measured with a probe sampling every window's `isVisible()` and `isFocused()`
+twice a second from launch until 15 s after `window-ready`: both stayed false
+throughout, where the build before these fixes turned visible about ten
+seconds in. A hidden launch that shows a window is a bug to fix, not a test to
+stop running.
+
+Still wrong, and left alone by decision: the protocol registration in
+`index.ts` passes `process.argv[1]` as the app path for a source launch, which
+is `--user-data-dir=…` whenever switches come first. So every dev launch
+re-registers `tabby://` and `torbie://` to a command that cannot start the app;
+record both handlers before a launch and put them back after.
+
 ```bash
 NODE_PATH=<repo>/app/node_modules TABBY_PLUGINS= TABBY_DEV=1 \
 TABBY_CONFIG_DIRECTORY=$P ./node_modules/electron/dist/electron.exe \

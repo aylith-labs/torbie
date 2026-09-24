@@ -166,7 +166,13 @@ app.on('ready', async () => {
         await window.ready
         mark('window-ready')
         window.passCliArguments(process.argv, process.cwd(), false)
-        window.focus()
+        // `--hidden` means nothing on screen, and on Windows `focus()` shows and
+        // activates a hidden window. window.ts already skips showing it on
+        // `did-finish-load`; without the same check here every hidden launch
+        // flashed its window at the end of boot, test runs included.
+        if (!argv.hidden) {
+            window.focus()
+        }
     } catch (err) {
         // Records it, releases the single-instance lock, shows it to anyone who
         // is there without blocking the loop, and leaves the quitting to the

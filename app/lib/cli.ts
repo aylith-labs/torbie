@@ -125,9 +125,31 @@ function createParserFromConfig (config: ParserConfig) {
     return parser.version(config.version).help('help')
 }
 
-export function parseArgs (argv: string[], cwd: string): any {
+/**
+ * The launch's own arguments, without Electron's.
+ *
+ * A packaged build's argv is `[exe, ...args]`. A source build is started as
+ * `electron.exe [switches] app [args]`, and Electron takes that first
+ * non-switch argument as the app to run: it is not an argument to the app.
+ * Left in, it reached the CLI handlers as a directory to open, so every source
+ * launch opened a tab in `app/` and brought its window to the front, `--hidden`
+ * or not. Switches may come first (`--user-data-dir` has to), so the app path
+ * is found by value rather than by position.
+ */
+function appArguments (argv: string[], cwd: string): string[] {
     const args = argv[0].includes('node') ? argv.slice(2) : argv.slice(1)
+    if (!process.defaultApp) {
+        return args
+    }
+    const path = require('path')
+    const fold = (p: string): string => process.platform === 'win32' ? p.toLowerCase() : p
+    const appPath = fold(path.resolve(app.getAppPath()))
+    const index = args.findIndex(arg => !arg.startsWith('-') && fold(path.resolve(cwd, arg)) === appPath)
+    return index === -1 ? args : [...args.slice(0, index), ...args.slice(index + 1)]
+}
+
+export function parseArgs (argv: string[], cwd: string): any {
     const config = createParserConfig(cwd)
     const parser = createParserFromConfig(config)
-    return parser.parse(args)
+    return parser.parse(appArguments(argv, cwd))
 }
