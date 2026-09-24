@@ -2132,10 +2132,31 @@ a button that would have deleted the install.
   uninstaller, never a directory removal; a source build is more than its
   `root`.
 - **Builds are named after their product, not their folder.** This checkout
-  lives in a directory called `tabby`, so its builds read `tabby (source)` and
-  `tabby (win-unpacked)`, which is upstream's name. They read `Torbie (…)` now:
-  `TabbyBuild.product` comes from the executable, the checkout's
-  `app/package.json` or the installer's file name.
+  lived in a directory called `tabby` until 2026-09-24, so its builds read
+  `tabby (source)` and `tabby (win-unpacked)`, which is upstream's name. They
+  read `Torbie (…)` now: `TabbyBuild.product` comes from the executable, the
+  checkout's `app/package.json` or the installer's file name. A slot reads
+  `Torbie canary (7fb44476)` — product, slot, commit — where it used to read
+  `slot 7fb44476`.
+- **A newer build time is not a newer build.** Every build of one release says
+  1.0.0, and a file time only says when something was copied. So a candidate of
+  the commit already running is never offered (`sameCommit`, prefix-compared
+  because slots record 40 characters and `build-info.json` eight), and one whose
+  commit git calls an ancestor of the running one is skipped
+  (`git merge-base --is-ancestor`, in the candidate's checkout or the running
+  one's). When git cannot answer — no checkout, a commit it has never seen — the
+  build time stands. The offer names each side's commit and build time rather
+  than just `(1.0.0)` twice.
+- **Only a source build takes `builtFrom` from `app/dist/build-info.json`.**
+  The electron-builder output and installers in `dist/` used to borrow it, so
+  `win-unpacked` claimed whatever commit the webpack output had last been built
+  from. Nothing on disk records theirs, so they show none.
+- **An installed build's Check now says why it finds nothing**: its updates
+  come through Application → Check for updates (electron-updater, the GitHub
+  provider on `aylith-labs/torbie`, per `resources/app-update.yml`).
+- The installed 1.0.0 (`9198ed8f`) predates all of this, so it still opens on
+  the old dialog. Only a newer installed release stops it; nothing in its
+  profile turns it off except `builds.watchForNewBuilds: false`.
 - `tabby-builds/test/newBuildChoice.test.js` (fast tier) holds each rule as a
   case, the reported dialog first.
 

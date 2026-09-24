@@ -449,10 +449,18 @@ export class BuildScannerService {
 
         const info = await readBuildInfo(dir)
         const portable = await exists(path.join(dir, 'data'))
+        const product = productFromExecutable(executable)
+        // `Torbie canary (7fb44476)`: which app, which slot, which commit. The
+        // bare `slot 7fb44476` said nothing about the product, and two slots of
+        // one commit read identically.
+        const slotWord = info?.slot?.split(/\s+/)[0] ?? ''
+        const slotName = /^[a-z]+$/i.test(slotWord) ? slotWord : path.basename(dir)
         return {
             kind: portable ? 'portable' : 'packaged',
-            name: info?.commit ? `slot ${info.commit.slice(0, 8)}` : path.basename(dir),
-            product: productFromExecutable(executable),
+            name: info?.commit
+                ? `${product ?? 'slot'} ${slotName} (${info.commit.slice(0, 8)})`
+                : path.basename(dir),
+            product,
             root: dir,
             extraPaths: [],
             executable,
@@ -641,7 +649,12 @@ export class BuildScannerService {
                 builtFrom: seed.buildInfo.commit.slice(0, 8),
             }
         }
-        return seed.repoPath ? this.readGit(seed.repoPath) : null
+        const git = seed.repoPath ? await this.readGit(seed.repoPath) : null
+        // `app/dist/build-info.json` describes the webpack output. The
+        // electron-builder output and installers beside it in `dist/` were
+        // packaged at some earlier point, from a commit nothing on disk
+        // records, so they must not borrow the source build's.
+        return git && seed.kind !== 'source' ? { ...git, builtFrom: null } : git
     }
 
     private async readVersion (seed: Seed, versions: Map<string, string>): Promise<string | null> {

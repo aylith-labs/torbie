@@ -4,6 +4,7 @@ import { BaseComponent, ConfigService, NotificationsService, PlatformService, Tr
 import { BuildKind, BuildsView, HealthFinding, TabbyBuild } from '../api'
 import { ClaudeReader, Conflict, ConflictAction, OtherApp } from '../conflicts'
 import { absoluteTime, humanAgo, humanBytes, humanDuration, shortPath } from '../format'
+import { describeBuild } from '../newBuildChoice'
 import { BuildActionsService } from '../services/buildActions.service'
 import { BuildConflictsService } from '../services/conflicts.service'
 import { BuildDoctorService } from '../services/buildDoctor.service'
@@ -148,9 +149,13 @@ export class BuildsSettingsTabComponent extends BaseComponent {
     /** Look for a newer build now, without waiting for the slow timer. */
     async checkForNewBuild (): Promise<void> {
         const found = await this.watcher.check(false)
+        // An installed release never looks, so "nothing newer" would read as
+        // a finding. Say where its updates come from instead.
         this.newBuildResult = found
-            ? `${found.name} — ${found.version ?? '?'}`
-            : 'nothing newer'
+            ? describeBuild(found)
+            : this.watcher.running?.kind === 'installed'
+                ? 'This is an installed release: newer releases arrive through Application → Check for updates'
+                : 'nothing newer'
         this.now = Date.now()
     }
 

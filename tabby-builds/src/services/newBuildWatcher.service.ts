@@ -1,10 +1,10 @@
-import { spawn } from 'child_process'
+import { execFile, spawn } from 'child_process'
 import { Injectable } from '@angular/core'
 import { Observable, Subject } from 'rxjs'
 import { ConfigService, HostWindowService, NotificationsService, PlatformService, TranslateService } from 'tabby-core'
 
 import { TabbyBuild } from '../api'
-import { mayDeleteOnSwitch, newerBuild } from '../newBuildChoice'
+import { builtFromCommit, describeBuild, mayDeleteOnSwitch, newerBuildCandidates } from '../newBuildChoice'
 import { BuildActionsService } from './buildActions.service'
 import { normalize } from './buildProcesses.service'
 import { BuildScannerService } from './buildScanner.service'
@@ -28,6 +28,9 @@ export class NewBuildWatcherService {
     private changed = new Subject<void>()
     /** The build this window runs from, so a switch knows what it replaces. */
     private current: TabbyBuild | null = null
+
+    /** The build this window runs from, as of the last check. */
+    get running (): TabbyBuild | null { return this.current }
     /** Ids already offered, so a declined switch is not re-offered every poll. */
     private offered = new Set<string>()
     private timer: ReturnType<typeof setInterval> | null = null
@@ -86,7 +89,7 @@ export class NewBuildWatcherService {
         }
         this.current = current
 
-        const newer = newerBuild(current, builds)
+        const newer = await this.firstAhead(current, newerBuildCandidates(current, builds))
 
         const was = this.available?.id ?? null
         this.available = newer
@@ -123,12 +126,8 @@ export class NewBuildWatcherService {
             type: 'warning',
             message: this.translate.instant('A newer build is available: {name}', { name: build.name }),
             detail: [
-                this.translate.instant('Running now: {name} ({version})', {
-                    name: current?.name ?? '?', version: current?.version ?? '?',
-                }),
-                this.translate.instant('Available:   {name} ({version})', {
-                    name: build.name, version: build.version ?? '?',
-                }),
+                this.translate.instant('Running now: {build}', { build: current ? describeBuild(current) : '?' }),
+                this.translate.instant('Available:   {build}', { build: describeBuild(build) }),
                 '',
                 this.translate.instant('Switching starts the new build and closes this window. Anything running in it — terminals, SSH sessions, agents — goes with it.'),
                 canDelete
@@ -209,6 +208,28 @@ export class NewBuildWatcherService {
     }
 
     /**
+     * The first candidate that is not behind the running build.
+     *
+     * Build times order the candidates, but an old commit rebuilt today has a
+     * new build time and old code. Where both builds record a commit and a
+     * checkout can answer, git decides: a candidate whose commit is an
+     * ancestor of the running one is skipped. When git cannot say — no
+     * checkout, a commit it has never seen — the build time stands.
+     */
+    private async firstAhead (current: TabbyBuild, candidates: TabbyBuild[]): Promise<TabbyBuild | null> {
+        const running = builtFromCommit(current)
+        for (const candidate of candidates) {
+            const commit = builtFromCommit(candidate)
+            const repo = candidate.repoPath ?? current.repoPath
+            if (running && commit && repo && await isAncestor(repo, commit, running) === true) {
+                continue
+            }
+            return candidate
+        }
+        return null
+    }
+
+    /**
      * Whether a build is the active one, asked of config rather than of the
      * build. `scan()` leaves `isActive` false for everything, since only the
      * Builds page resolves it, so reading the flag made every build look
@@ -227,4 +248,23 @@ export class NewBuildWatcherService {
         }
         this.available = null
     }
+}
+
+/**
+ * `git merge-base --is-ancestor`: true when `ancestor` is `descendant` or
+ * behind it, false when it is not, null when git cannot tell.
+ */
+function isAncestor (repo: string, ancestor: string, descendant: string): Promise<boolean | null> {
+    return new Promise(resolve => {
+        execFile('git', ['-C', repo, 'merge-base', '--is-ancestor', ancestor, descendant], {
+            windowsHide: true,
+            timeout: 10000,
+        }, err => {
+            if (!err) {
+                resolve(true)
+            } else {
+                resolve((err as any).code === 1 ? false : null)
+            }
+        })
+    })
 }

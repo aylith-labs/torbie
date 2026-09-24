@@ -19,7 +19,7 @@ Module._extensions['.ts'] = function (module, filename) {
     module._compile(js, filename)
 }
 
-const { mayDeleteOnSwitch, newerBuild, watchesForNewerBuilds } =
+const { describeBuild, mayDeleteOnSwitch, newerBuild, sameCommit, watchesForNewerBuilds } =
     require(path.join(REPO, 'tabby-builds/src/newBuildChoice.ts'))
 const { productFromExecutable, productFromPackageName } =
     require(path.join(REPO, 'tabby-builds/src/productNames.ts'))
@@ -87,6 +87,30 @@ console.log('where a switch may land')
         idOf(newerBuild(running, [running, build('broken', 'portable', 'Torbie', LATER, { executable: null })])), null)
     check('a build with no build time is not offered',
         idOf(newerBuild(running, [running, build('undated', 'portable', 'Torbie', null)])), null)
+}
+
+console.log('commits, not only build times')
+{
+    const git = sha => ({ git: { branch: 'main', head: null, builtFrom: sha } })
+    const running = build('dev', 'portable', 'Torbie', RELEASE, git('09250c45'))
+    check('a later copy of the commit already running is not newer',
+        idOf(newerBuild(running, [running, build('copy', 'portable', 'Torbie', LATER, git('09250c45b87b69dd'))])), null)
+    check('a later build of another commit is offered',
+        idOf(newerBuild(running, [running, build('next', 'portable', 'Torbie', LATER, git('e2ad8de1'))])), 'next')
+    check('a candidate the caller knows is behind is skipped for the next one',
+        idOf(newerBuild(running, [
+            running,
+            build('rebuilt-old', 'portable', 'Torbie', LATER + HOUR, git('9198ed8f')),
+            build('next', 'portable', 'Torbie', LATER, git('e2ad8de1')),
+        ], x => x.id === 'rebuilt-old')), 'next')
+    check('with no commit recorded, the build time decides',
+        idOf(newerBuild(running, [running, build('undated-commit', 'portable', 'Torbie', LATER)])), 'undated-commit')
+    check('commits compare as prefixes, ignoring case', sameCommit('09250C45', '09250c45b87b'), true)
+    check('too short a prefix proves nothing', sameCommit('0925', '0925ffff'), false)
+    check('a missing commit is never the same', sameCommit(null, '09250c45'), false)
+    const described = describeBuild(Object.assign(running, { name: 'Torbie (slot)', version: '1.0.0' }))
+    check('the offer names the commit, so two 1.0.0 builds can be told apart',
+        /^Torbie \(slot\) \(1\.0\.0, commit 09250c45, built \d{4}-\d\d-\d\d \d\d:\d\d\)$/.test(described), true)
 }
 
 console.log('which running builds look at all')
