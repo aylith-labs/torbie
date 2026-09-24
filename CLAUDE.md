@@ -2855,6 +2855,48 @@ table of provider ids per section, in order.
 - `prioritized` now only means "early within its section". The labels are not
   translated yet, and screen readers do not announce them as group names.
 
+### Searching settings (`settingsSearch.ts`, `settingsSearchIndex.ts`)
+
+A box at the top of the nav (Ctrl+F while Settings is the focused tab) finds
+pages, section headings and individual settings, and opens the one you pick:
+the page, its inner tab if it has one, its accordion group if it is shut, then
+the row scrolled to the centre and flashed.
+
+- **The index is the rendered pages, not a table.** Each nav item's content
+  template is rendered into an offscreen, `inert` stage in `<body>`, read by
+  its `.form-line > .header > .title / .description` markup and its h3–h5 and
+  accordion headers, and destroyed. That is the only source a third-party
+  plugin's page has without doing anything, and the text is already
+  translated. Built once per settings tab on first focus of the box, ~1.3s,
+  while page-level results are already searchable from the nav alone.
+- **Reading a page has side effects, and each is undone or bounded.** Short
+  accordions are opened to read them, which writes their `*Collapsed` state
+  to localStorage, so every collapse key that changed is put back. A page's
+  inner tabs (Builds → Options) are clicked through, every page's next tab in
+  the same step, then set back. An accordion of more than 16 items or with a
+  long header (the Plugins list) is content, not sections, and is not opened.
+- **Ranking is tiered, as VS Code's settings search and cmdk's command-score
+  are**: exact > prefix > word start (camelCase counts) > substring >
+  subsequence, then by field — page title, setting title, section, page
+  description, setting description. A term that only matches where a setting
+  lives ("terminal font") narrows but cannot find a row alone. Subsequence
+  (fzf-style DP) matches are a fallback, dropped whenever anything matches
+  plainly, which is what keeps "clau" from finding "The pin **c**urrently
+  **lau**nches".
+- **Highlights are colour only.** No padding, margin, border or weight — any
+  of those shifts every character after the match while typing. The tint is
+  25%: 40% measured 3.57:1 on a dark scheme; the underline carries the rest.
+- **Snippets are cut around the first match**, centred and snapped to word
+  boundaries, with the ellipses drawn by CSS so pug's whitespace cannot land
+  beside them.
+- **A tab built from a CDP script listens outside the zone**, so typing into
+  it renders nothing. `settingsSearch.cdp.js` opens Settings through
+  `NgZone.run`; the contrast audit drives the component and `applyChanges`.
+- Page descriptions for known ids are `SETTINGS_PAGE_DESCRIPTIONS`; a plugin
+  may set `SettingsTabProvider.description` (optional, add-only). Not indexed:
+  hotkey names on the Hotkeys page (a table, not `.form-line`s) and
+  Integrations' per-integration detail view.
+
 ## Which settings are this fork's (`tabby-upstream`)
 
 Nothing in the running program said which behaviour is ours and which is

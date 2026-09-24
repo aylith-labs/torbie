@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Text contrast on every settings page, the tab bar, the settings nav and the
-// profile selector — in the light scheme and the dark one — measured in a
-// hidden dev build.
+// Text contrast on every settings page, the tab bar, the settings nav, the
+// settings search and the profile selector — in the light scheme and the dark
+// one — measured in a hidden dev build.
 //
 //   node scripts/dev/launch-hidden.mjs --enable links,linkifier,claude,builds --port 9246 &
 //   CDP_PORT=9246 node scripts/dev/contrast-audit.cdp.cjs [--mode light|dark]
@@ -388,6 +388,34 @@ const AUDIT_CHROME = `
     return results
 `
 
+// The settings search's results, with a query that highlights runs in titles,
+// descriptions and crumbs, the first row selected and the second hovered-state
+// free. Driven through the component, since the settings tab this script opens
+// was built outside Angular's zone and typing into it would render nothing.
+const AUDIT_SEARCH = `
+    ${BOOT}
+    ${LOCATE}
+    const host = settingsTab()?.querySelector('settings-search')
+    if (!host) { return [{ surface: 'Settings search', error: 'no search box' }] }
+    const search = window.ng.getComponent(host)
+    search.query = 'shell'
+    search.onQuery()
+    await search.ensureIndex()
+    search.activeIndex = 0
+    window.ng.applyChanges(window.ng.getComponent(settingsTab()))
+    await sleep(200)
+    const el = settingsTab().querySelector('settings-search-results')
+    if (!el || !el.querySelector('.match')) { return [{ surface: 'Settings search', error: 'no highlighted results' }] }
+    const r = window.__contrastAudit(el, 'Settings search results', ${MIN})
+    const box = window.__contrastAudit(host, 'Settings search box', ${MIN})
+    search.clear()
+    window.ng.applyChanges(window.ng.getComponent(settingsTab()))
+    return [
+        { surface: 'Settings search results', measured: r.measured, failures: r.failures },
+        { surface: 'Settings search box', measured: box.measured, failures: box.failures },
+    ]
+`
+
 const AUDIT_SELECTOR = `
     ${BOOT}
     const core = window.nodeRequire('tabby-core')
@@ -511,7 +539,7 @@ async function main () {
             }
             console.log(`\n══ ${mode} ══  background ${applied.background}, text ${applied.foreground}`)
             const pages = await evaluate(OPEN_SETTINGS)
-            const surfaces = PAGES ? [] : [...await evaluate(AUDIT_CHROME)]
+            const surfaces = PAGES ? [] : [...await evaluate(AUDIT_CHROME), ...await evaluate(AUDIT_SEARCH)]
             for (const page of pages) {
                 if (PAGES && !PAGES.includes(page.toLowerCase())) {
                     continue
