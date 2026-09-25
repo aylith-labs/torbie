@@ -36,6 +36,7 @@ const root = path.resolve(url.fileURLToPath(new URL('.', import.meta.url)), '..'
  */
 const FAST = [
     'app/test/clipboard.test.js',
+    'app/test/sentry.test.js',
     'app/test/protocols.test.js',
     'scripts/dev/cdp.test.cjs',
     'tabby-builds/test/newBuildChoice.test.js',

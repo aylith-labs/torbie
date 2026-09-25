@@ -13,10 +13,9 @@ the signing action retains its immutable v1.2.1 commit.
   with the native compiler. Replacing the JavaScript API dependency with TS7
   prevents those tools from loading. Declaration configs now use explicit paths
   instead of the removed `baseUrl` option.
-- **node-pty:** the existing 1.2 beta line advances to beta.15, preserving the
-  shipped line and bundled ConPTY implementation instead of downgrading to the
-  registry's stable 1.1.0. The Windows build patch is retained. This remains a
-  prerelease dependency and needs platform testing before an installer release.
+- **node-pty:** use the latest stable 1.1.0 instead of the previous 1.2 beta.
+  The optional bundled ConPTY DLL was not enabled in Torbie; sessions keep using
+  Windows' ConPTY. The Windows build patch is retained.
 - **Pug tools:** `@tabby-gang/to-string-loader` and `pug-cli` have no stable
   releases; their latest published versions are still prereleases.
 - **Electron 44:** clipboard operations moved to the main process and return

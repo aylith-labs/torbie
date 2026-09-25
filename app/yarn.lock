@@ -1884,10 +1884,10 @@ node-gyp@^13.0.0, node-gyp@^13.0.2:
     undici "^8.4.1"
     which "^7.0.0"
 
-node-pty@1.2.0-beta.15:
-  version "1.2.0-beta.15"
-  resolved "https://registry.npmjs.org/node-pty/-/node-pty-1.2.0-beta.15.tgz#cd62e0e32b69ce226c650935a35613fa41bf77d4"
-  integrity sha512-vORSzHXi4Ofl7HemVWpuudLqCPdaQb4LfpRCUpE5HPxhp4JYscl8zZwxh11p26v2wvW24WMwnMfLjhRLixrfxA==
+node-pty@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/node-pty/-/node-pty-1.1.0.tgz#161936d45a47751c2e3b694c365e73017417a887"
+  integrity sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg==
   dependencies:
     node-addon-api "^7.1.0"
 
