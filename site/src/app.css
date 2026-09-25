@@ -3,7 +3,7 @@
 @font-face { font-family:'DM Sans Variable'; font-style:normal; font-weight:100 1000; font-display:swap; src:url('@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2') format('woff2'); }
 @theme {
  --color-surface-50:#f8f7f4; --color-surface-100:#f0eee9; --color-surface-200:#e1ddd3; --color-surface-300:#c9c3b3; --color-surface-400:#90897a; --color-surface-500:#615b50; --color-surface-600:#46423a; --color-surface-700:#332f29; --color-surface-800:#1c1a16; --color-surface-900:#131110; --color-surface-950:#0a0907;
- --color-copper:oklch(0.66 0.13 50); --color-copper-hover:oklch(0.56 0.13 50); --color-copper-text:oklch(0.46 0.115 50); --color-cream:#f3efe7;
+ --color-copper:oklch(0.66 0.13 50); --color-copper-hover:oklch(0.56 0.13 50); --color-copper-text:oklch(0.46 0.115 50); --color-action:#8a431d; --color-action-hover:#703414; --color-cream:#f3efe7;
  --font-sans:'DM Sans Variable',sans-serif; --font-display:'Space Grotesk Variable',sans-serif;
 }
 :root { color-scheme:light; --canvas:var(--color-surface-50); --panel:var(--color-surface-100); --ink:var(--color-surface-800); --muted:var(--color-surface-500); --line:var(--color-surface-300); --link:var(--color-copper-text); }
@@ -29,8 +29,8 @@ nav { display:flex; gap:32px; }
 nav a { color:var(--ink); text-decoration:none; font-size:15px; padding-block:12px; }
 .skip { position:fixed; top:8px; left:16px; z-index:10; background:var(--canvas); padding:12px 20px; transform:translateY(-160%); }
 .skip:focus { transform:translateY(0); }
-.button { display:inline-flex; align-items:center; justify-content:space-between; gap:24px; padding:15px 24px; min-height:52px; background:var(--color-copper); color:var(--color-surface-950); font-size:16px; font-weight:650; text-decoration:none; border-radius:4px; }
-.button:hover { background:var(--color-copper-hover); color:var(--color-cream); text-decoration:none; }
+.button { display:inline-flex; align-items:center; justify-content:space-between; gap:24px; padding:15px 24px; min-height:52px; background:var(--color-action); color:var(--color-cream); font-size:16px; font-weight:650; text-decoration:none; border-radius:4px; }
+.button:hover { background:var(--color-action-hover); color:var(--color-cream); text-decoration:none; }
 .hero { min-height:calc(100svh - 88px); display:grid; grid-template-columns: .95fr 1.2fr; gap:48px; align-items:center; padding-block:40px 72px; }
 .hero h1 { max-width:11ch; }
 .hero p { max-width:39ch; font-size:19px; margin-bottom:28px; }

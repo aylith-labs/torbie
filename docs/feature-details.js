@@ -20,6 +20,25 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "settings-search": {
+    "problem": "Finding a setting used to mean opening each settings page in turn.",
+    "how": "Search in the settings navigation matches pages and individual settings, ranks results, and opens the matching page at the setting.",
+    "steps": [
+      "Open Settings and enter a setting name or related phrase in the search field.",
+      "Choose a result to open its page and locate the setting."
+    ]
+  },
+  "image-paste": {
+    "problem": "A terminal paste used to discard an image-only clipboard before Claude Code could read it.",
+    "how": "When the clipboard contains an image and no text, Torbie forwards Ctrl+V to the terminal app so Claude Code can read the clipboard itself. Text pasting keeps its usual behavior.",
+    "notes": [
+      "Image forwarding is enabled by default and can be changed in Terminal settings."
+    ]
+  },
+  "hotkey-consume": {
+    "problem": "A shortcut could perform its action and also send the same key to the active terminal.",
+    "how": "A hotkey that handles a key consumes it so the terminal does not also receive it. Unhandled keys continue to the terminal."
+  },
   "builds-conflicts": {
     problem:
       "Torbie 1.0.0 was installed beside a Tabby running six processes with live Claude Code sessions. It copied Tabby's profile, so both carried the same plugins and the same hotkey, and three resources collided with nothing said anywhere: tabby-mcp-server reports EADDRINUSE only to its own log, the app ignores whether <code>globalShortcut.register</code> succeeded, and the Claude hook spool is consume-and-delete, so two readers split the events between them.",

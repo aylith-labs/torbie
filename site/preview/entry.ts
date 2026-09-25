@@ -77,7 +77,7 @@ class DemoModule{
    while(!recovery.enabled)await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
    await Promise.all(app.tabs.filter(tab=>tab instanceof SplitTabComponent).map(tab=>(tab as SplitTabComponent).initialized$.toPromise()));
    for(const root of app.tabs){if(root instanceof SplitTabComponent&&root.getAllTabs()[0])root.focus(root.getAllTabs()[0]);}
-   const tab=openDemo('claude');
+   const tab=zone.run(()=>openDemo('claude'));
    if(config.store.sidePanel.enabled&&config.store.sidePanel.activePanel==='claude')void enableClaude(config,true);
    tab.frontendReady$.pipe(take(1)).subscribe(()=>requestAnimationFrame(()=>{window.parent.postMessage({type:'torbie-demo-ready'},location.origin);window.parent.postMessage({type:'torbie-demo-config',tabsLocation:config.store.appearance.tabsLocation},location.origin)}));
    window.addEventListener('message',event=>{void zone.run(async()=>{
@@ -111,7 +111,7 @@ class DemoModule{
  }
 }
 const defaults={version:7,recoverTabs:true,enableWelcomeTab:false,appearance:{tabsLocation:'left',sideTabBarWidth:innerWidth<700?110:200,colorSchemeMode:'auto'},terminal:{font:'monospace',fontSize:14,ligatures:false},profiles:[],pluginBlacklist:[],web:{preventAccidentalTabClosure:false}};
-let config=defaults;try{const saved=loadYaml(sessionStorage.getItem(CONFIG_KEY)||'null');if(saved)config={...defaults,...saved,appearance:{...defaults.appearance,...saved.appearance,sideTabBarWidth:innerWidth<700?110:200}}}catch{}
+let config=defaults;try{const saved=loadYaml(sessionStorage.getItem(CONFIG_KEY)||'null') as Partial<typeof defaults>|null;if(saved&&typeof saved==='object'&&!Array.isArray(saved))config={...defaults,...saved,appearance:{...defaults.appearance,...saved.appearance,sideTabBarWidth:innerWidth<700?110:200}}}catch{}
 const plugins=[CoreModule,TerminalModule,SettingsModule,WebModule,DemoPluginModule,DemoModule].map((m:any)=>m.forRoot?m.forRoot():m);
 plugins[0].bootstrap=bootstrap;
 (window as any).pluginModules=plugins;

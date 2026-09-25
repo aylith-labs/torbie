@@ -1,6 +1,6 @@
 {
   "name": "torbie-site",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,24 +12,24 @@
     "test": "node --test scripts/*.test.mjs",
     "check:links": "node scripts/check-links.mjs",
     "build:preview": "npm --prefix preview run build",
-    "test:preview": "node preview/test/browser.mjs && node preview/test/refinements.mjs && node preview/test/views.mjs && node preview/test/responsiveness.mjs"
+    "test:preview": "node preview/test/browser.mjs && node preview/test/refinements.mjs && node preview/test/views.mjs && node preview/test/responsiveness.mjs && node preview/test/contrast.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@biomejs/biome": "^2.5.13",
+    "@biomejs/biome": "^2.5.14",
     "@playwright/test": "^1.63.0",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.70.3",
-    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^22.20.2",
+    "@types/node": "^26.6.2",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "lighthouse": "^13.4.1",
-    "svelte": "^5.57.0",
+    "lighthouse": "^13.5.0",
+    "svelte": "^5.57.1",
     "svelte-check": "^4.7.6",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vite": "^8.3.0"
+    "vite": "^8.3.1"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
