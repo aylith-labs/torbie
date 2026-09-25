@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 const root=resolve(process.argv[2] || 'build');
-const base=process.env.BASE_PATH ?? '/torbie';
+const base=process.env.TORBIE_CUSTOM_DOMAIN === '1' ? '' : (process.env.BASE_PATH ?? '/torbie');
 function walk(dir) {return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(join(dir,e.name)):[join(dir,e.name)]);}
 const failures=[];
 for(const file of walk(root).filter(f=>f.endsWith('.html')&&!f.endsWith('404.html'))) {
