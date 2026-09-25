@@ -12,7 +12,7 @@
     "test": "node --test scripts/*.test.mjs",
     "check:links": "node scripts/check-links.mjs",
     "build:preview": "npm --prefix preview run build",
-    "test:preview": "node preview/test/browser.mjs && node preview/test/refinements.mjs && node preview/test/views.mjs && node preview/test/responsiveness.mjs && node preview/test/contrast.mjs"
+    "test:preview": "node preview/test/browser.mjs && node preview/test/refinements.mjs && node preview/test/views.mjs && node preview/test/responsiveness.mjs && node preview/test/contrast.mjs && node preview/test/translations.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
