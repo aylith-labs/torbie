@@ -25,7 +25,7 @@
     "@ngtools/webpack": "^22.1.7",
     "@popperjs/core": "^2.11.6",
     "@sentry/cli": "^3.7.0",
-    "@sentry/electron": "^2.5.4",
+    "@sentry/electron": "^7.18.0",
     "@tabby-gang/to-string-loader": "^1.1.7-beta.2",
     "@types/deep-equal": "^1.0.4",
     "@types/electron-debug": "^2.1.0",
