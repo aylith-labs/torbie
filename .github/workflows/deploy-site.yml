@@ -8,6 +8,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      root_path:
+        description: Verify the custom-domain root path without deploying a review branch
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -16,6 +21,8 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      TORBIE_CUSTOM_DOMAIN: ${{ inputs.root_path && '1' || vars.TORBIE_CUSTOM_DOMAIN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -40,8 +47,10 @@ jobs:
           npm run preview -- --host 127.0.0.1 --port 5870 > /tmp/torbie-site-preview.log 2>&1 &
           preview_pid=$!
           trap 'kill "$preview_pid"' EXIT
-          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:5870/torbie/ > /dev/null && break; sleep 1; done
-          npm run test:preview
+          site_path=/torbie/
+          if [ "$TORBIE_CUSTOM_DOMAIN" = "1" ]; then site_path=/; fi
+          for attempt in $(seq 1 30); do curl -fsS "http://127.0.0.1:5870${site_path}" > /dev/null && break; sleep 1; done
+          REVIEW_URL="http://127.0.0.1:5870${site_path}" npm run test:preview
       - uses: actions/upload-artifact@v7
         with:
           name: verified-site
@@ -52,7 +61,7 @@ jobs:
           test "$(git rev-parse --is-shallow-repository)" = false
           node scripts/dev/check-docs.mjs
   build:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'release')
     needs: verify
     runs-on: ubuntu-latest
     permissions:

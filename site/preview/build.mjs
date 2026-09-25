@@ -9,7 +9,7 @@ const work=await mkdtemp(path.join(tmpdir(),'torbie-browser-'));
 function run(command,args,cwd=work){return new Promise((resolve,reject)=>{const child=spawn(command,args,{cwd,stdio:'inherit'});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(new Error(`${command} exited ${code}`)))})}
 try {
  const archive=path.join(work,'source.tar');
- await run('git',['archive','--output',archive,'HEAD','app/src','app/assets','app/index.pug','tabby-core','tabby-terminal','tabby-settings','tabby-web','tabby-claude','tabby-local','tsconfig.json','locale'],root);
+ await run('git',['archive','--output',archive,'HEAD','app/src','app/lib','app/assets','app/index.pug','tabby-core','tabby-terminal','tabby-settings','tabby-web','tabby-claude','tabby-local','tsconfig.json','locale'],root);
  await run('tar',['-xf',archive]);
  const preview=path.join(work,'site/preview');
  await cp(here,preview,{recursive:true,filter:source=>!['node_modules','dist'].includes(path.basename(source))});
