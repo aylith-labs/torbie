@@ -20,6 +20,24 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "settings-search": {
+    problem: "A settings page can contain many sections, inner tabs and plugin controls. Finding a label in the navigation does not take you to the control itself.",
+    how: "The search indexes page titles, section headings and settings as each page renders. It ranks exact matches before prefixes, word starts and inner-word matches; it opens the matching page, tab and group before scrolling to the setting.",
+    caveats: ["The hotkey list and each integration's detail view are not indexed."],
+  },
+
+  "image-paste": {
+    problem: "Claude Code reads an image from the clipboard on Ctrl+V, while a terminal paste binding can also deliver an empty text paste. The two clipboard reads could race.",
+    how: "When the clipboard has an image but no text, Torbie sends one Ctrl+V to the terminal instead of an empty paste followed by Ctrl+V. Text paste keeps its existing behavior.",
+    caveats: ["The recorded clipboard race was on Windows. The behavior can be switched off."],
+  },
+
+  "hotkey-consume": {
+    problem: "A terminal key bound to a hotkey could reach the session twice: once from the hotkey and once from ordinary terminal input.",
+    how: "When a hotkey handles a key, the terminal consumes that key. A handler that does not act returns it to the terminal, so an unselected Ctrl+C still sends one interrupt.",
+    caveats: ["This covers keys handled by Torbie hotkeys; it does not make external applications' shortcuts available to Torbie."],
+  },
+
   "builds-conflicts": {
     problem:
       "Torbie 1.0.0 was installed beside a Tabby running six processes with live Claude Code sessions. It copied Tabby's profile, so both carried the same plugins and the same hotkey, and three resources collided with nothing said anywhere: tabby-mcp-server reports EADDRINUSE only to its own log, the app ignores whether <code>globalShortcut.register</code> succeeded, and the Claude hook spool is consume-and-delete, so two readers split the events between them.",
