@@ -21,7 +21,7 @@ try {
   for(let i=0;i<12;i++){ratios.push(await sample());await page.waitForTimeout(20)}
   expect(Math.min(...ratios)).toBeGreaterThanOrEqual(4.5);
   console.log(`${theme}: minimum button contrast ${Math.min(...ratios).toFixed(2)}:1 through hover and focus transitions`);
-  if(process.env.CAPTURE_DIR)await page.screenshot({path:`${process.env.CAPTURE_DIR}/torbie-contrast-${theme}.png`});
+  if(process.env.CAPTURE_DIR){await expect(page.getByRole('button',{name:'Plugins',exact:true})).toBeEnabled({timeout:30000});await page.screenshot({path:`${process.env.CAPTURE_DIR}/torbie-contrast-${theme}.png`});}
   await page.close();
  }
 }finally{await browser.close()}
