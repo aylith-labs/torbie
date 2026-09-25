@@ -900,7 +900,8 @@ export class SSHSession {
         // Socket → Channel data flow with proper conversion
         socket.on('data', data => {
             try {
-                channel.write(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))
+                const bytes = typeof data === 'string' ? Buffer.from(data) : data
+                channel.write(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength))
             } catch (err) {
                 this.logger.error(`${logPrefix}: channel write error: ${err}`)
                 socket.destroy(new Error(`${logPrefix}failed to write to channel: ${err}`))

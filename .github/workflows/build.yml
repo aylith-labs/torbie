@@ -101,7 +101,7 @@ jobs:
     - name: Installing Node
       uses: actions/setup-node@v7
       with:
-        node-version: 22
+        node-version: 24
 
     - run: rustup target add ${{matrix.rust_triple}}
 
@@ -169,13 +169,13 @@ jobs:
         mkdir artifact-zip
         mv dist/*.zip artifact-zip/
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload DMG
       with:
         name: macOS .dmg (${{matrix.arch}})
         path: artifact-dmg
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload ZIP
       with:
         name: macOS .zip (${{matrix.arch}})
@@ -196,11 +196,6 @@ jobs:
             rust_triple: aarch64-unknown-linux-gnu
             triplet: aarch64-linux-gnu-
             os: ubuntu-24.04-arm
-          - build-arch: arm
-            arch: armhf
-            rust_triple: arm-unknown-linux-gnueabihf
-            triplet: arm-linux-gnueabihf-
-            os: ubuntu-24.04
       fail-fast: false
 
     env:
@@ -220,7 +215,7 @@ jobs:
     - name: Install Node
       uses: actions/setup-node@v7
       with:
-        node-version: 22
+        node-version: 24
 
     - name: Install FPM
       run: |
@@ -308,37 +303,37 @@ jobs:
     # `eugeny/tabby` — upstream's package repository. Torbie has none of its
     # own, so Linux packages are distributed through GitHub releases only.
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload AppImage (${{matrix.arch}})
       with:
         name: Linux AppImage (${{matrix.arch}})
         path: dist/*.AppImage
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload DEB (${{matrix.arch}})
       with:
         name: Linux DEB (${{matrix.arch}})
         path: dist/*.deb
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload RPM (${{matrix.arch}})
       with:
         name: Linux RPM (${{matrix.arch}})
         path: dist/*.rpm
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload Pacman Package (${{matrix.arch}})
       with:
         name: Linux Pacman (${{matrix.arch}})
         path: dist/*.pacman
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload Linux tarball (${{matrix.arch}})
       with:
         name: Linux tarball (${{matrix.arch}})
         path: dist/*.tar.gz
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload web tarball (amd64 only)
       with:
         name: Web tarball
@@ -404,7 +399,7 @@ jobs:
 
     - name: Setup Software Trust Manager
       if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && env.CAN_SIGN == 'true')
-      uses: digicert/code-signing-software-trust-action@fae23a455ba4bde62b64fd7cb2f81ade788f5a95 # v1.0.0
+      uses: digicert/code-signing-software-trust-action@fae23a455ba4bde62b64fd7cb2f81ade788f5a95 # v1.2.1
       env:
         SM_HOST: ${{ vars.SM_HOST }}
         SM_API_KEY: ${{ secrets.SM_API_KEY }}
@@ -444,7 +439,7 @@ jobs:
     - name: Installing Node
       uses: actions/setup-node@v7
       with:
-        node-version: 22
+        node-version: 24
 
     - run: rustup target add ${{matrix.rust_triple}}
 
@@ -562,13 +557,13 @@ jobs:
         mkdir artifact-portable
         mv dist/*-portable-*.zip artifact-portable/
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload installer
       with:
         name: Windows installer (${{matrix.arch}})
         path: artifact-setup
 
-    - uses: actions/upload-artifact@master
+    - uses: actions/upload-artifact@v7
       name: Upload portable build
       with:
         name: Windows portable build (${{matrix.arch}})

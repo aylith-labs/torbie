@@ -17,7 +17,7 @@
   "author": "Aylith Labs",
   "license": "MIT",
   "peerDependencies": {
-    "@angular/core": "^15",
+    "@angular/core": "^22.1.7",
     "tabby-core": "*",
     "tabby-terminal": "*"
   }

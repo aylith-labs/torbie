@@ -106,7 +106,8 @@ function applyOptionsToYargs (yargsInstance: any, options: Record<string, YargsO
 }
 
 function createParserFromConfig (config: ParserConfig) {
-    const yargs = require('yargs/yargs')
+    const yargsModule = require('yargs/yargs')
+    const yargs = yargsModule.default ?? yargsModule
     let parser = yargs().usage(config.usage)
     config.commands.forEach(cmd => {
         const builder = (yargsInstance: any) => {

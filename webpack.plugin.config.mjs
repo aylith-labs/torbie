@@ -111,6 +111,7 @@ export default options => {
                     test: /\.(m?)js$/,
                     loader: 'babel-loader',
                     options: {
+                    sourceType: 'unambiguous',
                         plugins: [linkerPlugin],
                         compact: false,
                         cacheDirectory: true,

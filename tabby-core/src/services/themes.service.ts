@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@angular/core'
 import { Subject, Observable } from 'rxjs'
-import * as Color from 'color'
+import Color, { type ColorInstance } from 'color'
 import { ConfigService } from '../services/config.service'
 import { TerminalColorScheme, Theme } from '../api/theme'
 import { PlatformService, PlatformTheme } from '../api/platform'
@@ -386,7 +386,7 @@ export class ThemesService {
      * white always reaches at least 4.58:1 on any colour, so the fallback at
      * the end is only reached when the terminal setting demands more than that.
      */
-    private contrastingForeground (background: Color, foreground: Color, schemeBackground: Color): Color {
+    private contrastingForeground (background: ColorInstance, foreground: ColorInstance, schemeBackground: ColorInstance): ColorInstance {
         const minimum = this.textMinimumContrastRatio()
         const [dark, light] = foreground.luminosity() <= schemeBackground.luminosity()
             ? [foreground, schemeBackground]
@@ -411,7 +411,7 @@ export class ThemesService {
      * vibrancy fade is dropped from the page, since what shows through it is
      * the desktop and cannot be known here.
      */
-    private textSurfaces (vars: Record<string, string>): Color[] {
+    private textSurfaces (vars: Record<string, string>): ColorInstance[] {
         return [
             '--body-bg', '--theme-bg', '--theme-bg-more', '--theme-bg-more-2',
             '--theme-bg-less', '--theme-bg-less-2',
@@ -426,7 +426,7 @@ export class ThemesService {
      * foreground only as far as the worst surface demands. A scheme whose own
      * foreground falls short keeps walking, toward black or white.
      */
-    private mutedForeground (foreground: Color, background: Color, isDark: boolean, surfaces: Color[]): Color {
+    private mutedForeground (foreground: ColorInstance, background: ColorInstance, isDark: boolean, surfaces: ColorInstance[]): ColorInstance {
         const minimum = this.textMinimumContrastRatio()
         const start = foreground.mix(background, 0.45)
         const towardForeground = this.nearestMeetingContrast(start, foreground, surfaces, minimum)
@@ -442,12 +442,12 @@ export class ThemesService {
      * it does. The search keeps `hi` passing throughout, so whatever it returns
      * passes whenever `to` does.
      */
-    private nearestMeetingContrast (from: Color, to: Color, surfaces: Color[], minimum: number): Color {
+    private nearestMeetingContrast (from: ColorInstance, to: ColorInstance, surfaces: ColorInstance[], minimum: number): ColorInstance {
         // Each candidate is rounded to whole channels before it is judged,
         // because that is what the CSS string carries and what gets painted.
         // Judged unrounded, a colour found at exactly 4.500:1 rendered at 4.487.
         const at = (t: number) => from.mix(to, t).rgb().round()
-        const passes = (c: Color) => surfaces.every(s => c.contrast(s) >= minimum)
+        const passes = (c: ColorInstance) => surfaces.every(s => c.contrast(s) >= minimum)
         if (passes(at(0))) {
             return at(0)
         }
@@ -472,20 +472,20 @@ export class ThemesService {
      * `against`. Judged and returned in whole channels, which is what gets
      * painted.
      */
-    private ensureContrast (color: Color, against: Color, minimum: number): Color {
+    private ensureContrast (color: ColorInstance, against: ColorInstance, minimum: number): ColorInstance {
         const a = this.increaseContrast(color, against, 1.1, minimum)
         const b = this.increaseContrast(color, against, 0.9, minimum)
         return a.contrast(against) > b.contrast(against) ? a : b
     }
 
-    private increaseContrast (color: Color, against: Color, step: number, minimum: number): Color {
+    private increaseContrast (color: ColorInstance, against: ColorInstance, step: number, minimum: number): ColorInstance {
         color = color.hsl()
-        color.color[2] = Math.max(color.color[2], 0.01)
+        color = color.lightness(Math.max(color.lightness(), 0.01))
         while (
-            (step < 1 && color.color[2] > 1 ||
-             step > 1 && color.color[2] < 99) &&
+            (step < 1 && color.lightness() > 1 ||
+             step > 1 && color.lightness() < 99) &&
              color.rgb().round().contrast(against) < minimum) {
-            color.color[2] *= step
+            color = color.lightness(color.lightness() * step)
         }
         return color.rgb().round()
     }

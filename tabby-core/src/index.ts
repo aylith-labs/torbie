@@ -3,9 +3,9 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { NgbModule, NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap'
-import { NgxFilesizeModule } from 'ngx-filesize'
+import { FilesizePipe } from './pipes/filesize.pipe'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { TranslateModule, TranslateCompiler, TranslateService, MissingTranslationHandler } from '@ngx-translate/core'
+import { TranslatePipe, TranslateDirective, provideTranslateService, TranslateCompiler, TranslateService, MissingTranslationHandler } from '@ngx-translate/core'
 import { TranslateMessageFormatCompiler, MESSAGE_FORMAT_CONFIG } from 'ngx-translate-messageformat-compiler'
 
 import '@angular/localize/init'
@@ -64,6 +64,17 @@ export function TranslateMessageFormatCompilerFactory (): TranslateMessageFormat
 }
 
 const PROVIDERS = [
+    provideTranslateService({
+        fallbackLang: 'en-US',
+        compiler: {
+            provide: TranslateCompiler,
+            useFactory: TranslateMessageFormatCompilerFactory,
+        },
+        missingTranslationHandler: {
+            provide: MissingTranslationHandler,
+            useClass: CustomMissingTranslationHandler,
+        },
+    }),
     { provide: HotkeyProvider, useClass: AppHotkeyProvider, multi: true },
     { provide: ToolbarButtonProvider, useClass: SidePanelToolbarButtonProvider, multi: true },
     { provide: Theme, useClass: NewTheme, multi: true },
@@ -85,7 +96,7 @@ const PROVIDERS = [
     },
     {
         provide: MESSAGE_FORMAT_CONFIG,
-        useValue: LocaleService.allLanguages.map(x => x.code),
+        useValue: { locales: LocaleService.allLanguages.map(x => x.code) },
     },
 ]
 
@@ -96,19 +107,10 @@ const PROVIDERS = [
         CommonModule,
         FormsModule,
         NgbModule,
-        NgxFilesizeModule,
+        FilesizePipe,
         DragDropModule,
-        TranslateModule.forRoot({
-            defaultLanguage: 'en',
-            compiler: {
-                provide: TranslateCompiler,
-                useFactory: TranslateMessageFormatCompilerFactory,
-            },
-            missingTranslationHandler: {
-                provide: MissingTranslationHandler,
-                useClass: CustomMissingTranslationHandler,
-            },
-        }),
+        TranslatePipe,
+        TranslateDirective,
     ],
     declarations: [
         AppRootComponent,
@@ -143,6 +145,7 @@ const PROVIDERS = [
         TabbyFormatedDatePipe,
     ],
     exports: [
+        FilesizePipe,
         AppRootComponent,
         CheckboxComponent,
         ToggleComponent,
@@ -153,7 +156,8 @@ const PROVIDERS = [
         FastHtmlBindDirective,
         AlwaysVisibleTypeaheadDirective,
         DragDropModule,
-        TranslateModule,
+        TranslatePipe,
+        TranslateDirective,
         CdkAutoDropGroup,
         ProfileIconComponent,
         TabbyFormatedDatePipe,
@@ -286,3 +290,5 @@ export { CommandService }
 // Deprecations
 export { ToolbarButton as IToolbarButton } from './api'
 export { HotkeyDescription as IHotkeyDescription } from './api'
+
+export { FilesizePipe } from './pipes/filesize.pipe'

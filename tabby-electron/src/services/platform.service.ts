@@ -87,7 +87,7 @@ export class ElectronPlatformService extends PlatformService {
     }
 
     setClipboard (content: ClipboardContent): void {
-        require('@electron/remote').clipboard.write(content)
+        this.electron.clipboard.write(content)
     }
 
     async installPlugin (name: string, version: string): Promise<void> {

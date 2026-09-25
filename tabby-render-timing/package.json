@@ -1,7 +1,7 @@
 {
   "name": "tabby-render-timing",
   "version": "1.0.231-nightly.0",
-  "description": "Times the terminal's write path and frame cadence into diagnostics.log, and draws each launch's lifecycle on Settings → Startup",
+  "description": "Times the terminal's write path and frame cadence into diagnostics.log, and draws each launch's lifecycle on Settings \u2192 Startup",
   "keywords": [
     "tabby-builtin-plugin"
   ],

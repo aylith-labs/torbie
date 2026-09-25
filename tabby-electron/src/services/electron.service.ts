@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { App, IpcRenderer, Shell, Dialog, Clipboard, GlobalShortcut, Screen, AutoUpdater, TouchBar, BrowserWindow, Menu, MenuItem, PowerSaveBlocker, NativeTheme } from 'electron'
+import { App, IpcRenderer, Shell, Dialog, GlobalShortcut, Screen, AutoUpdater, TouchBar, BrowserWindow, Menu, MenuItem, PowerSaveBlocker, NativeTheme } from 'electron'
 import * as remote from '@electron/remote'
 
 export interface MessageBoxResponse {
@@ -13,7 +13,7 @@ export class ElectronService {
     ipcRenderer: IpcRenderer
     shell: Shell
     dialog: Dialog
-    clipboard: Clipboard
+    clipboard: { readText: () => string, availableFormats: () => string[], write: (content: { text: string, html?: string }) => void }
     globalShortcut: GlobalShortcut
     screen: Screen
     process: any
@@ -29,7 +29,18 @@ export class ElectronService {
     private constructor () {
         const electron = require('electron')
         this.shell = electron.shell
-        this.clipboard = electron.clipboard
+        const callClipboard = (operation: string, content?: { text: string, html?: string }) => {
+            const result = electron.ipcRenderer.sendSync('torbie:clipboard', operation, content)
+            if (result.error) {
+                throw new Error(result.error)
+            }
+            return result.value
+        }
+        this.clipboard = {
+            readText: () => callClipboard('readText'),
+            availableFormats: () => callClipboard('availableFormats'),
+            write: content => callClipboard('write', content),
+        }
         this.ipcRenderer = electron.ipcRenderer
 
         this.process = remote.getGlobal('process')

@@ -29,9 +29,9 @@ if (SENTRY_DSN && !process.env.TABBY_DEV && !process.env.TORBIE_DEV) {
         release = require('@electron/remote').app.getVersion()
     }
 
-    const { init } = String(process.type) === 'main'
-        ? require('@sentry/electron/dist/main')
-        : require('@sentry/electron/dist/renderer')
+    const { init } = ['browser', 'main'].includes(String(process.type))
+        ? require('@sentry/electron/main')
+        : require('@sentry/electron/renderer')
 
     init({
         dsn: SENTRY_DSN,

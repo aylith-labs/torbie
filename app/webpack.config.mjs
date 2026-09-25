@@ -66,7 +66,7 @@ export default () => ({
     name: 'torbie',
     target: 'node',
     entry: {
-        'index.ignore': 'file-loader?name=index.html!pug-html-loader!' + path.resolve(__dirname, './index.pug'),
+        'index.ignore': 'file-loader?name=index.html!' + path.resolve(__dirname, '../scripts/pug-html-loader.cjs') + '!' + path.resolve(__dirname, './index.pug'),
         sentry: path.resolve(__dirname, 'lib/sentry.ts'),
         preload: path.resolve(__dirname, 'src/entry.preload.ts'),
         bundle: path.resolve(__dirname, 'src/entry.ts'),
@@ -93,6 +93,7 @@ export default () => ({
                 test: /\.(m?)js$/,
                 loader: 'babel-loader',
                 options: {
+                    sourceType: 'unambiguous',
                     plugins: [linkerPlugin],
                     compact: false,
                     cacheDirectory: true,

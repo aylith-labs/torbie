@@ -1,4 +1,5 @@
-import { app, ipcMain, Menu, Tray, shell, screen, globalShortcut, MenuItemConstructorOptions, WebContents } from 'electron'
+import { installClipboardBridge } from './clipboard'
+import { app, clipboard, ClipboardItem, ipcMain, Menu, Tray, shell, screen, globalShortcut, MenuItemConstructorOptions, WebContents } from 'electron'
 import promiseIpc from 'electron-promise-ipc'
 import * as remote from '@electron/remote/main'
 import { spawnSync } from 'child_process'
@@ -33,6 +34,10 @@ export class Application {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     constructor (private configStore: any) {
         remote.initialize()
+        installClipboardBridge(ipcMain, clipboard, ClipboardItem, event =>
+            event.senderFrame === event.sender.mainFrame &&
+            event.senderFrame?.url.startsWith('file:') === true &&
+            this.windows.some(window => window.webContents === event.sender))
         this.useBuiltinGraphics()
         this.ptyManager.init(this)
         initSecrets()

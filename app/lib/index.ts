@@ -27,7 +27,7 @@ import './portable'
 import { migrateUserData } from './migrateUserData'
 
 // set defaults of environment variables
-import 'dotenv/config'
+import './environment'
 // A `.env` may have introduced either spelling of something.
 syncEnvAliases()
 process.env.TABBY_PLUGINS ??= ''

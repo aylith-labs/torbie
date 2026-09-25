@@ -15,41 +15,41 @@
     "watch": "webpack --progress --color --watch"
   },
   "dependencies": {
-    "@electron/remote": "^2",
-    "@npmcli/arborist": "^9",
+    "@electron/remote": "^2.1.3",
+    "@npmcli/arborist": "^10.0.3",
     "any-promise": "^1.3.0",
     "atomically": "^2.1.1",
-    "dunder-proto": "^1",
+    "dunder-proto": "^1.0.1",
     "electron-config": "2.0.0",
-    "electron-debug": "^3.2.0",
+    "electron-debug": "^5.0.0",
     "electron-promise-ipc": "^2.2.4",
-    "electron-updater": "^5.2.1",
+    "electron-updater": "^6.8.9",
     "fontmanager-redux": "1.1.0",
     "glasstron": "0.1.1",
-    "js-yaml": "4.1.0",
+    "js-yaml": "5.4.2",
     "keytar": "^7.9.0",
-    "lru-cache": "^11.0.0",
+    "lru-cache": "^11.5.3",
     "mz": "^2.7.0",
     "native-process-working-directory": "^1.0.2",
-    "node-pty": "^1.2.0-beta.8",
+    "node-pty": "1.2.0-beta.15",
     "russh": "0.1.38",
-    "rxjs": "^7.5.7",
-    "source-map-support": "^0.5.20",
-    "yargs": "^17.7.2"
+    "rxjs": "^7.8.2",
+    "source-map-support": "^0.5.21",
+    "yargs": "^18.2.0"
   },
   "optionalDependencies": {
     "@tabby-gang/windows-blurbehind": "^3.1.0",
     "@tabby-gang/windows-process-tree": "^0.6.1",
     "macos-native-processlist": "^2.1.0",
-    "patch-package": "^8",
-    "serialport": "11.0.1",
+    "patch-package": "^8.0.1",
+    "serialport": "13.0.0",
     "serialport-binding-webserialapi": "^1.0.3",
     "windows-native-registry": "^3.2.2"
   },
   "devDependencies": {
-    "@ngx-translate/core": "^14.0.0",
+    "@ngx-translate/core": "^18.0.0",
     "@types/mz": "2.7.9",
-    "@types/node": "26.5.1"
+    "@types/node": "26.6.2"
   },
   "peerDependencies": {
     "tabby-community-color-schemes": "*",
@@ -63,9 +63,9 @@
     "tabby-terminal": "*"
   },
   "resolutions": {
-    "node-abi": "4.9.0",
-    "node-gyp": "^10.0.0",
-    "nan": "2.22.2",
-    "node-addon-api": "^8.3.0"
+    "node-abi": "^4.35.0",
+    "node-gyp": "^13.0.2",
+    "nan": "^2.29.0",
+    "node-addon-api": "^8.9.2"
   }
 }

@@ -66,8 +66,8 @@ export class CustomMissingTranslationHandler extends MissingTranslationHandler {
     compiler = new TranslateMessageFormatCompiler()
 
     // eslint-disable-next-line @typescript-eslint/ban-types
-    handle (params: { key: string, translateService: TranslateService, interpolateParams?: Object }): any {
-        const v = this.compiler.compile(params.key, params.translateService.currentLang)
+    handle (params: { key: string, translateService: TranslateService, interpolateParams?: Record<string, unknown> }): any {
+        const v = this.compiler.compile(params.key, params.translateService.getCurrentLang() ?? params.translateService.getFallbackLang() ?? 'en-US')
         if (typeof v === 'string') {
             return v
         }
@@ -190,7 +190,6 @@ export class LocaleService {
         private translate: TranslateService,
         log: LogService,
     ) {
-        this.patchTranslateService(translate)
         this.logger = log.create('translate')
         config.changed$.subscribe(() => {
             this.refresh()
@@ -206,25 +205,11 @@ export class LocaleService {
         }
     }
 
-    private patchTranslateService (translate: TranslateService) {
-        translate['_defaultTranslation'] = null
-        const oldGetParsedResult = translate.getParsedResult.bind(translate)
-
-        // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-        translate.getParsedResult = function (translations: any, key: any, interpolateParams?: any): any {
-            if (!this._defaultTranslation) {
-                const po = require(`../../../locale/en-US.po`)
-                this._defaultTranslation = flattenMessageFormatTranslation(po)
-            }
-            this.translations[this.defaultLang][key] ??= this.compiler.compile(
-                this._defaultTranslation[key] || key,
-                this.defaultLang,
-            )
-            return oldGetParsedResult(translations, key, interpolateParams ?? {})
-        }.bind(translate)
-    }
-
     refresh (): void {
+        if (!this.translate.getLangs().includes('en-US')) {
+            const po = require('../../../locale/en-US.po')
+            this.translate.setTranslation('en-US', flattenMessageFormatTranslation(po))
+        }
         let lang = this.config.store.language
         if (!lang) {
             for (const systemLanguage of navigator.languages) {
@@ -238,7 +223,7 @@ export class LocaleService {
     }
 
     async setLocale (lang: string): Promise<void> {
-        if (!this.translate.langs.includes(lang)) {
+        if (!this.translate.getLangs().includes(lang)) {
             this.translate.addLangs([lang])
 
             const po = require(`../../../locale/${lang}.po`)
@@ -246,7 +231,8 @@ export class LocaleService {
             this.translate.setTranslation(lang, translation)
         }
 
-        this.translate.setDefaultLang(lang)
+        this.translate.setFallbackLang('en-US')
+        this.translate.use(lang)
 
         this.locale = lang
         this.localeChanged.next(lang)

@@ -95,7 +95,7 @@ export class TelnetSession extends BaseSession {
                 this.emitServiceMessage('Connection closed')
                 this.destroy()
             })
-            this.socket.on('data', data => this.onData(data))
+            this.socket.on('data', data => this.onData(typeof data === 'string' ? Buffer.from(data) : data))
             this.socket.connect(this.profile.options.port ?? 23, this.profile.options.host, () => {
                 this.emitServiceMessage('Connected')
                 this.open = true

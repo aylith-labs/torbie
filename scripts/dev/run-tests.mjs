@@ -35,6 +35,7 @@ const root = path.resolve(url.fileURLToPath(new URL('.', import.meta.url)), '..'
  * every developer machine already has one. It lives in BUILT now.
  */
 const FAST = [
+    'app/test/clipboard.test.js',
     'app/test/protocols.test.js',
     'scripts/dev/cdp.test.cjs',
     'tabby-builds/test/newBuildChoice.test.js',
