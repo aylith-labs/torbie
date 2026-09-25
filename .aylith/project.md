@@ -28,7 +28,7 @@ gradientFrom: '#c97a3a'
 gradientTo: '#8a5a2b'
 ---
 
-[Explore the Torbie homepage](https://aylith-labs.github.io/torbie/) — screenshots, features and downloads.
+[Explore the Torbie homepage](https://torbie.aylith.com/) — screenshots, features and downloads.
 
 ## What it is
 
