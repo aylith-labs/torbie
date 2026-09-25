@@ -25,6 +25,13 @@ the signing action retains its immutable v1.2.1 commit.
   because Electron no longer publishes that platform; x64 and ARM64 remain.
   Electron 44 also requires macOS 13+. Existing v1.0.0 download links stay intact.
 
+## Reproducible installs
+
+Font Awesome Free 7.3.1 registry metadata advertises a tarball on the authenticated
+Font Awesome host. The root lockfile deliberately uses the public npm tarball,
+verified to have the same SHA-1 and integrity. Preserve that public URL when
+refreshing the lockfile; a warm local cache can otherwise hide a CI-only 401.
+
 ## API migrations
 
 - ngx-translate 18 uses standalone pipes/directives and provider functions.
