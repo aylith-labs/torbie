@@ -18,22 +18,48 @@
                                     sup α
                                 .text-muted {{homeBase.appVersion}}
 
-                                button.btn.btn-secondary.mt-3.mb-2(
-                                    *ngIf='!updateAvailable && hostApp.platform !== Platform.Web',
-                                    (click)='checkForUpdates()',
-                                    [disabled]='checkingForUpdate'
-                                )
-                                    i.fas.fa-sync(
-                                        [class.fa-spin]='checkingForUpdate'
+                                ng-container(*ngIf='hostApp.platform !== Platform.Web', [ngSwitch]='updaterState.kind')
+                                    button.btn.btn-secondary.mt-3.mb-2(
+                                        *ngSwitchDefault,
+                                        (click)='checkForUpdates()',
+                                        [disabled]='updaterState.kind === "checking"'
                                     )
-                                    span(translate) Check for updates
+                                        i.fas.fa-sync(
+                                            [class.fa-spin]='updaterState.kind === "checking"'
+                                        )
+                                        span(translate) Check for updates
 
-                                button.btn.btn-info.mt-3.mb-2(
-                                    *ngIf='updateAvailable',
-                                    (click)='updater.update()',
-                                )
-                                    i.fas.fa-sync
-                                    span(translate) Update
+                                    .update-progress.mt-3.mb-2(*ngSwitchCase='"downloading"')
+                                        .progress
+                                            .progress-bar(
+                                                role='progressbar',
+                                                [class.progress-bar-striped]='updatePercent === null',
+                                                [class.progress-bar-animated]='updatePercent === null',
+                                                [style.width.%]='updatePercent ?? 100',
+                                                [attr.aria-valuenow]='updatePercent'
+                                            )
+                                        .small.text-muted.mt-1(*ngIf='updatePercent !== null') {{updatePercent}}%
+
+                                    button.btn.btn-info.mt-3.mb-2(
+                                        *ngSwitchCase='"downloaded"',
+                                        (click)='updater.update()'
+                                    )
+                                        i.fas.fa-sync
+                                        span(translate) Install and restart
+
+                                    button.btn.btn-info.mt-3.mb-2(
+                                        *ngSwitchCase='"external"',
+                                        (click)='updater.update()'
+                                    )
+                                        i.fas.fa-external-link-alt
+                                        span(translate) Update
+
+                                .update-message.small(
+                                    *ngIf='updateMessage && hostApp.platform !== Platform.Web',
+                                    [class.text-danger]='updaterState.kind === "error"',
+                                    [class.text-muted]='updaterState.kind !== "error"',
+                                    [title]='updateMessage'
+                                ) {{updateMessage}}
 
                         .col-12.col-md-6
                             .list-group.list-group-light.mb-5

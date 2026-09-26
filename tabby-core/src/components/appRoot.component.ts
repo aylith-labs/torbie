@@ -245,11 +245,15 @@ export class AppRootComponent {
                 })
             }
 
+            // The gift appears once there is something to install, whoever
+            // asked: the startup check, this timer or the settings page.
+            this.updater.state$.subscribe(state => {
+                this.updatesAvailable = state.kind === 'downloaded' || state.kind === 'external'
+            })
+
             setInterval(() => {
                 if (this.config.store.enableAutomaticUpdates) {
-                    this.updater.check().then(available => {
-                        this.updatesAvailable = available
-                    })
+                    this.updater.check()
                 }
             }, 3600 * 12 * 1000)
         })

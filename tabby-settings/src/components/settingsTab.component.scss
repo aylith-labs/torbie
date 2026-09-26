@@ -20,6 +20,16 @@
         .torbie-title {
             text-align: left;
         }
+
+        .update-progress {
+            width: 16rem;
+            max-width: 100%;
+        }
+
+        .update-message {
+            max-width: 28rem;
+            overflow-wrap: anywhere;
+        }
     }
 
     .link-card {

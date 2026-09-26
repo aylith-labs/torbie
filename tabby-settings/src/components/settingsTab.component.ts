@@ -10,6 +10,7 @@ import {
     Platform,
     HomeBaseService,
     UpdaterService,
+    UpdaterState,
     PlatformService,
     HostWindowService,
     AppService,
@@ -20,6 +21,7 @@ import {
 import { SettingsTabProvider } from '../api'
 import { groupSettingsProviders, SettingsNavGroup } from '../settingsGroups'
 import { ReleaseNotesComponent } from './releaseNotesTab.component'
+import { describeUpdaterState } from '../updateStatus'
 
 /** @hidden */
 @Component({
@@ -36,8 +38,10 @@ export class SettingsTabComponent extends BaseTabComponent {
     configDefaults: any
     configFile: string
     isShellIntegrationInstalled = false
-    checkingForUpdate = false
-    updateAvailable = false
+    /** Where an update stands; drawn by the Application page under the version. */
+    updaterState: UpdaterState = { kind: 'idle' }
+    /** The line under the button, already translated; empty when there is nothing to say. */
+    updateMessage = ''
     showConfigDefaults = false
     allLanguages = LocaleService.allLanguages
     @HostBinding('class.pad-window-controls') padWindowControls = false
@@ -74,6 +78,11 @@ export class SettingsTabComponent extends BaseTabComponent {
 
         this.subscribeUntilDestroyed(config.changed$, onConfigChange)
         onConfigChange()
+
+        this.subscribeUntilDestroyed(updater.state$, state => {
+            this.updaterState = state
+            this.updateMessage = describeUpdaterState(state, (text, params) => translate.instant(text, params))
+        })
     }
 
     async ngOnInit () {
@@ -124,11 +133,17 @@ export class SettingsTabComponent extends BaseTabComponent {
         }
     }
 
+    /** The outcome, error included, arrives through `updaterState`; `check()` never rejects. */
     async checkForUpdates () {
-        this.checkingForUpdate = true
-        this.updateAvailable = await this.updater.check()
-        this.checkingForUpdate = false
+        await this.updater.check()
     }
+
+    get updatePercent (): number|null {
+        const state = this.updaterState
+        return state.kind === 'downloading' && state.percent != null ? Math.round(state.percent) : null
+    }
+
+
 
     showReleaseNotes () {
         this.app.openNewTabRaw({
