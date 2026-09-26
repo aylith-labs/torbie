@@ -7,7 +7,7 @@ description: >-
   loop, why a build will not start, and what each pane was running before the
   last restart.
 category: developer-tools
-status: building
+websiteUrl: https://torbie.aylith.com/
 features:
   - Loads plugins written for Tabby unchanged — the compatibility contract is deliberate
   - Records what blocks an event loop, in the main process and every renderer, with per-call attribution
