@@ -3505,6 +3505,76 @@ What it found, and where the fixes live:
   things apart should not lean on those two keys, which is why the Builds page
   shows a build's kind as an icon chip.
 
+## Buttons are one line, and a checkbox group has a "Select all"
+
+**`.btn` is `white-space: nowrap; flex-shrink: 0`** (`theme.new.scss`). A
+button in a flex row beside long text — Integrations → *Detect in output*'s
+"Add as rule" beside a regex — shrank until its label broke as "Add as / rule".
+`nowrap` alone is not the fix: `.btn` is also `overflow: hidden`, which makes a
+flex item's automatic minimum width 0, so it would only trade the wrap for a
+clipped label. The text beside a button is what gives way (`min-width: 0;
+overflow-wrap: anywhere`). The terminal toolbar is the one place that means to
+squeeze a button into an ellipsis, and it gets `flex-shrink: 1` back.
+Bootstrap has no button that means to wrap (`$btn-white-space` is its own
+knob for exactly this), and nothing here draws a multi-line `.btn`.
+
+**The other half is `.form-line { flex-wrap: wrap }`**, with the header
+keeping `flex: 1 1 240px`: a row whose control no longer fits beside its text
+puts the control on the next line, and a `.btn-group` wider than the whole
+column breaks between its buttons. At 720px the settings column is only 284px
+(vertical tabs plus the nav), and without this the colour-scheme switch and the
+docking buttons overran it by 54-80px once their labels stopped wrapping. Two
+plain button rows (Config file, GitHub's organizations) got `flex-wrap` in
+their templates.
+
+`scripts/dev/button-audit.cdp.cjs` measures every visible `.btn` on every
+settings page, each integration's detail view included, at the window's width
+and at 720px: more than one line of text, a label wider than its box, or a box
+past the page or its clipping ancestor. The shape it looks for changes with the
+fix — a button that can neither wrap nor shrink gets *pushed* instead — so it
+checks all three. `--inject-css` runs it against the old rule without a
+rebuild. Measured 2026-09-26: **51 failing of 199 before, 0 of 212 after**
+(Re-check all on three lines, Save/Clear clipped by 6-15px, every "Add as rule"
+on two or three lines). Below ~720px the whole settings page overflows, buttons
+or not, so narrower widths measure the page, not this.
+
+**`select-all-checkbox`** (`tabby-core/src/components/selectAllCheckbox.component.ts`)
+is the header for a group of checkboxes: checked when all are, clear when none
+are, `indeterminate` in between; a click on mixed or none selects all, on all
+clears. `selectAll.ts` is the pure half, fast-tier tested. It is a real
+`<input type=checkbox>` with a `<label for>`, so it takes Space and focus, and
+the accessibility tree reads `mixed` from `indeterminate` — measured, not
+assumed, in `selectAll.cdp.js` — rather than from an `aria-checked` that could
+disagree with it. It owns no data: `[selected]`, `[total]`, `(selectAll)`.
+
+- **Standalone, and exported from `tabby-core`'s index, not its NgModule.** A
+  plugin imports it into its own module; `tabby-core`'s declarations — the
+  most rebase-hostile list in the tree — are untouched.
+- Used on every multi-checkbox group in the fork's settings: Integrations →
+  *Show in tooltip* (the whole list) and each labelled field group, *Show as
+  tabs*, and Link Tooltip → *Which links a click reaches*. The Claude page's
+  row sets are switches under a master, not checkbox groups, and have none.
+- **The old field-group header only ever stored its last field.** It called
+  `setFieldVisible` once per field, and each call started from the
+  `Integration` snapshot, which is rebuilt on `config.changed$` *after* the
+  save — so every call began from the same stale set. `setFieldsVisible` /
+  `setTabsVisible` write the whole set once, from the stored choice, and
+  `visibleFieldKeys` prefers the stored choice over the snapshot for the same
+  reason.
+- **The field groups are `trackBy` key now.** Every save re-emits the
+  integration list and rebuilt `currentGroups`, so the headers and boxes were
+  destroyed and re-created after each click — which dropped keyboard focus off
+  the header just used, and lost a click that landed mid-rebuild.
+- **`selectAll.cdp.js` opens Settings inside `NgZone.run`, and it has to.**
+  tabby-core's `checkbox` calls `NgZone.assertInAngularZone()` on every click,
+  so in a tab built from CDP outside the zone a real click on a field box is
+  silently ignored. It used to *seem* to work only because the untracked rows
+  were re-created inside the zone by the next rebuild.
+- Not changed, and visible in the screenshots: an **unticked** checkbox's
+  border in a dark scheme is barely there. It is Bootstrap's compiled
+  `.form-check-input` border, a non-text contrast question the text audit does
+  not measure.
+
 ## The colour scheme page
 
 Settings → Color scheme opens on **Pair**, has one search above its three

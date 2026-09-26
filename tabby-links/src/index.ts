@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap'
-import TabbyCoreModule, { ConfigProvider, ConfigService, PlatformService } from 'tabby-core'
+import TabbyCoreModule, { ConfigProvider, ConfigService, PlatformService, SelectAllCheckboxComponent } from 'tabby-core'
 import { SettingsTabProvider } from 'tabby-settings'
 import { TerminalDecorator } from 'tabby-terminal'
 
@@ -25,6 +25,7 @@ import { LinkClicksService } from './services/linkClicks.service'
         FormsModule,
         NgbModule,
         TabbyCoreModule,
+        SelectAllCheckboxComponent,
     ],
     declarations: [
         LinkHoverCardComponent,

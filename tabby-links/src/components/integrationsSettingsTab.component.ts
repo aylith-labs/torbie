@@ -358,25 +358,41 @@ export class IntegrationsSettingsTabComponent implements OnDestroy {
         return groups
     }
 
-    /**
-     * Whether a group is fully on, fully off, or somewhere between — the third
-     * state is what stops the header checkbox from lying about a group where
-     * only some fields are shown.
-     */
-    groupState (integration: Integration, group: FieldGroup): boolean | 'partial' {
-        const visible = this.registry.visibleFieldKeys(integration)
-        const keys = group.fields.map(f => f.key ?? f.label ?? '')
-        const on = keys.filter(k => visible.includes(k)).length
-        if (!on) {
-            return false
-        }
-        return on === keys.length ? true : 'partial'
+    trackGroup (_: number, group: FieldGroup): string {
+        return group.key
     }
 
-    setGroupVisible (integration: Integration, group: FieldGroup, visible: boolean): void {
-        for (const field of group.fields) {
-            this.registry.setFieldVisible(integration.id, field.key ?? field.label ?? '', visible)
-        }
+    trackField (_: number, field: IntegrationDisplayField): string {
+        return field.key ?? field.label ?? ''
+    }
+
+    /** Every display field, in manifest order — what the page-level "Select all" covers. */
+    allFields (integration: Integration): IntegrationDisplayField[] {
+        return integration.manifest.fields ?? []
+    }
+
+    /**
+     * How many of these fields are shown. Feeds a tri-state "Select all": the
+     * third state is what stops a header checkbox from lying about a group
+     * where only some fields are shown.
+     */
+    visibleFieldCount (integration: Integration, fields: IntegrationDisplayField[]): number {
+        const visible = this.registry.visibleFieldKeys(integration)
+        return fields.filter(f => visible.includes(f.key ?? f.label ?? '')).length
+    }
+
+    /** One write for the whole set, not one per field — see `setFieldsVisible` in the registry. */
+    setFieldsVisible (integration: Integration, fields: IntegrationDisplayField[], visible: boolean): void {
+        this.registry.setFieldsVisible(integration.id, fields.map(f => f.key ?? f.label ?? ''), visible)
+    }
+
+    visibleTabCount (integration: Integration): number {
+        const visible = this.registry.visibleTabKeys(integration)
+        return (integration.manifest.tabs ?? []).filter(t => visible.includes(t.key ?? t.label ?? '')).length
+    }
+
+    setAllTabsVisible (integration: Integration, visible: boolean): void {
+        this.registry.setTabsVisible(integration.id, (integration.manifest.tabs ?? []).map(t => t.key ?? t.label ?? ''), visible)
     }
 
     // ── suggested text matchers ──────────────────────────────────────────────

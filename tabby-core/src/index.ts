@@ -292,3 +292,9 @@ export { ToolbarButton as IToolbarButton } from './api'
 export { HotkeyDescription as IHotkeyDescription } from './api'
 
 export { FilesizePipe } from './pipes/filesize.pipe'
+
+// Standalone, so a plugin imports it into its own module — nothing above had
+// to learn about it.
+export { SelectAllCheckboxComponent } from './components/selectAllCheckbox.component'
+export { selectAllState, selectAllStateOf, selectAllTarget } from './selectAll'
+export type { SelectAllState } from './selectAll'

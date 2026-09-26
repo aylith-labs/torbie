@@ -151,6 +151,18 @@ $muted: var(--theme-muted-fg);
     }
 }
 
+// The group title and its "Select all", on one line.
+.select-all-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+
+    h5 {
+        margin-bottom: 0;
+    }
+}
+
 .credential-row {
     display: flex;
     gap: 6px;
@@ -190,12 +202,6 @@ $muted: var(--theme-muted-fg);
     gap: 6px;
     margin: 10px 0 2px;
     font-weight: 600;
-
-    // A group where only some fields are shown: the header checkbox is off,
-    // so this says the group is not simply empty.
-    .partial {
-        color: $muted;
-    }
 }
 
 .field-checks.grouped {

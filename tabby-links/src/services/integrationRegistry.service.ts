@@ -114,6 +114,23 @@ export function normalizeSettingValue (field: IntegrationField, raw: string): st
     return value
 }
 
+/**
+ * A filter over the manifest's key order: the current set with `keys` switched
+ * on or off. Filtering the manifest order, rather than returning the set, is
+ * what keeps the stored list in the author's order whatever was clicked first.
+ */
+export function applyVisibility (current: string[], keys: string[], visible: boolean): (key: string) => boolean {
+    const next = new Set(current)
+    for (const key of keys) {
+        if (visible) {
+            next.add(key)
+        } else {
+            next.delete(key)
+        }
+    }
+    return key => next.has(key)
+}
+
 @Injectable({ providedIn: 'root' })
 export class IntegrationRegistryService {
     private logger: Logger
@@ -315,20 +332,25 @@ export class IntegrationRegistryService {
      * way its author intended regardless of click order.
      */
     setFieldVisible (id: string, key: string, visible: boolean): void {
+        this.setFieldsVisible(id, [key], visible)
+    }
+
+    /**
+     * Several fields in one write — what a "Select all" needs.
+     *
+     * The starting set is read from the config, not from the `Integration`
+     * snapshot: snapshots are rebuilt on `config.changed$`, after the save, so
+     * a loop of single-field writes each starts from the same stale snapshot
+     * and only the last field sticks — which is how the old group header,
+     * calling `setFieldVisible` once per field, behaved.
+     */
+    setFieldsVisible (id: string, keys: string[], visible: boolean): void {
         const integration = this.byId(id)
         if (!integration) {
             return
         }
         const order = (integration.manifest.fields ?? []).map(f => f.key ?? f.label ?? '')
-        const current = integration.fields
-            ?? (integration.manifest.fields ?? []).filter(f => f.default).map(f => f.key ?? f.label ?? '')
-        const next = new Set(current)
-        if (visible) {
-            next.add(key)
-        } else {
-            next.delete(key)
-        }
-        this.stateFor(id).fields = order.filter(k => next.has(k))
+        this.stateFor(id).fields = order.filter(applyVisibility(this.visibleFieldKeys(integration), keys, visible))
         this.config.save()
     }
 
@@ -337,9 +359,14 @@ export class IntegrationRegistryService {
      *
      * An empty *array* is a choice — the user unticked everything — and is
      * honoured. Only the absence of one falls back to the manifest, or the last
-     * box you unticked would spring straight back on.
+     * box you unticked would spring straight back on. The stored choice wins
+     * over the snapshot's copy of it, which lags a save.
      */
     visibleFieldKeys (integration: Integration): string[] {
+        const stored = this.config.store.integrations?.[integration.id]?.fields
+        if (Array.isArray(stored)) {
+            return [...stored]
+        }
         if (integration.fields) {
             return integration.fields
         }
@@ -350,6 +377,10 @@ export class IntegrationRegistryService {
 
     /** Which tabs to show, on the same rules as the display fields. */
     visibleTabKeys (integration: Integration): string[] {
+        const stored = this.config.store.integrations?.[integration.id]?.tabs
+        if (Array.isArray(stored)) {
+            return [...stored]
+        }
         if (integration.tabs) {
             return integration.tabs
         }
@@ -359,20 +390,17 @@ export class IntegrationRegistryService {
     }
 
     setTabVisible (id: string, key: string, visible: boolean): void {
+        this.setTabsVisible(id, [key], visible)
+    }
+
+    /** Several tabs in one write, on the same rules as `setFieldsVisible`. */
+    setTabsVisible (id: string, keys: string[], visible: boolean): void {
         const integration = this.byId(id)
         if (!integration) {
             return
         }
         const order = (integration.manifest.tabs ?? []).map(t => t.key ?? t.label ?? '')
-        const current = integration.tabs
-            ?? (integration.manifest.tabs ?? []).filter(t => t.default).map(t => t.key ?? t.label ?? '')
-        const next = new Set(current)
-        if (visible) {
-            next.add(key)
-        } else {
-            next.delete(key)
-        }
-        this.stateFor(id).tabs = order.filter(k => next.has(k))
+        this.stateFor(id).tabs = order.filter(applyVisibility(this.visibleTabKeys(integration), keys, visible))
         this.config.save()
     }
 

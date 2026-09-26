@@ -214,6 +214,16 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
         this.saveConfiguration()
     }
 
+    clickKindCount (): number {
+        return this.clickKinds.filter(kind => this.hasKind(kind.value)).length
+    }
+
+    /** "Select all" over the kinds: a whole new array, for the reason above. */
+    setAllKinds (on: boolean): void {
+        this.config.store.linkTooltip.clickableKinds = on ? [...CLICKABLE_KINDS] : []
+        this.saveConfiguration()
+    }
+
     get safeSchemes (): string {
         return (this.config.store.linkTooltip.safeSchemes ?? []).join(', ')
     }

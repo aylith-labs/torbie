@@ -213,6 +213,13 @@ div(ngbAccordion, [destroyOnHide]='false', [animation]='config.store.accessibili
                         //- at 847 / 861 / 820, a 41px ragged edge.
                         .click-kinds
                             .click-kinds-list
+                                select-all-checkbox.select-all-kinds(
+                                    [disabled]='!config.store.linkTooltip.clickable',
+                                    [selected]='clickKindCount()',
+                                    [total]='clickKinds.length',
+                                    [ariaLabel]='"Select all: Which links a click reaches"|translate',
+                                    (selectAll)='setAllKinds($event)',
+                                )
                                 .form-check.form-check-inline(*ngFor='let kind of clickKinds')
                                     input.form-check-input(
                                         [disabled]='!config.store.linkTooltip.clickable',

@@ -167,6 +167,15 @@ $muted: var(--theme-muted-fg);
         // provides, and it would push the last item off the group's right edge.
         margin-right: 0;
     }
+
+    // "Select all" is a line of its own above the kinds it governs, ruled off
+    // from them. Inline it joined the first wrapped line and read as a fourth
+    // kind.
+    .select-all-kinds {
+        flex: 0 0 100%;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--theme-bg-more-2);
+    }
 }
 
 .action-card {
