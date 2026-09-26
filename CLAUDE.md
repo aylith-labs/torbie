@@ -410,6 +410,18 @@ registry table above used to record: `deploy-alert-targets.json` watches
     publish, and two releases for one tag means the split is back.
   - **Recovery from a split:** delete *every* draft for the tag, then push the
     tag once. Delete on a fresh read, per the bullet above.
+- **The updater reads the per-arch manifest, and the release is checked for
+  it.** electron-updater's stock GitHub provider ignores `channel` and asks for
+  `latest.yml` (Windows) / `latest-mac.yml`, which no release carried — every
+  Windows update check from 1.0.0 on was a 404, and the settings button
+  disabled itself for good. `app/lib/updateFeed.ts` subclasses the provider so
+  it asks for `latest-${arch}` (tag-pinned URLs kept, so differential
+  downloads still find the old blockmap); `app/test/updateFeed.test.js` holds
+  the mapping against the build scripts' names (`--live` runs it against the
+  real latest release). `build.yml`'s `Update-Manifests` job fails the tag if a
+  per-arch manifest is missing, and uploads `latest.yml` (a copy of
+  `latest-x64.yml`) — the only file 1.0.0/1.0.1 installs can ever ask for. Drop
+  that upload once no such install is left.
 - The draft is `draft: true`, so a release is never public until somebody
   publishes it. **Once one is published, its tag is frozen**: v1.0.0 was
   force-moved three times while every version of it was an unpublished draft
