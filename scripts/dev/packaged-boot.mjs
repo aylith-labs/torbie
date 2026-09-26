@@ -76,7 +76,14 @@ fs.writeFileSync(path.join(profile, 'config.yaml'), [
 // What a packaged app would see launched from Explorer: nothing inherited that
 // points at another build's plugins or profile.
 const env = { ...process.env, TABBY_CONFIG_DIRECTORY: profile, TORBIE_CONFIG_DIRECTORY: profile, TABBY_DIAG: '1' }
-for (const k of ['NODE_PATH', 'TABBY_PLUGINS', 'TORBIE_PLUGINS', 'TABBY_DEV', 'TORBIE_DEV', 'ELECTRON_RUN_AS_NODE', 'NODE_OPTIONS']) {
+//
+// RUST_TARGET_TRIPLE too: the CI job sets it for the native builds, and
+// `russh/lib/native.js` takes it as the name of its binary at *runtime*
+// (`russh.x86_64-pc-windows-msvc.node`, which does not exist), so tabby-ssh —
+// and tabby-electron, which requires it — failed to load on the runner only.
+// No desktop launch carries it, except a Rust developer's shell, which is a
+// real if narrow product bug in russh and not what this gate is asking.
+for (const k of ['NODE_PATH', 'TABBY_PLUGINS', 'TORBIE_PLUGINS', 'TABBY_DEV', 'TORBIE_DEV', 'ELECTRON_RUN_AS_NODE', 'NODE_OPTIONS', 'RUST_TARGET_TRIPLE']) {
     delete env[k]
 }
 
