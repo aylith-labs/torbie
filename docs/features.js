@@ -27,6 +27,12 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "select-all-one-line-buttons", title: "Select all on every checkbox group, and buttons that stay on one line",
+    cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-26",
+    commits: ["39af28ba","58bffd06"], files: 20, ins: 1213, del: 52,
+    desc: "Every group of checkboxes in the settings has a Select all box at its title: ticked when every box is, clear when none is, and showing a dash when only some are. Clicking it with some or none ticked selects everything; clicking it with everything ticked clears it. It is a real checkbox, so it takes the keyboard and a screen reader announces the mixed state. The field-group header it replaces had only ever saved its last field. Buttons no longer break their label over two lines beside long text, such as \"Add as rule\" beside a long pattern: the text wraps instead, and a settings row puts its control underneath when the window is too narrow for both. An audit of every settings button found 51 of 199 wrapping, clipped or pushed off the page before, and none after.",
+  },
+  {
     id: "settings-search", title: "Search every setting, ranked, and jump straight to it",
     cat: "ui", catLabel: "UI & theming", dateAdded: "2026-09-24",
     commits: ["6ca524ac","649d1370","842cffa9"], files: 20, ins: 1884, del: 6,
