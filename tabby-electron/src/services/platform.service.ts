@@ -15,9 +15,15 @@ const fontManager = require('fontmanager-redux') // eslint-disable-line
 
 /* eslint-disable block-scoped-var */
 
+// Separately: both are optional dependencies, and in one `try` a missing
+// process-tree addon also left `wnr` undefined — so `getWinSCPPath()` threw
+// during bootstrap and the app fell to safe mode and then to nothing. Found by
+// booting a packaged build whose process-tree addon had failed to compile.
 try {
     // eslint-disable-next-line no-var
     var windowsProcessTreeNative = require('@tabby-gang/windows-process-tree/build/Release/windows_process_tree.node')
+} catch { }
+try {
     // eslint-disable-next-line no-var
     var wnr = require('windows-native-registry')
 } catch { }
@@ -111,6 +117,11 @@ export class ElectronPlatformService extends PlatformService {
     }
 
     getWinSCPPath (): string|null {
+        // Called from a constructor during bootstrap, so a missing optional
+        // addon must mean "no WinSCP", not a failed boot.
+        if (!wnr) { // eslint-disable-line block-scoped-var
+            return null
+        }
         const key = wnr.getRegistryKey(wnr.HK.CR, 'WinSCP.Url\\DefaultIcon')
         if (key?.['']) {
             let detectedPath = key[''].value?.split(',')[0]
