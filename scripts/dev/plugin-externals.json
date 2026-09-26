@@ -17,6 +17,7 @@
     "electron-debug",
     "electron-promise-ipc",
     "electron-updater",
+    "electron-updater/out/providers/GitHubProvider",
     "events",
     "fs",
     "glasstron",
