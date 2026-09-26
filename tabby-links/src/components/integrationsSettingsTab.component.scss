@@ -136,9 +136,18 @@ $muted: var(--theme-muted-fg);
     align-items: center;
     gap: 12px;
 
+    // The text gives way, not the button: a long pattern is one unbroken
+    // regex, so it has to be allowed to break anywhere or it pushes the
+    // "Add as rule" button off the card (the global `.btn` rule keeps the
+    // button's label on one line and the button at its full width).
     .header {
         flex: 1 1 auto;
         min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    > .btn {
+        flex-shrink: 0;
     }
 }
 

@@ -130,7 +130,7 @@ div(*ngIf='current')
                 button.btn.btn-secondary((click)='moveOwner(i, 1)', [disabled]='i === owners.length - 1', aria-label='Move organization down') ↓
                 button.btn.btn-secondary((click)='removeOwner(i)', aria-label='Remove organization') ×
             .text-danger(*ngIf='ownerError') {{ownerError}}
-            .d-flex.gap-2.mt-2
+            .d-flex.flex-wrap.gap-2.mt-2
                 button.btn.btn-secondary((click)='addOwner()', translate) Add organization
                 .dropdown(ngbDropdown, container='body', (openChange)='$event && refreshAccount(true)')
                     button.btn.btn-secondary(ngbDropdownToggle, [disabled]='!current.enabled', translate) Add identified organization

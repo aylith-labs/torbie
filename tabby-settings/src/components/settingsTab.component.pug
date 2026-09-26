@@ -164,7 +164,7 @@
                                 [(ngModel)]='configDefaults',
                                 readonly
                             )
-                    .mt-3.d-flex
+                    .mt-3.d-flex.flex-wrap.row-gap-2
                         button.btn.btn-primary((click)='saveConfigFile()', *ngIf='isConfigFileValid()')
                             i.fas.fa-check.me-2
                             span(translate) Save and apply

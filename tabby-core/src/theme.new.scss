@@ -485,15 +485,55 @@ search-panel {
 }
 
 
+// A button's label is one line. Bootstrap leaves `$btn-white-space` unset, so
+// a button in a flex row beside long text wrapped to "Add as / rule" — and
+// `overflow: hidden` above makes the flex item's automatic minimum width 0, so
+// `nowrap` alone would only trade the wrap for a clipped label. Hence both: the
+// label never breaks and the button never shrinks below it; the text beside it
+// is what gives way (`min-width: 0` and `overflow-wrap: anywhere` there).
+// A container that means to squeeze its buttons into an ellipsis — the
+// terminal toolbar — says so below.
 .btn {
     cursor: pointer;
     justify-content: flex-start;
     overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
 
     &.disabled,
     &:disabled {
         cursor: not-allowed;
     }
+}
+
+// The other half of one-line buttons: a settings row whose control no longer
+// fits beside its text puts the control on the next line, instead of pushing
+// a button group past the page. The text keeps at least 240px before that
+// happens, so a row only wraps in a narrow window — measured at 720px, where
+// the colour scheme switch and the docking buttons overran by 54-80px.
+.form-line {
+    flex-wrap: wrap;
+    column-gap: 12px;
+
+    > .header {
+        flex: 1 1 240px;
+        min-width: 0;
+    }
+
+    // And a segmented control wider than the whole column — three options in
+    // a 224px column, beside a vertical tab bar at 720px — breaks between its
+    // buttons rather than inside one, and stays on the page.
+    > .btn-group {
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+}
+
+// Its own stylesheet already ellipsizes a long button (a serial port, an SSH
+// host); that needs the button to be allowed to shrink.
+terminal-toolbar .btn {
+    flex-shrink: 1;
+    text-overflow: ellipsis;
 }
 
 .btn-link {
