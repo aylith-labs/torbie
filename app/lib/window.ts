@@ -10,6 +10,7 @@ import { compare as compareVersions } from 'compare-versions'
 import type { Application } from './app'
 import { parseArgs } from './cli'
 import { note, recordFailure } from './diagnostics'
+import { feedOptions } from './updateFeed'
 import { parseTabbyURL, isTabbyURL } from './urlHandler'
 import { claimSlot, describe, placeWindow, releaseSlot, saveGeometry } from './windowGeometry'
 
@@ -52,32 +53,85 @@ function updater (): any {
     }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { autoUpdater } = require('electron-updater')
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { GitHubProvider } = require('electron-updater/out/providers/GitHubProvider')
     autoUpdater.autoDownload = true
     autoUpdater.autoInstallOnAppQuit = true
-    const broadcast = (event: string, ...args: any[]) => {
-        for (const window of updaterWindows) {
-            window.send(event, ...args)
-        }
-    }
+    // Only stable releases are published. Left to itself this follows the
+    // running version, so a nightly (`1.0.1-nightly.5`) would hunt the feed
+    // for a `nightly` tag, find none, and fail with "No published versions".
+    autoUpdater.allowPrerelease = false
+    // The per-arch manifest (`latest-x64.yml`, …) rather than the `latest.yml`
+    // the stock GitHub provider asks for — see updateFeed.ts.
+    autoUpdater.setFeedURL(feedOptions(GitHubProvider, process.platform, process.arch))
     autoUpdater.on('checking-for-update', () => note('updater-check'))
-    autoUpdater.on('update-available', () => {
-        note('update-available')
-        broadcast('updater:update-available')
+    autoUpdater.on('update-available', info => {
+        note('update-available', String(info?.version))
+        broadcastUpdater('updater:update-available', info?.version ?? null)
     })
     autoUpdater.on('update-not-available', () => {
         note('update-not-available')
-        broadcast('updater:update-not-available')
+        broadcastUpdater('updater:update-not-available')
+    })
+    autoUpdater.on('download-progress', progress => {
+        broadcastUpdater('updater:download-progress', {
+            percent: progress?.percent ?? 0,
+            transferred: progress?.transferred ?? 0,
+            total: progress?.total ?? 0,
+            bytesPerSecond: progress?.bytesPerSecond ?? 0,
+        })
     })
     autoUpdater.on('error', err => {
         note('updater-error', String(err?.message ?? err))
-        broadcast('updater:error', err)
+        // A string, not the Error: what crosses IPC is what the renderer
+        // shows, and an Error's own properties do not survive the trip.
+        broadcastUpdater('updater:error', String(err?.message ?? err))
     })
-    autoUpdater.on('update-downloaded', () => {
-        note('update-downloaded')
-        broadcast('updater:update-downloaded')
+    autoUpdater.on('update-downloaded', info => {
+        note('update-downloaded', String(info?.version))
+        broadcastUpdater('updater:update-downloaded', info?.version ?? null)
     })
     loadedUpdater = autoUpdater
     return autoUpdater
+}
+
+function broadcastUpdater (event: string, ...args: any[]): void {
+    for (const window of updaterWindows) {
+        window.send(event, ...args)
+    }
+}
+
+/**
+ * Ask for an update check, and make sure the renderer hears an answer.
+ *
+ * `checkForUpdates()` emits `error` *and* rejects, so the rejection was an
+ * unhandledRejection in the main process every time a check failed (logged to
+ * `main-process-errors.log` on every Windows install). The `error` event has
+ * already reached the renderer by then, so the catch only has to cover what
+ * does not emit: the loader or the feed throwing before a check starts. It
+ * resolves `null`, with no event at all, in an unpackaged build — which left
+ * a source build's "Check for updates" spinning forever.
+ */
+async function checkForUpdates (): Promise<void> {
+    let emitted = false
+    try {
+        const u = updater()
+        const onError = () => { emitted = true }
+        u.once('error', onError)
+        try {
+            const result = await u.checkForUpdates()
+            if (result == null) {
+                broadcastUpdater('updater:error', 'Updates are only checked in an installed build.')
+            }
+        } finally {
+            u.removeListener('error', onError)
+        }
+    } catch (err) {
+        if (!emitted) {
+            note('updater-error', String(err?.message ?? err))
+            broadcastUpdater('updater:error', String(err?.message ?? err))
+        }
+    }
 }
 
 export class Window {
@@ -681,11 +735,16 @@ export class Window {
         updaterWindows.add(this)
 
         this.on('updater:check-for-updates', () => {
-            updater().checkForUpdates()
+            void checkForUpdates()
         })
 
         this.on('updater:quit-and-install', () => {
-            updater().quitAndInstall()
+            try {
+                updater().quitAndInstall()
+            } catch (err) {
+                note('updater-error', String(err?.message ?? err))
+                broadcastUpdater('updater:error', String(err?.message ?? err))
+            }
         })
     }
 

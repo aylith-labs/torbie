@@ -42,6 +42,8 @@ const config = {
         'electron-debug': 'commonjs electron-debug',
         'electron-promise-ipc': 'commonjs electron-promise-ipc',
         'electron-updater': 'commonjs electron-updater',
+        // Must stay the same module instance electron-updater itself loads, so it is external too (lib/updateFeed.ts).
+        'electron-updater/out/providers/GitHubProvider': 'commonjs electron-updater/out/providers/GitHubProvider',
         fs: 'commonjs fs',
         glasstron: 'commonjs glasstron',
         mz: 'commonjs mz',
