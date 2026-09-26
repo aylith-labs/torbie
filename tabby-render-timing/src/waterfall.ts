@@ -54,6 +54,12 @@ const LABELS: Record<string, string> = {
     'window-geometry': 'Window placed',
     'first-tab': 'First tab opened',
     'first-terminal-output': 'First terminal output',
+    'tab-profile-resolved': 'Tab: profile resolved',
+    'tab-frontend-ready': 'Tab: terminal ready for a session',
+    'tab-pty-spawned': 'Tab: PTY spawned',
+    'tab-first-output': 'Tab: first output on screen',
+    'pty-spawned': 'Main process: PTY process started',
+    'pty-first-data': 'Main process: PTY printed',
     'stall': 'Event loop blocked',
     'render-timing': 'Render timing summary',
     'window-focus': 'Window focused',
@@ -208,7 +214,12 @@ export const STAGES: { id: string, label: string, from: string[], to: string[] }
     // visible launch shows it — stands in.
     { id: 'window', label: 'Electron ready → window on screen', from: ['app-ready'], to: ['window-shown', 'did-finish-load'] },
     { id: 'boot', label: 'Window on screen → app ready', from: ['window-shown', 'did-finish-load'], to: ['window-ready', 'ready'] },
-    { id: 'terminal', label: 'App ready → first terminal output', from: ['window-ready', 'ready'], to: ['first-terminal-output'] },
+    // Split at the first tab's PTY when that was recorded (1.0.3+): opening
+    // the tab and starting its process, then the shell answering and the
+    // answer reaching the screen. Older records have no PTY milestone, so
+    // `tab` is left out and `terminal` runs from app ready as it always did.
+    { id: 'tab', label: 'App ready → first tab\'s PTY spawned', from: ['window-ready', 'ready'], to: ['tab-pty-spawned'] },
+    { id: 'terminal', label: 'PTY spawned → first terminal output', from: ['tab-pty-spawned', 'window-ready', 'ready'], to: ['first-terminal-output'] },
 ]
 
 function firstOf (m: Record<string, number>, kinds: string[]): number | undefined {

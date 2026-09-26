@@ -2801,7 +2801,11 @@ later as something unrecognisable (the documented case: a missing
   with synchronous `readdirSync`/`readFileSync`/`unlinkSync`, uncapped and without
   yielding, on the renderer thread. `hook.js` writes one file per Claude event and
   never prunes, so the backlog is proportional to how long Tabby was *not* running —
-  measured 0.126 ms/file warm, and a 3.5-day gap is ~60,000 files.
+  measured 0.126 ms/file warm, and a 3.5-day gap is ~60,000 files. It runs from
+  the decorator's `attach`, i.e. **when the first terminal opens**, so it reads as
+  a slow tab rather than a slow app. Fixed at the source (`c1b8cb6` in that repo:
+  async, chunked, stale files deleted unread), but only in its unpublished 1.2.2;
+  npm's 1.2.1 still does it — 17.3s on the first 1.0.2 launch, ~6.3ms/file cold.
 - A cold main process blocked **17.4s** during `main-start` on `fs.readFileSync
   ×817`, i.e. module loading. Expected to be cheaper from an asar slot than a dev
   build, but it has never been measured before.
@@ -2850,11 +2854,49 @@ history table to compare launches; `waterfall.ts` is pure and fast-tier tested.
 
 - **Anchored at `performance.timeOrigin`** — process start in main, navigation
   start in a renderer — so the time before any app code ran is on the page too.
-- **A hidden launch is not a visible one.** It never shows its window, never
-  paints until something forces a frame, and its first terminal output waits
-  ~30s because xterm's first fit runs on `requestAnimationFrame`, which a hidden
-  window never fires. The page falls back to `did-finish-load` for "on screen";
-  first-output numbers from hidden runs are artefacts.
+- **A hidden launch is not a visible one.** It never shows its window and
+  never paints until something forces a frame, so the page falls back to
+  `did-finish-load` for "on screen". rAF does fire (the window has
+  `backgroundThrottling: false`), about once a second. The ~30s first output
+  that used to be put down to rAF was the zone bug (see *Angular 22* — `target`);
+  a hidden launch now prints its first output ~0.5–1s after the tab opens.
+- **Every tab records its own opening**, so "the tab took ages" answers itself:
+
+  | kind | process | ms is |
+  |---|---|---|
+  | `tab-profile-resolved` | renderer | `TerminalService.openTab` → profile and cwd resolved |
+  | `tab-frontend-ready` | renderer | tab constructed → xterm attached and first fit (its view was created) |
+  | `pty-spawned` | main | node-pty `spawn()` itself (`app/lib/pty.ts`) |
+  | `tab-pty-spawned` | renderer | `session.start()` → resolved |
+  | `pty-first-data` | main | spawn → the process first printed |
+  | `tab-first-output` | renderer | tab constructed → first non-empty output reached the terminal |
+
+  The main-process half is independent of the renderer, so the two failure
+  shapes cannot be confused: a slow shell has a large `pty-first-data`; a
+  renderer too busy to take its output has a small one and a large
+  `tab-first-output`, with the stall beside it. `tab-profile-resolved`,
+  `tab-pty-spawned` and `pty-first-data` are milestones too, and the history
+  bar splits *app ready → first output* at the first PTY. Only local
+  (`tabby-local`) tabs are covered. **First output means non-empty**: attaching
+  a session releases its initial buffer, which emits an empty chunk before the
+  process has printed anything — `first-terminal-output` used to fire on it.
+- The launch record is rewritten when the first terminal prints **even after**
+  the 15s fallback already wrote it. A first output that arrives late is the
+  launch worth keeping, and it used to reach the file only on quit.
+
+**What the tab-open phases found on 1.0.2** (the report was "a huge delay when
+the default WSL profile was opened"; WSL itself answers `wsl.exe -d Ubuntu --
+true` in ~180ms, and node-pty spawns `wsl.exe` in 35–160ms with first data
+55–310ms later, every run):
+
+| launch | profile → first output | cause |
+|---|---|---|
+| 18:16, first 1.0.2 launch | 17.6s | `tabby-claude-status` 1.2.1 draining 2,558 spool files on attach: 17.3s stall, `readFileSync ×2558` |
+| 18:24, plugin gone | 11.7s | the tab added outside the zone; 6.6s idle, then 4.8s of script |
+| hidden repro, `tabby-mcp-server` on | 30.6s | same zone bug; timing-dependent, 7 of 9 runs (and 0 of 1 with CDP attached, which pokes the zone) |
+| same, es2016 | 0.6–1.1s | — |
+| repro, old claude-status + 2,558 files | 21.9s (`pty-first-data` 77ms) | the spool drain, 21.6s stall |
+| same, claude-status source (1.2.2) | 0.27s | drained async, off the attach |
 - A phase lasts until the next phase **in the same process**; `plugin-loaded`,
   stalls and slow spans carry their own duration. Per-plugin *module
   construction* is not split out — Angular constructs every NgModule inside

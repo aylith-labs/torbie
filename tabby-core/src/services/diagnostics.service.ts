@@ -56,4 +56,14 @@ export class DiagnosticsService {
     note (kind: string, detail?: unknown): void {
         this.recorder?.note?.(kind, detail)
     }
+
+    /**
+     * Put something that already took `ms` on the launch timeline, ending now.
+     * Unlike a span it is always recorded, whatever the threshold: the
+     * Startup page draws it as a bar, and a fast one is as much the answer as
+     * a slow one ("the shell printed 180ms after the spawn").
+     */
+    timed (kind: string, ms: number, detail?: unknown): void {
+        this.recorder?.timed?.(kind, ms, detail)
+    }
 }

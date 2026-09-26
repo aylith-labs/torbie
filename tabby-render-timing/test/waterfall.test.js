@@ -114,12 +114,20 @@ check('stages split the boot at the milestones', stages(record).map(x => [x.id, 
 check('a hidden launch falls back to the page having loaded',
     stages({ milestones: { 'app-ready': 1000, 'did-finish-load': 1400, 'first-contentful-paint': 9000, ready: 3000 } }).map(x => [x.id, x.duration]),
     [['electron', 1000], ['window', 400], ['boot', 1600]])
+check('the terminal stage splits at the first PTY when there is one',
+    stages({ milestones: { 'app-ready': 1000, 'window-shown': 1200, 'window-ready': 3000, 'tab-pty-spawned': 3100, 'first-terminal-output': 20400 } }).map(x => [x.id, x.start, x.duration]),
+    [['electron', 0, 1000], ['window', 1000, 200], ['boot', 1200, 1800], ['tab', 3000, 100], ['terminal', 3100, 17300]])
 check('a stage missing either end is left out', stages({ milestones: { 'app-ready': 1000 } }).map(x => x.id), ['electron'])
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 check('median, odd', median([5, 1, 3]), 3)
 check('median, even', median([4, 1, 3, 2]), 2.5)
 check('median of nothing', median([]), undefined)
+check('tab-open phases have labels', ['tab-profile-resolved', 'tab-frontend-ready', 'tab-pty-spawned', 'tab-first-output', 'pty-spawned', 'pty-first-data'].every(k => labelFor({ kind: k }) !== k), true)
+check('a tab phase is drawn as a bar ending when it was recorded',
+    buildRows({ ...record, events: [renderer(5000, 'tab-first-output', { ms: 700, detail: { profile: 'WSL', afterSpawnMs: 650 } })] }, { scope: 'all', showPlugins: false })
+        .map(x => [x.type, x.start, x.end, x.duration]),
+    [['timed', 4300, 5000, 700]])
 check('formatMs under a second', formatMs(812.4), '812 ms')
 check('formatMs seconds', formatMs(4312), '4.31 s')
 check('formatMs long', formatMs(24076), '24.1 s')

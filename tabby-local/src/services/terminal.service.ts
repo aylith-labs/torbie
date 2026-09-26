@@ -1,6 +1,6 @@
 import * as fsSync from 'fs'
 import { Injectable } from '@angular/core'
-import { Logger, LogService, ConfigService, ProfilesService, PartialProfile } from 'tabby-core'
+import { Logger, LogService, ConfigService, ProfilesService, PartialProfile, DiagnosticsService } from 'tabby-core'
 import { TerminalTabComponent } from '../components/terminalTab.component'
 import { LocalProfile } from '../api'
 
@@ -12,6 +12,7 @@ export class TerminalService {
     private constructor (
         private profilesService: ProfilesService,
         private config: ConfigService,
+        private diagnostics: DiagnosticsService,
         log: LogService,
     ) {
         this.logger = log.create('terminal')
@@ -31,6 +32,7 @@ export class TerminalService {
      * @param pause Wait for a keypress when the shell exits
      */
     async openTab (profile?: PartialProfile<LocalProfile>|null, cwd?: string|null, pause?: boolean): Promise<TerminalTabComponent|null> {
+        const resolveStarted = Date.now()
         if (!profile) {
             profile = await this.getDefaultProfile()
         }
@@ -45,6 +47,9 @@ export class TerminalService {
         }
 
         this.logger.info(`Starting profile ${fullProfile.name}`, fullProfile)
+        // The first tab-open phase: finding the profile (the default one means
+        // enumerating every shell provider) and checking its cwd.
+        this.diagnostics.timed('tab-profile-resolved', Date.now() - resolveStarted, { profile: fullProfile.name })
         const options = {
             ...fullProfile.options,
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing

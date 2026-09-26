@@ -345,12 +345,14 @@ $label-w: minmax(180px, 30%);
 .seg.stage-electron { background: $phase; }
 .seg.stage-window { background: color-mix(in srgb, #{$phase} 72%, transparent); }
 .seg.stage-boot { background: color-mix(in srgb, #{$phase} 48%, transparent); }
+.seg.stage-tab { background: color-mix(in srgb, #{$timed} 55%, transparent); }
 .seg.stage-terminal { background: $timed; }
 
 .legend {
     .stage-electron .swatch { background: $phase; }
     .stage-window .swatch { background: color-mix(in srgb, #{$phase} 72%, transparent); }
     .stage-boot .swatch { background: color-mix(in srgb, #{$phase} 48%, transparent); }
+    .stage-tab .swatch { background: color-mix(in srgb, #{$timed} 55%, transparent); }
     .stage-terminal .swatch { background: $timed; }
 }
 

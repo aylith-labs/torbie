@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
 import { BaseTerminalTabComponent, TerminalDecorator } from 'tabby-terminal'
 
-import { first } from 'rxjs'
+import { filter, first } from 'rxjs'
 
 import { lifecycleNote } from './lifecycle'
 import { RenderTiming } from './timing'
@@ -24,7 +24,9 @@ export class RenderTimingDecorator extends TerminalDecorator {
 
     attach (tab: BaseTerminalTabComponent<any>): void {
         if (!firstOutputSeen) {
-            this.subscribeUntilDetached(tab, tab.output$.pipe(first()).subscribe(() => {
+            // Non-empty: attaching a session releases its initial buffer, which
+            // emits an empty chunk before the process has printed anything.
+            this.subscribeUntilDetached(tab, tab.output$.pipe(filter(data => !!data?.length), first()).subscribe(() => {
                 if (!firstOutputSeen) {
                     firstOutputSeen = true
                     lifecycleNote('first-terminal-output', { title: tab.title })

@@ -2,6 +2,7 @@ import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker'
 import { Component, Input, Injector, Inject, Optional } from '@angular/core'
 import { BaseTabProcess, DiagnosticsService, WIN_BUILD_CONPTY_SUPPORTED, isWindowsBuild, GetRecoveryTokenOptions } from 'tabby-core'
 import { BaseTerminalTabComponent } from 'tabby-terminal'
+import { filter, first } from 'rxjs'
 import { LocalProfile, SessionOptions, UACService } from '../api'
 import { Session } from '../session'
 
@@ -16,6 +17,8 @@ import { Session } from '../session'
 export class TerminalTabComponent extends BaseTerminalTabComponent<LocalProfile> {
     @Input() sessionOptions: SessionOptions // Deprecated
     session: Session|null = null
+    /** When this tab was created, for the tab-open phases on the launch timeline. */
+    private openedAt = Date.now()
 
     // eslint-disable-next-line @typescript-eslint/no-useless-constructor
     constructor (
@@ -50,6 +53,7 @@ export class TerminalTabComponent extends BaseTerminalTabComponent<LocalProfile>
     }
 
     protected onFrontendReady (): void {
+        this.injector.get(DiagnosticsService).timed('tab-frontend-ready', Date.now() - this.openedAt, { profile: this.profile.name })
         this.initializeSession(this.size.columns, this.size.rows)
         this.savedStateIsLive = this.profile.options.restoreFromPTYID === this.session?.getID()
         super.onFrontendReady()
@@ -66,10 +70,30 @@ export class TerminalTabComponent extends BaseTerminalTabComponent<LocalProfile>
             }
         }
 
+        // Tab-open phases, per tab, on the launch timeline (Settings → Startup
+        // & lifecycle): spawn requested → PTY spawned → first output on
+        // screen. The main process records its own half (`pty-spawned`,
+        // `pty-first-data`), so a slow shell and a renderer too busy to take
+        // its output apart are told apart. Always recorded, not only when
+        // slow: "fast" is an answer too.
+        const diagnostics = this.injector.get(DiagnosticsService)
+        const profile = this.profile.name
+        const spawnStarted = Date.now()
+        // Non-empty: attaching the session releases its initial buffer, and
+        // that emits even when the process has printed nothing yet.
+        session.binaryOutput$.pipe(filter(data => data.length > 0), first()).subscribe(() => {
+            const now = Date.now()
+            diagnostics.timed('tab-first-output', now - this.openedAt, { profile, afterSpawnMs: now - spawnStarted })
+        })
+
         session.start({
             ...this.profile.options,
             width: columns,
             height: rows,
+        }).then(() => {
+            // No rejection handler on purpose: a failed start stays the
+            // unhandled rejection it always was, and is reported as one.
+            diagnostics.timed('tab-pty-spawned', Date.now() - spawnStarted, { profile })
         })
 
         this.setSession(session)

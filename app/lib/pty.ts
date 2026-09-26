@@ -4,6 +4,8 @@ import { ipcMain } from 'electron'
 import { Application } from './app'
 import { UTF8Splitter } from './utfSplitter'
 import { Subject, debounceTime } from 'rxjs'
+import * as path from 'path'
+import { timed } from './diagnostics'
 
 class PTYDataQueue {
     private buffers: Buffer[] = []
@@ -93,7 +95,21 @@ export class PTY {
     exited = false
 
     constructor (private id: string, private app: Application, ...args: any[]) {
+        // The main process's half of the tab-open phases (the renderer records
+        // its own in tabby-local's terminal tab): how long node-pty took to
+        // start the process, and when that process first printed. These are
+        // independent of the renderer, so a shell that was quick to answer
+        // and a window too busy to show it cannot be mistaken for each other.
+        const spawnStarted = Date.now()
+        // The executable only — arguments can carry anything a profile was
+        // given, and the renderer's entries already name the profile.
+        const command = { command: typeof args[0] === 'string' ? path.basename(args[0]) : undefined }
         this.pty = (nodePTY as any).spawn(...args)
+        timed('pty-spawned', Date.now() - spawnStarted, { ...command, pid: this.pty.pid })
+        const firstData = this.pty.onData(() => {
+            firstData.dispose()
+            timed('pty-first-data', Date.now() - spawnStarted, command)
+        })
         for (const key of ['close', 'exit']) {
             (this.pty as any).on(key, (...eventArgs) => this.emit(key, ...eventArgs))
         }

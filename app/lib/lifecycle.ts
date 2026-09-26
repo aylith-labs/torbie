@@ -72,12 +72,17 @@ export const MILESTONES = [
     'ready',
     'window-ready',
     'first-tab',
+    // The first tab's own phases (every tab records them; the milestone is
+    // the first of each): profile found, PTY started, the process printed,
+    // and that output reached the screen.
+    'tab-profile-resolved',
+    'tab-pty-spawned',
+    'pty-first-data',
     'first-terminal-output',
 ]
 
 const events: LifecycleEvent[] = []
 let dropped = 0
-let settled = false
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 let processStart = Date.now()
 
@@ -93,7 +98,10 @@ function push (entry: LifecycleEvent): void {
         events.splice(HISTORY_HEAD, 1)
         dropped++
     }
-    if (!settled && (entry.kind === 'first-terminal-output')) {
+    // Also after the 15s fallback has already written the record: the first
+    // output arriving *late* is exactly the launch worth having on disk, and
+    // before this it only reached the file on quit.
+    if (entry.kind === 'first-terminal-output') {
         scheduleSave(2000)
     }
 }
@@ -173,7 +181,6 @@ function save (ended = false): void {
     if (!file) {
         return
     }
-    settled = true
     if (ended) {
         // On the way out there is no next tick to write in.
         try {
