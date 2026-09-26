@@ -818,8 +818,18 @@ Two packages hardcode `SpectreMitigation` in their `binding.gyp` and fail to com
 with MSVC `MSB8040`, because the Spectre-mitigated VC libraries component is not
 installed on this machine. Both are patched to drop it:
 
-- `app/patches/node-pty+*.patch`
+- `app/patches/node-pty+*.patch` — `binding.gyp` *and*
+  `deps/winpty/src/winpty.gyp`, which sets it twice more (winpty-agent and
+  winpty). The second half was missing until a VS 18 toolchain was picked up.
 - `app/patches/@tabby-gang+windows-process-tree+*.patch`
+
+**`NoDefaultCurrentDirectoryInExePath=1` breaks the node-pty build** — winpty's
+gyp runs `cmd /c "cd shared && GetCommitHash.bat"`, and with that variable set
+cmd will not run a batch file from the current directory: *"'GetCommitHash.bat'
+is not recognized"*. This machine's shells set it. Unset it for
+`node scripts/build-native.mjs` (`Remove-Item Env:NoDefaultCurrentDirectoryInExePath`).
+The nested installs in `install-deps.mjs` do not inherit `--ignore-engines`
+either; `YARN_IGNORE_ENGINES=true` reaches them.
 
 **`@tabby-gang/windows-process-tree` is an `optionalDependency`, which makes its failure
 silent** — yarn prints `info This module is OPTIONAL, you can safely ignore this error`,

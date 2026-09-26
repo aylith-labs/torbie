@@ -11,3 +11,26 @@ diff --git a/node_modules/node-pty/binding.gyp b/node_modules/node-pty/binding.g
          'msvs_settings': {
              'VCCLCompilerTool': {
                'AdditionalOptions': [
+diff --git a/node_modules/node-pty/deps/winpty/src/winpty.gyp b/node_modules/node-pty/deps/winpty/src/winpty.gyp
+--- a/node_modules/node-pty/deps/winpty/src/winpty.gyp
++++ b/node_modules/node-pty/deps/winpty/src/winpty.gyp
+@@ -40,9 +40,6 @@
+                 '-lshell32',
+                 '-luser32',
+             ],
+-            'msvs_configuration_attributes': {
+-                'SpectreMitigation': 'Spectre'
+-            },
+             'msvs_settings': {
+                 # Specify this setting here to override a setting from somewhere
+                 # else, such as node's common.gypi.
+@@ -142,9 +139,6 @@
+                 '-ladvapi32',
+                 '-luser32',
+             ],
+-            'msvs_configuration_attributes': {
+-                'SpectreMitigation': 'Spectre'
+-            },
+             'msvs_settings': {
+                 # Specify this setting here to override a setting from somewhere
+                 # else, such as node's common.gypi.
