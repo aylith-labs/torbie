@@ -267,7 +267,24 @@ both fail *silently* and one of them threatens the plugin contract directly.
   exported member `NgbModal`" and "cannot find `@angular/cdk/drag-drop`" was
   `moduleResolution: node`, which predates the `exports` field that Angular 22,
   the CDK and ng-bootstrap 21 all publish their subpaths through. `bundler`
-  plus `target: es2022` cleared every one.
+  resolution cleared every one. (`target: es2022` went in with it and was not
+  needed for it; it is `es2016` again — see the next bullet.)
+- **`target` must stay `es2016`, because zone.js cannot see through a native
+  `await`.** From es2017 on TypeScript emits real `async`/`await`, and the
+  continuation after an `await` runs in `<root>`, not in Angular's zone — so
+  whatever it changes is not rendered until some *unrelated* zone task runs
+  change detection. es2016 compiles `async` to generators over the global
+  `Promise`, which zone.js has replaced, and the zone is carried through.
+  Upstream is on es2016 for exactly this; Angular CLI can use es2022 only
+  because it downlevels `async` separately. Measured, 1.0.2: the first tab was
+  added in `<root>` (after `TerminalService.openTab` awaited the default
+  profile), so its view — and therefore its xterm, its PTY and its output —
+  waited for the next zone event: **30.6s** in a hidden window, **11.7s** in the
+  user's visible one, and fast only when something else happened to poke the
+  zone (a mouse move, the MCP server's config save). After: `angular` zone,
+  split tab's view created 20ms later, first output 0.3–1.1s after the tab.
+  Commit `2d4cba14` had already seen the shape ("a real window with a user in it
+  may well recover on the first mouse move") and put it down to ordering.
 - **`useDefineForClassFields` is off**, and has to be. `target: es2022` turns it
   on, which changes what a class field *is* — defined before the constructor
   body rather than assigned inside it. A field initializer calling

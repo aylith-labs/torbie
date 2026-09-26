@@ -16,7 +16,18 @@
     // which surfaces as "has no exported member NgbModal" rather than as a
     // resolution error, so it reads like an API change and is not one.
     "module": "esnext",
-    "target": "es2022",
+    // es2016, not later: the last target that compiles `async`/`await` down
+    // to generators over the global `Promise`, which zone.js has replaced.
+    // From es2017 on, `await` is native, and zone.js cannot see through it —
+    // every continuation after the first `await` runs in the root zone, so
+    // whatever it changes waits for some unrelated event to trigger change
+    // detection. That was the "huge delay" opening the first tab: the tab was
+    // added in `<root>` after `TerminalService.openTab` awaited the profile,
+    // and its view was not created until the next zone task, 6–30s later
+    // (measured: 30.6s in a hidden window, 11.7s in the user's visible one).
+    // Upstream is on es2016 for the same reason; Angular CLI keeps es2022 only
+    // because it downlevels async/await separately, which this build does not.
+    "target": "es2016",
     "moduleResolution": "bundler",
     // `target: es2022` turns this on by default, which changes what a class
     // field *is*: [[Define]] on the instance before the constructor body runs,
