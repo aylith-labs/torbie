@@ -93,6 +93,12 @@ const cachedBuiltinModules = {
     '@angular/common': require('@angular/common'),
     '@angular/compiler': require('@angular/compiler'),
     '@angular/core': withAngular15DecoratorDefaults(require('@angular/core')),
+    // Keys are exact: a subpath is not served by its package's key. v1.0.1
+    // never booted installed because `@ngx-translate/core` 18, bundled into
+    // tabby-core, requires this one and nothing in a packaged app has
+    // `@angular` — only a source tree's node_modules answered it.
+    // `scripts/dev/check-plugin-externals.mjs` audits every such require.
+    '@angular/core/rxjs-interop': require('@angular/core/rxjs-interop'),
     '@angular/forms': require('@angular/forms'),
     '@angular/localize': require('@angular/localize'),
     '@angular/localize/init': require('@angular/localize/init'),

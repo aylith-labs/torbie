@@ -40,6 +40,7 @@ const FAST = [
     'app/test/protocols.test.js',
     'app/test/updateFeed.test.js',
     'scripts/dev/cdp.test.cjs',
+    'scripts/dev/pluginExternals.test.cjs',
     'tabby-builds/test/newBuildChoice.test.js',
     'tabby-builds/test/conflicts.test.js',
     'tabby-claude/test/herdr.test.js',
@@ -65,6 +66,9 @@ const FAST = [
  */
 const BUILT = [
     'tabby-links/test/logic.test.js',
+    // Every runtime require in the compiled plugins must resolve in a
+    // *packaged* app — v1.0.1 shipped one that only a source tree could answer.
+    'scripts/dev/check-plugin-externals.mjs',
 ]
 
 /** Consistency checks over the tree itself. `check-fork-marks` needs `upstream` fetched. */
