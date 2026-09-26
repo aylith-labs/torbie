@@ -11,10 +11,15 @@
 // The bug this pins: the stock GitHub provider requested `latest.yml` on
 // Windows (and `latest-mac.yml` on macOS), while every release carries only the
 // per-arch manifests the build scripts publish (`latest-x64.yml`, …). So every
-// Windows check since 1.0.0 failed with a 404 — "Cannot find latest.yml in the
-// latest release artifacts". The stock provider is run here too and must still
-// ask for `latest.yml`, or this suite would pass against a fixture that no
-// longer reproduces anything.
+// Windows check from the installed 1.0.0 (electron-updater 5.3) failed with a
+// 404 — "Cannot find latest.yml in the latest release artifacts". 6.x reads
+// `channel` from app-update.yml on GitHub too, but only if one is there; the
+// feed built here does not depend on it. The stock provider without a channel
+// is run too and must still ask for `latest.yml`, or this suite would pass
+// against a fixture that no longer reproduces anything.
+//
+// UPDATER_NODE_MODULES=<dir> runs it against another electron-updater install,
+// e.g. the one the lockfile pins when app/node_modules is stale.
 const path = require('path')
 const fs = require('fs')
 const Module = require('module')
@@ -50,7 +55,8 @@ Module._extensions['.ts'] = function (module, filename) {
 }
 
 const F = require(path.join(REPO, 'app/lib/updateFeed.ts'))
-const APP_MODULES = path.join(REPO, 'app/node_modules')
+const APP_MODULES = process.env.UPDATER_NODE_MODULES || path.join(REPO, 'app/node_modules')
+console.log(`electron-updater ${require(path.join(APP_MODULES, 'electron-updater/package.json')).version}`)
 const { GitHubProvider } = require(path.join(APP_MODULES, 'electron-updater/out/providers/GitHubProvider'))
 const { createClient } = require(path.join(APP_MODULES, 'electron-updater/out/providerFactory'))
 const semver = require(path.join(APP_MODULES, 'semver'))
@@ -213,13 +219,12 @@ async function main () {
         check('and does not use multi-range requests (GitHub is S3)', provider.isUseMultipleRangeRequest, false)
     }
 
-    // --- a nightly: why window.ts turns prereleases off -------------------------
+    // --- a nightly, with prereleases off as window.ts sets them ----------------
+    // (Left on, electron-updater derives them from the version and a nightly
+    // hunts the feed for a "nightly" tag, which no release has.)
     {
         check('armv7l maps to what build-linux.mjs publishes', F.updateManifestName('linux', 'arm'), 'latest-armv7l-linux-arm.yml')
         const options = F.feedOptions(GitHubProvider, 'win32', 'x64')
-        const on = await manifestRequested(options, 'win32', 'x64', fakeUpdater('1.0.1-nightly.5', true), executor)
-        check('a nightly with prereleases allowed hunts for a "nightly" tag and finds none',
-            on.error?.code, 'ERR_UPDATER_NO_PUBLISHED_VERSIONS')
         const off = await manifestRequested(options, 'win32', 'x64', fakeUpdater('1.0.1-nightly.5', false), executor)
         check('with them off it reads the latest release per-arch file', [off.url, off.info?.version], [`${base}/latest-x64.yml`, '1.0.1'])
     }

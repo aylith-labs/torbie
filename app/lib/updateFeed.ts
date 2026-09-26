@@ -6,14 +6,15 @@
  * `channel: latest-${ARCH}`: `latest-x64.yml`, `latest-arm64.yml`,
  * `latest-x86_64-mac.yml`, `latest-arm64-mac.yml`, and the Linux ones.
  *
- * electron-updater's stock `GitHubProvider` never asks for any of them. It
+ * electron-updater 5.x's stock `GitHubProvider` never asks for any of them. It
  * ignores `channel` from `app-update.yml` on GitHub ("Not applicable for
  * GitHub") and requests `getDefaultChannelName()` — plain `latest`, plus
- * `-mac` on macOS and nothing at all on Windows — so an installed 1.0.0 asked
- * for `releases/download/v1.0.1/latest.yml`, got a 404, and the update check
- * failed on every Windows install since the first release. Upstream Tabby has
- * the same layout and the same failure; its renderer falls back to opening the
- * release page, which is why nobody there notices.
+ * `-mac` on macOS and nothing at all on Windows — so the installed 1.0.0 asked
+ * for `releases/download/v1.0.1/latest.yml`, got a 404, and every Windows
+ * update check failed. Upstream Tabby has the same layout and the same
+ * failure; its renderer falls back to opening the release page, which is why
+ * nobody there notices. 6.x does read `channel` from app-update.yml, but only
+ * when one is there; the feed here names it itself rather than depend on it.
  *
  * The fix keeps the GitHub provider — its tag-pinned download URLs are what
  * make the NSIS blockmap (differential) download find the *old* version's

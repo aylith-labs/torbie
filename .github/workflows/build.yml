@@ -576,10 +576,10 @@ jobs:
   # two against each other before, and 1.0.0 shipped asking for `latest.yml`,
   # a file no release has ever carried — every Windows update check was a 404.
   #
-  # `latest.yml` is also written here, as a copy of `latest-x64.yml`, for the
-  # installs that predate updateFeed.ts: 1.0.0 and 1.0.1 use the stock GitHub
-  # provider, which can ask for nothing else on Windows. It is the one file not
-  # uploaded by electron-builder, and it can go once no such install is left.
+  # `latest.yml` is also written here, as a copy of `latest-x64.yml`, for 1.0.0
+  # installs: they carry electron-updater 5.3, whose GitHub provider can ask for
+  # nothing else on Windows. It is the one file not uploaded by
+  # electron-builder, and it can go once no 1.0.0 install is left.
   # macOS needs no equivalent: an unsigned build cannot apply an update anyway.
   Update-Manifests:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
