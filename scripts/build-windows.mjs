@@ -52,13 +52,24 @@ async function ensureVCRedist () {
     console.log(`vc_redist.exe: ${(bytes.length / 1e6).toFixed(1)} MB`)
 }
 
-await ensureVCRedist()
+/**
+ * `--dir`: only `dist/win-unpacked` — no installer, no zip, never published.
+ * That is what `scripts/dev/packaged-boot.mjs` boots, and CI runs it before
+ * the real packaging step so a build that cannot start never reaches the
+ * release. (`dir: true` alone does not do this: electron-builder only reads it
+ * when no targets are named, and `win` names two.)
+ */
+const unpackedOnly = process.argv.includes('--dir')
+
+if (!unpackedOnly) {
+    await ensureVCRedist()
+}
 
 console.log('Signing enabled:', !!keypair)
 
 builder({
     dir: true,
-    win: ['nsis', 'zip'],
+    win: unpackedOnly ? ['dir'] : ['nsis', 'zip'],
     arm64: process.env.ARCH === 'arm64',
     config: {
         extraMetadata: {
@@ -104,7 +115,7 @@ builder({
         },
     },
 
-    publish: isTag ? 'always' : 'never',
+    publish: isTag && !unpackedOnly ? 'always' : 'never',
 }).catch(e => {
     console.error(e)
     process.exit(1)

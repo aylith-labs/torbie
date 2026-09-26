@@ -467,6 +467,28 @@ jobs:
       env:
         ARCH: ${{matrix.arch}}
 
+    # The packaged-boot gate, before anything is packaged for real — and so
+    # before a tag can publish. v1.0.1 booted from source and never once
+    # installed: a source tree's node_modules answered a require
+    # (`@angular/core/rxjs-interop`) that nothing in app.asar or
+    # builtin-plugins could, and the installed app sat on its splash until the
+    # watchdog quit it. Only a packaged build resolves modules the way an
+    # installed one does, so this boots `win-unpacked` hidden, on a throwaway
+    # profile, and fails unless its window reaches `app:ready`.
+    #
+    # x64 only: the runner cannot execute arm64 binaries. The arm64 job ships
+    # the same bundles, which the build-tier `check-plugin-externals` audit in
+    # Verify has already held to what a packaged app can resolve.
+    - name: Package unpacked (for the boot check)
+      if: matrix.arch == 'x64'
+      run: node scripts/build-windows.mjs --dir
+      env:
+        ARCH: ${{matrix.arch}}
+
+    - name: Boot the packaged build
+      if: matrix.arch == 'x64'
+      run: node scripts/dev/packaged-boot.mjs dist/win-unpacked/Torbie.exe --timeout 180
+
     - name: Build packages without signing
       run: node scripts/build-windows.mjs
       if: "! (github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && env.CAN_SIGN == 'true')"
