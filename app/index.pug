@@ -17,7 +17,11 @@ html.torbie
             .preload-logo
                 div
                     .torbie-logo
-                    h1.torbie-title Torbie
-                        sup α
+                    h1.torbie-title
+                        span.torbie-name(tabindex='0', aria-haspopup='true', aria-expanded='false', aria-describedby='splash-build') Torbie
+                    .torbie-version
                     .progress
                         .bar(style='width: 0%')
+                    .splash-build#splash-build(role='tooltip', hidden)
+            script.
+                window.torbieSplash && window.torbieSplash()
