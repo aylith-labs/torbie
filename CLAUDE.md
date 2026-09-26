@@ -436,6 +436,48 @@ registry table above used to record: `deploy-alert-targets.json` watches
   `tag_name`, so the icon is correct to stay hidden until there is a *newer*
   published release.
 
+### A release must boot *packaged* (v1.0.1)
+
+v1.0.1 booted from source and never once installed: `require-failed
+@angular/core/rxjs-interop` from `tabby-core/dist/index.js`, tabby-core not
+loaded, splash until the watchdog quit at 60s. `@ngx-translate/core` 18
+(35a5a455), bundled into tabby-core, imports that subpath;
+`webpack.plugin.config.mjs` marks `/^@angular/` external; and the shared module
+map in `app/src/plugins.ts` — the **only** thing that serves `@angular/*` to a
+packaged plugin, since `@angular` is a root devDependency and in neither
+`app.asar` nor `builtin-plugins` — matches keys **exactly**, so `@angular/core`
+being there did not serve its subpath. A source launch never sees it: the repo's
+`node_modules` is on the resolution path and answers whatever the map forgets.
+
+Two gates now, because the class of bug is invisible from source:
+
+- **`scripts/dev/check-plugin-externals.mjs`** (built tier, so CI's Verify runs
+  it before any packaging) scans every builtin plugin's `dist/*.js` and the app
+  bundles for runtime `require("…")` and resolves each against a model of a
+  packaged app (`pluginExternals.cjs`): the map's keys, Node builtins,
+  `electron`, the production closure of `app/package.json` from `app/yarn.lock`,
+  each plugin's own production deps, and the builtin plugins. It also holds the
+  set to `scripts/dev/plugin-externals.json`; a dependency bump that changes what
+  the bundles ask for fails until accepted with `--write`, where review sees it.
+  Comment lines and template placeholders are skipped — winston, colors and
+  require-in-the-middle all write `require('x')` in their doc comments.
+- **`scripts/dev/pluginExternals.test.cjs`** (fast tier) holds the sources to
+  that snapshot without a build — delete a map key and a clean checkout fails —
+  and asserts every `@angular`/`@ng-bootstrap`/`rxjs` require is served by the
+  map specifically, so a second Angular in `app/package.json` cannot paper over
+  a missing key. The dist scan itself cannot be fast-tier: `run-tests.mjs`
+  refuses fast suites that read `dist/`, by design.
+- **`scripts/dev/packaged-boot.mjs`** boots `dist/win-unpacked/Torbie.exe`
+  (`node scripts/build-windows.mjs --dir`, which builds no installer and never
+  publishes) hidden, on a throwaway `--user-data-dir`, and requires a
+  `window-ready` record from that PID; `watchdog-quit`, `bootstrap-failed`, a
+  failed `tabby-core` require or an exit fail it. `build.yml` runs both steps on
+  the x64 Windows job **before** the real packaging step, so a tag cannot
+  publish a build that does not start. Verified locally: v1.0.1 fails it with the
+  installed app's exact error; the fix reaches `app:ready` in 3.5s.
+- A packaged exe ignores `ELECTRON_RUN_AS_NODE` (fuse), so it cannot be used as
+  a Node to probe modules — it launches the app, on `%APPDATA%\torbie`.
+
 ## Toolchain: why TypeScript is pinned, and why that is not neglect
 
 The org toolchain says `typescript` at its `latest` dist-tag — TS 7, the Go
@@ -764,11 +806,14 @@ installed on this machine. Both are patched to drop it:
 
 **`@tabby-gang/windows-process-tree` is an `optionalDependency`, which makes its failure
 silent** — yarn prints `info This module is OPTIONAL, you can safely ignore this error`,
-drops the package, and exits 0. The app then boots to a *different* error, because
-`tabby-electron/src/services/platform.service.ts` requires it and `windows-native-registry`
-in the **same `try` block**: the first require throwing means `var wnr` is never assigned,
-so the real symptom is `Cannot read properties of undefined (reading 'getRegistryKey')`
-with nothing about process-tree anywhere. Every `wnr` require in `tabby-electron` is
+drops the package, and exits 0. The app used to boot to a *different* error, because
+`tabby-electron/src/services/platform.service.ts` required it and `windows-native-registry`
+in the **same `try` block**: the first require throwing meant `var wnr` was never assigned,
+so the symptom was `Cannot read properties of undefined (reading 'getRegistryKey')`
+from `getWinSCPPath()` during bootstrap, safe mode, and a splash forever. The two
+requires have their own `try` now and `getWinSCPPath()` answers null without `wnr`
+(found again by the packaged-boot check, on a build whose addon had not compiled).
+Every `wnr` require in `tabby-electron` is
 `try { … } catch { }`, so resolution failures are invisible — instrument the catch before
 theorising.
 
@@ -3461,6 +3506,33 @@ rebase surface on an upstream file stays one appended block.
   rendering the real splash markup under both `nativeTheme.themeSource` values in
   an off-screen window — dark stays exactly `#1d272d`/`#a1c5e4`, light comes back
   `#f5f7f9`/`#2f5d80`.
+
+**It says which build it is** (`app/src/splash.ts`, run from `preload.js`). The
+version sits under the name, and hovering the name for a second opens a card:
+version, commit and branch, build date and age, channel (nightly/release, plus
+"source build" under `TABBY_DEV`), install directory, userData, config file,
+Electron/Chrome/Node and platform, with **Copy**. A splash that hangs is exactly
+when that matters, and the tab bar's build tooltip does not exist yet.
+
+- **Only what exists before any plugin**: the DefinePlugin constants the app
+  bundle is compiled with (the same `TABBY_BUILD_*` the build tooltip reads),
+  `process.versions`, `process.execPath`, `TABBY_CONFIG_DIRECTORY`, and
+  userData over `@electron/remote` — a synchronous IPC, so only on hover.
+- **Copy uses the `torbie:clipboard` bridge**; `navigator.clipboard` wants
+  document focus, which hovering a background window does not give.
+- **The whole splash is `-webkit-app-region: drag`**, and Chromium delivers no
+  mouse events inside a drag region, so the name and the card are `no-drag`.
+- **The card is a transparent wrapper around the visible one**, and the
+  wrapper's padding is the gap to the name. It is also the bridge: the pointer
+  never crosses a point belonging to neither on its way to Copy. Placed in JS
+  below the name, else above, else clamped into the window, because the first
+  version hung below a 640px window with Copy off-screen.
+- `index.pug` calls `torbieSplash()` inline after the markup, so the version is
+  on the first paint rather than after the deferred bundle evaluates.
+- Verified on a packaged build's own `app.asar` in an offscreen window, both
+  themes: hidden at 0.5s, open at 1.4s, still open with the pointer over Copy,
+  Copy delivered the text, closed on leave. `sendInputEvent` rather than CDP
+  input: a hidden (non-offscreen) window never acks CDP mouse events.
 
 ## Known issues to fix in this fork
 
