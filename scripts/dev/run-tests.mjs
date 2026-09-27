@@ -58,6 +58,7 @@ const FAST = [
     'tabby-terminal/test/webSearch.test.js',
     'tabby-terminal/test/colorSchemeTone.test.js',
     'tabby-terminal/test/imagePaste.test.js',
+    'tabby-terminal/test/keyboardProtocol.test.js',
 ]
 
 /**
@@ -128,6 +129,7 @@ const CDP = [
     'tabby-terminal/test/glyphs.cdp.js',
     'tabby-terminal/test/hotkeyEcho.cdp.js',
     'tabby-terminal/test/imagePaste.cdp.js',
+    'tabby-terminal/test/keyboardProtocol.cdp.js',
     'tabby-terminal/test/webSearch.cdp.js',
     'tabby-upstream/test/forkMarks.cdp.js',
     'tabby-upstream/test/upstream.cdp.js',

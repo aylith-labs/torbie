@@ -28,6 +28,10 @@ export class TerminalConfigProvider extends ConfigProvider {
             // (0x16) so the app reads the image itself - Claude Code's image
             // paste. See imagePaste.ts.
             forwardCtrlVForImages: true,
+            // Answer the kitty keyboard query and send Shift/Ctrl/Alt+Enter as
+            // CSI-u to an app that asked - Claude Code's Shift+Enter newline,
+            // with no plugin. See keyboardProtocol.ts.
+            kittyKeyboard: true,
             background: 'theme',
             ligatures: false,
             cursor: 'block',

@@ -107,6 +107,7 @@
     "sidePanel.size",
     "terminal.fallbackFont",
     "terminal.forwardCtrlVForImages",
+    "terminal.kittyKeyboard",
     "terminal.webSearchQueryURL",
     "upstream",
     "upstream.branch",

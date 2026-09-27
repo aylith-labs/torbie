@@ -57,6 +57,15 @@ div.mt-4
 
     .form-line
         .header
+            .title.fork-mark(translate) Shift+Enter for apps that ask (kitty keyboard protocol)
+            .description(translate) Apps that ask for it, such as Claude Code, receive Shift+Enter, Ctrl+Enter and Alt+Enter as their own keys, so Shift+Enter adds a new line instead of submitting. Shells that do not ask still get a plain Enter
+        toggle(
+            [(ngModel)]='config.store.terminal.kittyKeyboard',
+            (ngModelChange)='config.save()',
+        )
+
+    .form-line
+        .header
             .title(translate) Scroll on input
             .description(translate) Scrolls the terminal to the bottom on user input
         toggle(

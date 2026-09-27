@@ -13,6 +13,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { SerializeAddon } from '@xterm/addon-serialize'
 import { ImageAddon } from '@xterm/addon-image'
 import { BaseTerminalProfile } from '../api/interfaces'
+import { attachKeyboardProtocol, KeyboardProtocolState } from '../keyboardProtocol'
 import { getXtermBackgroundColor } from '../helpers'
 import { generatePalette } from '../generatePalette'
 import './xterm.css'
@@ -88,6 +89,8 @@ export class XTermFrontend extends Frontend {
     private pinnedToBottom = true
     private pendingRendererRecovery = false
     private rendererRecoveryAttempts = 0
+    /** Kitty keyboard / modifyOtherKeys, for modified Enter. See keyboardProtocol.ts. */
+    readonly keyboardProtocol = new KeyboardProtocolState()
 
     private configService: ConfigService
     private hotkeysService: HotkeysService
@@ -140,6 +143,14 @@ export class XTermFrontend extends Frontend {
             this.bell.next()
         })
 
+        attachKeyboardProtocol(
+            this.xterm.parser,
+            this.keyboardProtocol,
+            data => this.input.next(Buffer.from(data, 'utf-8')),
+            () => this.isAlternateScreenActive() ? 'alternate' : 'normal',
+            () => this.configService.store.terminal.kittyKeyboard,
+        )
+
         this.xterm.loadAddon(this.fitAddon)
         this.xterm.loadAddon(this.serializeAddon)
         this.xterm.loadAddon(new Unicode11Addon())
@@ -180,6 +191,12 @@ export class XTermFrontend extends Frontend {
             // that did not act gives it back with passThrough().
             let ret = true
             if (this.hotkeysService.consumedKeyEvent(event)) {
+                event.stopPropagation()
+                event.preventDefault()
+                ret = false
+            } else if (this.sendModifiedEnter(event)) {
+                // After the hotkey check on purpose: a plugin that binds
+                // Shift-Enter itself (tabby-backslash-newline) keeps the key.
                 event.stopPropagation()
                 event.preventDefault()
                 ret = false
@@ -290,6 +307,34 @@ export class XTermFrontend extends Frontend {
             const altBufferActive = this.xterm.buffer.active.type === 'alternate'
             this.alternateScreenActive.next(altBufferActive)
         })
+    }
+
+    /**
+     * Enter with a modifier, encoded the way the app in the pane asked for
+     * (keyboardProtocol.ts). True when it was sent here and xterm must not
+     * also type its CR. Plain Enter, and any Enter no app asked about, is
+     * left to xterm.
+     */
+    private sendModifiedEnter (event: KeyboardEvent): boolean {
+        if (
+            event.type !== 'keydown' ||
+            event.key !== 'Enter' ||
+            event.isComposing ||
+            !this.configService.store.terminal.kittyKeyboard
+        ) {
+            return false
+        }
+        const data = this.keyboardProtocol.encodeEnter(this.isAlternateScreenActive() ? 'alternate' : 'normal', {
+            shift: event.shiftKey,
+            alt: event.altKey,
+            ctrl: event.ctrlKey,
+            meta: event.metaKey,
+        })
+        if (data === null) {
+            return false
+        }
+        this.input.next(Buffer.from(data, 'utf-8'))
+        return true
     }
 
     /**

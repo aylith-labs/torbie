@@ -3405,6 +3405,78 @@ bound to Ctrl-C still sends ^C, once, as in Windows Terminal.
   from an empty history and after a typed key; `hotkeyEcho.cdp.js` presses the
   keys in a dev build and asserts the exact bytes, both histories.
 
+## Shift+Enter is a new line in Claude Code (`tabby-terminal/src/keyboardProtocol.ts`)
+
+No plugin needed: `tabby-backslash-newline` (Shift+Enter → ` \` + LF) is
+redundant. `terminal.kittyKeyboard` (on; Settings → Terminal → Keyboard) turns
+it off.
+
+**How Claude Code actually reads a new line** — from the 2.1.283 bundle and by
+driving it in a PTY. Its input parser takes *all* of these as a new line, with
+no negotiation: `ESC CR` (meta+Enter; what `/terminal-setup` writes into VS
+Code, Cursor, Windsurf, Alacritty and Zed keybindings), `CSI 13;2u` (kitty),
+`CSI 27;2;13~` (modifyOtherKeys), `\` + CR, and Ctrl+J (LF). A legacy terminal
+sends CR for Shift+Enter, which is submit. `/terminal-setup` only acts for
+VS Code-likes, Alacritty, Zed and Apple Terminal (`Ube()`); iTerm2, WezTerm,
+Ghostty, Kitty, Warp and Windows Terminal are "natively supported" because they
+speak the kitty protocol. At startup Claude Code writes `CSI ? u` (kitty query),
+`CSI > 0 q` (XTVERSION) and a DA1 sentinel; only if the `? u` answer beats DA1
+does it push `CSI < u CSI > 5 u CSI > 4;2 m`. It always writes `CSI > 4 m` on
+exit. It trusts the environment instead of probing only for the terminals in its
+`ttr` list, and `TERM_PROGRAM=Tabby` is not one (it does recognise `Tabby` for
+synchronized output and strikethrough; the variable is not in `WSLENV`, so a WSL
+Claude never sees it anyway).
+
+**xterm.js 6.0 implements neither kitty keyboard nor modifyOtherKeys** — no
+`?u`/`>u`/`<u`/`=u`/`>m` handler in the shipped parser, and Enter is CR (Alt:
+ESC CR) whatever the modifier. `vtExtensions.kittyKeyboard` exists only in
+6.1.0-beta; when 6.1 is stable, turning that on replaces most of this file.
+
+**So this is the subset, answered through xterm's public parser hooks:** the
+kitty query is answered (`CSI ? flags u`, only "disambiguate" implemented),
+push/pop/set are tracked per screen, `CSI > 4 ; n m` is tracked, and RIS /
+DECSTR reset it. Enter with Shift/Ctrl/Alt/Meta then goes out as
+`CSI 13 ; mods u` (kitty) or `CSI 27 ; mods ; 13 ~` (modifyOtherKeys 2).
+Plain Enter is always CR; every other key keeps xterm's encoding, which every
+app that negotiates these modes still decodes.
+
+**The ConPTY race, and the one step past the spec.** Measured through the
+inbox ConPTY (node-pty, `useConpty: 1`, the path every local and WSL tab takes
+here): ConPTY passes `CSI ? u` through to us and our reply back to the app,
+but answers DA1 *itself, at once*, so the app reads DA1 first and concludes
+"no kitty". Claude Code then never pushes flags. node-pty's bundled
+conpty 1.23 (`useConptyDll`) forwards DA1 instead and the negotiation works —
+not switched on here; see *Open items*. So **asking arms CSI-u**: an app that
+sends `CSI ? u` decodes the answer's encoding, so modified Enter goes out as
+CSI-u until it resets the keyboard (`CSI > 4 m` / `CSI > 4;0 m`, which Claude
+Code writes on exit, and not across its external-editor round trip), pops the
+stack empty, or the terminal is reset. The residual risk is an app that asks and
+exits without either: bash then types `;2u` for Shift+Enter (measured) until
+the next reset.
+
+- **Bytes, Shift+Enter** (dev build, CDP): nothing asked `\r` → `\r`; Claude
+  Code running (asked) `\r` → `ESC[13;2u`; after it exits → `\r`; kitty pushed
+  → `ESC[13;2u`; modifyOtherKeys 2 → `ESC[27;2;13~`. Ctrl+Enter asked →
+  `ESC[13;5u`, which Claude Code binds to `chat:sendNow` as it does in any
+  kitty terminal.
+- **Why not ESC CR for every pane**, as VS Code does: in bash that is a silent
+  no-op and in PowerShell nothing either (both measured), so Shift+Enter stops
+  running commands in every shell. Gating on the app asking leaves shells alone.
+- **Why not "is Claude Code the foreground program"**: a WSL tab only sees
+  `wsl.exe`, `tabby-claude` joins tabs to sessions by directory and refuses
+  ambiguity, and shefrd/herdr panes run Claude Code behind a multiplexer. The
+  query is per pane and exact. shefrd pushes `CSI > 7 u` without asking, so it
+  gets CSI-u too and forwards Shift+Enter to its own panes.
+- **Interop:** the encoder runs *after* `consumedKeyEvent`, so a bound
+  `shift-enter-newline` (tabby-backslash-newline) keeps the key and nothing is
+  sent twice. To use the plugin's text instead, leave its hotkey bound; to drop
+  the plugin, unbind or uninstall it.
+- `keyboardProtocol.test.js` (fast) feeds the measured sequences through a
+  stand-in parser; `keyboardProtocol.cdp.js` presses the keys in a dev build and
+  asserts the bytes (both hotkey histories, the plugin, the setting), and with
+  `--claude` drives the real Claude Code in a WSL pane: line1, Shift+Enter,
+  line2 on two rows, nothing submitted, keyboard handed back on exit.
+
 ## Changed upstream defaults
 
 Kept to a minimum — every one is a line that conflicts on rebase.
@@ -3713,3 +3785,7 @@ when that matters, and the tab bar's build tooltip does not exist yet.
   `useConptyDll`, so sessions run on whatever conpty ships with Windows. xterm 6's
   reflow work is aligned to conpty >= 1.22 (xtermjs/xterm.js#5321), and VS Code
   turned the equivalent setting on to fix resize corruption. Worth measuring.
+  It would also let apps negotiate the kitty keyboard protocol for real: the
+  inbox conpty answers DA1 itself ahead of our `CSI ? u` reply, 1.23 does not
+  (measured; see *Shift+Enter is a new line in Claude Code*). The dll is not
+  copied to `build/Release/conpty/` by the native build today.
