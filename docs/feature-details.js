@@ -44,6 +44,16 @@ window.FEATURE_DETAILS = {
     ],
   },
 
+  "select-all-one-line-buttons": {
+    problem: "Checkbox grids such as an integration's \"Show in tooltip\" fields had no way to tick or clear the whole group, and the per-group header that tried only ever saved its last field. Buttons beside long text, like \"Add as rule\" next to a long pattern, were squeezed until their label broke over two lines or was clipped.",
+    how: "A reusable <code>select-all-checkbox</code> sits at each group's title: ticked when every box is, clear when none is, and indeterminate when some are. Clicking it with some or none ticked selects all; with all ticked it clears them, in one write. A global <code>.btn</code> rule keeps labels on one line and stops buttons shrinking; the text beside them wraps instead, and a settings row moves its control underneath when the window is too narrow.",
+    notes: [
+      "It is a real checkbox: it takes focus and Space, and a screen reader announces the mixed state.",
+      "A CDP audit of every settings button found 51 of 199 wrapping, clipped or overflowing before, and none of 212 after.",
+    ],
+    caveats: ["Below about 720px the settings page overflows regardless of its buttons."],
+  },
+
   "image-paste": {
     problem: "Claude Code reads an image from the clipboard on Ctrl+V, while a terminal paste binding can also deliver an empty text paste. The two clipboard reads could race.",
     how: "When the clipboard has an image but no text, Torbie sends one Ctrl+V to the terminal instead of an empty paste followed by Ctrl+V. Text paste keeps its existing behavior.",
