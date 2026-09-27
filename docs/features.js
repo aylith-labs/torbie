@@ -29,7 +29,7 @@ window.FEATURES = [
   {
     id: "shift-enter-newline", title: "Shift+Enter is a new line in Claude Code, with no plugin",
     cat: "claude", catLabel: "Claude Code", dateAdded: "2026-09-27",
-    commits: ["1b98e8a8"], files: 9, ins: 918, del: 0,
+    commits: ["1b98e8a8","40b8bacc"], files: 10, ins: 919, del: 1,
     desc: "A terminal sends the same key for Enter and Shift+Enter, so Claude Code submitted where a new line was meant, and multi-line prompts needed the tabby-backslash-newline plugin. Torbie now answers the kitty keyboard query Claude Code sends at startup and sends Shift+Enter, Ctrl+Enter and Alt+Enter as their own keys to any app that asked, so Shift+Enter adds a line in Claude Code, and Ctrl+Enter reaches its send-now binding. Shells never ask and still get a plain Enter. If the plugin is installed and bound, it keeps the key and nothing is sent twice. It can be switched off.",
   },
   {
