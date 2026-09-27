@@ -232,7 +232,7 @@ async function realClaude (d, chord) {
         const out = []
         for (let i = 0; i < b.length; i++) { out.push(b.getLine(i).translateToString(true)) }
         return out`)
-    await d.evaluate(`window.__KP.tab.sendInput('wsl.exe -d Ubuntu --cd /home/stevenp/.cache/cc-newline-probe -- bash -lc "exec claude"\\r'); return 1`)
+    await d.evaluate(`window.__KP.tab.sendInput('wsl.exe -d Ubuntu -- bash -lc "mkdir -p ~/.cache/cc-newline-probe && cd ~/.cache/cc-newline-probe && exec claude"\\r'); return 1`)
     let ready = false
     for (let i = 0; i < 60 && !ready; i++) {
         await sleep(500)
