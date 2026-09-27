@@ -26,6 +26,24 @@ window.FEATURE_DETAILS = {
     caveats: ["The hotkey list and each integration's detail view are not indexed."],
   },
 
+  "shift-enter-newline": {
+    problem: "A legacy terminal sends CR for Enter and for Shift+Enter alike, and Claude Code submits on CR. Its <code>/terminal-setup</code> only configures VS Code-like editors, Alacritty, Zed and Apple Terminal, and treats iTerm2, WezTerm, Ghostty, Kitty, Warp and Windows Terminal as supported because they speak the kitty keyboard protocol. xterm.js 6.0, which Torbie renders with, speaks neither that nor xterm's modifyOtherKeys.",
+    how: "Torbie answers the kitty keyboard query (<code>CSI ? u</code>), tracks the flags an app pushes, pops or sets on each screen, and tracks modifyOtherKeys. Enter with Shift, Ctrl, Alt or Meta then goes out as <code>CSI 13;mods u</code>, or <code>CSI 27;mods;13~</code> under modifyOtherKeys. On Windows the console layer answers the app's follow-up query itself, before Torbie's answer arrives, so Claude Code never switches the protocol on there. An app that asks at all reads these encodings, so asking is enough: modified Enter is encoded from the query until the app hands the keyboard back on exit.",
+    sample: {
+      label: "Shift+Enter, the bytes sent to the session",
+      text: "                              before     after\nshell, nothing asked          \\r         \\r\nClaude Code running           \\r         ESC[13;2u\nafter Claude Code exits       \\r         \\r\nmodifyOtherKeys 2             \\r         ESC[27;2;13~",
+    },
+    notes: [
+      "Verified against Claude Code 2.1.283 in a WSL tab of a hidden build: line1, Shift+Enter, line2 left two lines in the prompt and nothing was submitted.",
+      "Plain Enter is always CR, and every other key keeps its usual bytes.",
+      "<code>terminal.kittyKeyboard</code> (on), under Settings → Terminal → Keyboard, turns it off.",
+    ],
+    caveats: [
+      "Only Enter is encoded; the rest of the kitty protocol, such as Esc as <code>CSI 27 u</code> or key-release events, is not implemented.",
+      "An app that asks and then exits without resetting the keyboard leaves Shift+Enter encoded until something does; bash then types <code>;2u</code>.",
+    ],
+  },
+
   "image-paste": {
     problem: "Claude Code reads an image from the clipboard on Ctrl+V, while a terminal paste binding can also deliver an empty text paste. The two clipboard reads could race.",
     how: "When the clipboard has an image but no text, Torbie sends one Ctrl+V to the terminal instead of an empty paste followed by Ctrl+V. Text paste keeps its existing behavior.",
