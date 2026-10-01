@@ -382,8 +382,13 @@ gh release edit v1.0.5 --repo aylith-labs/torbie --draft=false --latest
   resolves to `upstream` and lists Eugeny/tabby's releases, which looks like an
   answer.
 - **Publish only a complete draft**, read fresh immediately before publishing:
-  exactly one release for the tag, with the full asset count described under
-  *Cutting a release*. An incomplete draft is left as a draft and reported.
+  exactly one release for the tag, every job green, and the full asset set —
+  **29** as of 1.0.5 (v1.0.0's 34 included armv7l, which is no longer built):
+  Linux x64/arm64 in five formats, macOS arm64/x86_64 as dmg, blockmap and zip,
+  Windows x64/arm64 as setup, blockmap and portable zip, six per-arch
+  `latest-*.yml` and `latest.yml`. Compare against the previous published
+  release rather than a remembered number. An incomplete draft is left as a
+  draft and reported.
 - **Never move a published tag.** A fix after publishing is the next patch
   release.
 - Everything below — why the workflow is shaped the way it is — still applies.
