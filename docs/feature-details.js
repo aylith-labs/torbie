@@ -1277,6 +1277,43 @@ window.FEATURE_DETAILS = {
     ],
   },
 
+  "profile-pins": {
+    problem:
+      "The profile selector lists <strong>Recent, then every profile alphabetically</strong>. Recent is whatever was opened last, so it reshuffles itself, and the alphabet is not an order anyone chose. There was no way to say <em>these are the ones I use</em>.",
+    how:
+      "A pin is a profile <strong>id</strong> in <code>pinnedProfiles</code>, and the array's order is the order pins are shown in. Ids rather than copies, which is what Recent keeps and why a recent entry goes stale when its profile is edited. Every view that lists profiles reads the same list through <code>ProfilesService</code> and leads with a Pinned section. The selector needed a way to act on a row without choosing it, so <code>SelectorOption</code> gained optional <code>actions</code>; an action may answer with a new option list, which the selector takes without closing.",
+    settings: [
+      "<code>pinnedProfiles</code> — profile ids, in pin order",
+      "Ctrl+P in the profile selector pins or unpins the selected row",
+    ],
+    notes: [
+      "<strong>Nothing is taken out of where it lives.</strong> Pinned is an extra section; a pinned profile is still in its own group, which is where Settings edits it.",
+      "<strong>Hidden wins over pinned.</strong> A hidden profile is not offered anywhere it could be launched, pinned or not. Settings still lists it under Pinned, because that page is where it is un-hidden.",
+      "A pin whose profile is gone lists nothing, and deleting a profile removes its pin.",
+      "The jump list opens a profile by name, so a pin is only offered there when its name resolves to that profile.",
+      "A recent profile is matched by id now. The selector relabels a built-in's group, so the same profile launched from two places used to be listed twice.",
+    ],
+    caveats: [
+      "<strong>Pins cannot be reordered</strong> except by unpinning and pinning again.",
+      "A native context menu has no headings, so <em>New with profile</em> moves pinned profiles to the front rather than repeating them.",
+      "The macOS dock menu is changed and unverified: there is no Mac here.",
+      "Verified in a hidden window by reading the DOM. Nobody has looked at the pin button on a painted screen yet.",
+    ],
+  },
+
+  "settings-tab-split": {
+    problem:
+      "<strong>Split</strong> on a Settings tab left two Settings entries in the tab bar and no split; <strong>Open in new window</strong> did nothing.",
+    how:
+      "Both work by duplicating the tab from its recovery token, and the Settings tab returned none. It now returns the page that is open, with a recovery provider to rebuild it. Split's other half was in <code>wrapAndAddTab</code>: Settings is the one tab opened unwrapped, and wrapping it added the container without taking the tab out of the list.",
+    notes: [
+      "The toolbar's Settings button looks inside split containers, so it selects a split Settings tab instead of opening another.",
+    ],
+    caveats: [
+      "<strong>A Settings tab is now restored with the window</strong>, like any other tab with a token. That follows from having one; it was not asked for.",
+    ],
+  },
+
   "ci-gate": {
     problem:
       "There was <strong>no <code>test</code> script in any <code>package.json</code>, and no workflow ran any of the forty test files in the repository</strong>. Every one was run by hand, from memory, when someone thought of it. That is not a slow safety net; it is the absence of one, and it is the real gap behind wanting the project to be more stable.",

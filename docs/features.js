@@ -551,6 +551,22 @@ window.FEATURES = [
 
   // ------------------------------------------------------------------- ui
   {
+    id: "profile-pins", title: "Pinned profiles, above Recent, in every view",
+    cat: "ui", catLabel: "UI & theming",
+    dateAdded: "2026-10-01",
+    commits: ["32465a9b","ce7554b9"],
+    files: 21, ins: 850, del: 43,
+    desc: "Upstream offers Recent and then every profile in alphabetical order, so the three you actually open sit wherever their names put them. A profile can be pinned from the selector (a button on the row, or Ctrl+P, neither of which closes it), from Settings, or from the side-panel tree, and every place that lists profiles then leads with a Pinned section: the selector, the Settings list, the tree, the start page, the tab's New with profile menu, the Windows jump list and the macOS dock menu. Recent rows also wear their profile's own icon now rather than a history glyph the group header already states.",
+  },
+  {
+    id: "settings-tab-split", title: "The Settings tab can be split and moved to another window",
+    cat: "ui", catLabel: "UI & theming",
+    dateAdded: "2026-10-01",
+    commits: ["62a94ef8"],
+    files: 6, ins: 62, del: 9,
+    desc: "Split on a Settings tab added a second Settings entry to the tab bar and split nothing, and Open in new window did nothing at all. A tab is split, and handed to another window, by duplicating it from its recovery token, and Settings had none. Its token is the page that is open, so both now work and the copy opens on the same page.",
+  },
+  {
     id: "torbie", title: "The fork becomes Torbie, and the plugins still load",
     cat: "ui", catLabel: "UI & theming",
     standout: true,

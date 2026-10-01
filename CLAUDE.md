@@ -3477,6 +3477,61 @@ the next reset.
   `--claude` drives the real Claude Code in a WSL pane: line1, Shift+Enter,
   line2 on two rows, nothing submitted, keyboard handed back on exit.
 
+## Pinned profiles (`tabby-core/src/profilePins.ts`)
+
+A pin is a profile **id** in `pinnedProfiles` (config, beside
+`profileBlacklist`), in pin order. Every view that lists profiles leads with a
+Pinned section, above Recent: the selector, Settings → Profiles, the side-panel
+tree, the start page, the tab's *New with profile* / *New admin tab* menus, the
+jump list and the macOS dock menu. `ProfilesService` is the one reader
+(`isProfilePinned`, `setProfilePinned`, `pinnedAmong`, `getPinnedProfiles`).
+
+- **Pinned is an extra section; nothing leaves its group.** Settings edits a
+  profile where it lives, and the row there carries a pin mark instead.
+- **Hidden beats pinned** wherever a profile could be launched. Settings lists a
+  hidden pin anyway (`includeHidden`), because that page is where it is un-hidden.
+- **`SelectorOption.actions`** (optional, add-only) is a button on a selector
+  row that does not choose the row. A callback may return a new option list,
+  which the modal takes without closing; the selection follows the row acted on.
+  `key` binds it to Ctrl/Cmd+key on the selected row — Ctrl+P for pins.
+- **The row buttons are `visibility: hidden`, not `display: none`**, so a row
+  keeps its width as the selection moves over it.
+- **The store is assigned before `config.save()` is awaited**, so the selector
+  rebuilds from it at once — the same trap as the fork-mark switches.
+- **The jump list opens by name**, so a pin is offered there only when
+  `profile <name>` would open that profile and not a namesake.
+- A native menu has no headings, so the tab context menu moves pins to the
+  front rather than repeating them.
+- **Recent rows wear the profile's icon**, resolved from the live profile by id;
+  the stored entry is a snapshot. Recent is matched by id too: the selector
+  mutates a built-in's `group` to `Built-in`, so the old `group + name` match
+  listed one profile twice.
+- Pins cannot be reordered except by unpinning. The macOS dock change is
+  unverified. Nobody has seen the pin button painted: a hidden window does not
+  answer `Page.captureScreenshot`, so it was measured from the DOM.
+- `profilePins.test.js` (fast) holds the logic; `profilePins.cdp.js` (47
+  checks) drives every view, building the jump list without publishing it.
+
+## The Settings tab has a recovery token
+
+Split and *Open in new window* both duplicate a tab from its recovery token,
+and Settings had none: Split left two Settings entries and no split, and the
+new window never opened. `SettingsTabComponent.getRecoveryToken()` is
+`{ type: 'app:settings', activeTab }` and `tabby-settings/src/recoveryProvider.ts`
+rebuilds it.
+
+- **`wrapAndAddTab` gives a top-level tab's place to its container.** Settings
+  is opened unwrapped (`openNewTabRaw`), and wrapping it added the split
+  without removing the tab, because the container's `tabAdopted$` is only
+  subscribed once the container is itself in the list.
+- **The Settings button looks inside split containers**, or it opens a second
+  Settings tab beside the split one.
+- **Side effect: a Settings tab is restored with the window**, like any tab
+  with a token.
+- Verified in `profilePins.cdp.js`, and by hand through `app:new-window` with
+  `hidden`: the tab left the first window and arrived in the second on the same
+  page.
+
 ## Changed upstream defaults
 
 Kept to a minimum — every one is a line that conflicts on rebase.
