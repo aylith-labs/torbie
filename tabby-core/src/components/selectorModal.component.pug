@@ -26,6 +26,15 @@
                     *ngIf='option.description !== getOptionText(option)'
                 ) {{option.description}}
                 .ms-auto
+                button.row-action.btn.btn-sm.btn-link.ms-1(
+                    *ngFor='let action of option.actions; trackBy: trackAction',
+                    type='button',
+                    tabindex='-1',
+                    [title]='actionTitle(action)',
+                    [attr.aria-label]='action.title',
+                    (click)='$event.stopPropagation(); runAction(option, action)'
+                )
+                    i.fa-fw([class]='action.icon')
                 .no-wrap.badge.text-bg-secondary.ms-2(*ngIf='selectedIndex == i && canEditSelected()')
                     span BACKSPACE
                     i.fas.fa-pencil.ms-1

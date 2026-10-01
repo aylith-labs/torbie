@@ -8,6 +8,9 @@ import { EditProfileGroupModalComponent, EditProfileGroupModalComponentResult } 
 
 _('Filter')
 _('Ungrouped')
+_('Pinned')
+_('Pin')
+_('Unpin')
 
 interface CollapsableProfileGroup extends ProfileGroup {
     collapsed: boolean
@@ -265,6 +268,19 @@ export class ProfilesSettingsTabComponent extends BaseComponent {
         groups.sort((a, b) => a.name.localeCompare(b.name))
         groups.sort((a, b) => (a.id === 'built-in' || !a.editable ? 1 : 0) - (b.id === 'built-in' || !b.editable ? 1 : 0))
         groups.sort((a, b) => (a.id === 'ungrouped' ? 0 : 1) - (b.id === 'ungrouped' ? 0 : 1))
+        // Pinned sits above every group and takes nothing out of them. Hidden
+        // profiles stay listed here, as they do in their own group: this page
+        // is where one is un-hidden.
+        const pinned = this.profilesService.pinnedAmong(groups.flatMap(g => g.profiles ?? []), { includeHidden: true })
+            .filter(x => !x.isTemplate)
+        if (pinned.length) {
+            groups.unshift({
+                id: 'pinned',
+                name: this.translate.instant('Pinned'),
+                editable: false,
+                profiles: pinned,
+            })
+        }
         this.profileGroups = groups.map(g => ProfilesSettingsTabComponent.intoPartialCollapsableProfileGroup(g, profileGroupCollapsed[g.id] ?? false))
         this.rootGroups = this.profilesService.buildGroupTree(this.profileGroups)
     }
@@ -359,6 +375,14 @@ export class ProfilesSettingsTabComponent extends BaseComponent {
 
     isProfileBlacklisted (profile: PartialProfile<Profile>): boolean {
         return profile.id && this.config.store.profileBlacklist.includes(profile.id)
+    }
+
+    isProfilePinned (profile: PartialProfile<Profile>): boolean {
+        return this.profilesService.isProfilePinned(profile)
+    }
+
+    toggleProfilePinned (profile: PartialProfile<Profile>): void {
+        this.profilesService.toggleProfilePinned(profile)
     }
 
     getQuickConnectProviders (): ProfileProvider<Profile>[] {

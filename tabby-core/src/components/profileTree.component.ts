@@ -77,6 +77,20 @@ export class ProfileTreeComponent extends BaseComponent {
         groups.sort((a, b) => a.name.localeCompare(b.name))
         groups.sort((a, b) => (a.id === 'built-in' || !a.editable ? 1 : 0) - (b.id === 'built-in' || !b.editable ? 1 : 0))
         groups.sort((a, b) => (a.id === 'ungrouped' ? 0 : 1) - (b.id === 'ungrouped' ? 0 : 1))
+        // Pinned sits above every group and takes nothing out of them: a
+        // pinned profile is still found where it lives.
+        const pinned = this.profilesService.pinnedAmong(groups.flatMap(g => g.profiles ?? []))
+            .filter(x => !x.isBuiltin || this.config.store.terminal.showBuiltinProfiles)
+        if (pinned.length) {
+            groups.unshift({
+                id: 'pinned',
+                name: this.translate.instant('Pinned'),
+                icon: 'fas fa-thumbtack',
+                editable: false,
+                profiles: pinned,
+            })
+        }
+
         this.profileGroups = groups.map(g => ProfileTreeComponent.intoPartialCollapsableProfileGroup(g, profileGroupCollapsed[g.id] ?? false))
         this.rootGroups = this.profilesService.buildGroupTree(this.profileGroups)
     }
@@ -172,6 +186,12 @@ export class ProfileTreeComponent extends BaseComponent {
                 click: () => this.editProfile(profile),
                 enabled: !(profile.isBuiltin ?? profile.isTemplate),
             },
+            {
+                type: 'normal',
+                label: this.profilesService.isProfilePinned(profile) ? this.translate.instant('Unpin') : this.translate.instant('Pin'),
+                click: () => this.togglePin(profile),
+                enabled: !!profile.id,
+            },
         ])
     }
 
@@ -194,6 +214,14 @@ export class ProfileTreeComponent extends BaseComponent {
 
     private async tabStateChanged (): Promise<void> {
         // TODO: show active tab in the side panel with eye icon
+    }
+
+    isPinned (profile: PartialProfile<Profile>): boolean {
+        return this.profilesService.isProfilePinned(profile)
+    }
+
+    togglePin (profile: PartialProfile<Profile>): void {
+        this.profilesService.toggleProfilePinned(profile)
     }
 
     async launchProfile<P extends Profile> (profile: PartialProfile<P>): Promise<any> {

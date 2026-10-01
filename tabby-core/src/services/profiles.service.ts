@@ -4,6 +4,7 @@ import { NewTabParameters } from './tabs.service'
 import { BaseTabComponent } from '../components/baseTab.component'
 import { QuickConnectProfileProvider, PartialProfile, PartialProfileGroup, Profile, ProfileGroup, ProfileProvider } from '../api/profileProvider'
 import { SelectorOption } from '../api/selector'
+import { isPinned, normalizePins, pinnedAmong, withPin, withoutPin } from '../profilePins'
 import { AppService } from './app.service'
 import { configMerge, ConfigProxy, ConfigService, FullyDefined } from './config.service'
 import { NotificationsService } from './notifications.service'
@@ -130,6 +131,9 @@ export class ProfilesService {
     async deleteProfile (profile: PartialProfile<Profile>): Promise<void> {
         this.providerForProfile(profile)?.deleteProfile(this.getConfigProxyForProfile(profile))
         this.config.store.profiles = this.config.store.profiles.filter(p => p.id !== profile.id)
+        if (this.isProfilePinned(profile)) {
+            this.config.store.pinnedProfiles = withoutPin(this.getPinnedProfileIds(), profile.id!)
+        }
 
         const profileHotkeyName = ProfilesService.getProfileHotkeyName(profile)
         if (Object.hasOwn(this.config.store.hotkeys.profile, profileHotkeyName)) {
@@ -192,7 +196,12 @@ export class ProfilesService {
 
         let recentProfiles: PartialProfile<Profile>[] = JSON.parse(window.localStorage['recentProfiles'] ?? '[]')
         if (this.config.store.terminal.showRecentProfiles > 0) {
-            recentProfiles = recentProfiles.filter(x => x.group !== profile.group || x.name !== profile.name)
+            // By id where there is one: the selector relabels a built-in's group,
+            // so the same profile launched from two places differed in `group`
+            // and was listed twice.
+            recentProfiles = recentProfiles.filter(x => profile.id && x.id
+                ? x.id !== profile.id
+                : x.group !== profile.group || x.name !== profile.name)
             recentProfiles.unshift(profile)
             recentProfiles = recentProfiles.slice(0, this.config.store.terminal.showRecentProfiles)
         } else {
@@ -247,6 +256,57 @@ export class ProfilesService {
         return roots
     }
 
+    /*
+    * Pinned profiles
+    */
+
+    getPinnedProfileIds (): string[] {
+        return normalizePins(this.config.store.pinnedProfiles)
+    }
+
+    isProfilePinned (profile: PartialProfile<Profile>): boolean {
+        return isPinned(this.getPinnedProfileIds(), profile.id)
+    }
+
+    /**
+    * Pin or unpin a Profile. The store is updated before this returns — the
+    * save is what is awaited, so a caller may redraw from the store at once.
+    */
+    setProfilePinned (profile: PartialProfile<Profile>, pinned: boolean): Promise<void> {
+        if (!profile.id) {
+            return Promise.resolve()
+        }
+        const pins = this.getPinnedProfileIds()
+        this.config.store.pinnedProfiles = pinned ? withPin(pins, profile.id) : withoutPin(pins, profile.id)
+        return this.config.save()
+    }
+
+    toggleProfilePinned (profile: PartialProfile<Profile>): Promise<void> {
+        return this.setProfilePinned(profile, !this.isProfilePinned(profile))
+    }
+
+    /**
+    * The pinned ones among `profiles`, in pin order.
+    * arg: includeHidden (default: false) -> keep templates and hidden profiles
+    */
+    pinnedAmong <P extends PartialProfile<Profile>> (profiles: readonly P[], options?: { includeHidden?: boolean }): P[] {
+        const pinned = pinnedAmong(profiles, this.getPinnedProfileIds())
+        if (options?.includeHidden) {
+            return pinned
+        }
+        return pinned.filter(x => !x.isTemplate && !this.config.store.profileBlacklist.includes(x.id))
+    }
+
+    /**
+    * Return the pinned Profiles that can be launched, in pin order
+    */
+    async getPinnedProfiles (): Promise<PartialProfile<Profile>[]> {
+        if (!this.getPinnedProfileIds().length) {
+            return []
+        }
+        return this.pinnedAmong(await this.getProfiles())
+    }
+
     showProfileSelector (): Promise<PartialProfile<Profile> | null> {
         if (this.selector.active) {
             return Promise.resolve(null)
@@ -254,22 +314,51 @@ export class ProfilesService {
 
         // biome-ignore lint/suspicious/noAsyncPromiseExecutor: the body is wrapped in try/catch and settles through resolve/reject on every path
         return new Promise<PartialProfile<Profile>|null>(async (resolve, reject) => {
-            try {
+            // Built again after every pin or unpin, which the selector takes as
+            // its new list without closing.
+            const buildOptions = async (): Promise<SelectorOption<void>[]> => {
                 const recentProfiles = this.getRecentProfiles()
+                const allProfiles = await this.getProfiles()
 
-                let options: SelectorOption<void>[] = recentProfiles.map((p, i) => ({
-                    ...this.selectorOptionForProfile(p),
-                    group: this.translate.instant('Recent'),
-                    icon: 'fas fa-history',
-                    color: p.color ?? undefined,
-                    weight: i - (recentProfiles.length + 1),
-                    callback: async () => {
-                        if (p.id) {
-                            p = (await this.getProfiles()).find(x => x.id === p.id) ?? p
-                        }
-                        resolve(p)
+                const pinAction = (p: PartialProfile<Profile>) => p.id ? [{
+                    icon: this.isProfilePinned(p) ? 'fas fa-thumbtack-slash' : 'fas fa-thumbtack',
+                    title: this.isProfilePinned(p) ? this.translate.instant('Unpin') : this.translate.instant('Pin'),
+                    key: 'p',
+                    callback: () => {
+                        this.toggleProfilePinned(p)
+                        return buildOptions()
                     },
+                }] : undefined
+
+                const pinnedProfiles = this.pinnedAmong(allProfiles)
+                    .filter(x => !x.isBuiltin || this.config.store.terminal.showBuiltinProfiles)
+
+                let options: SelectorOption<void>[] = pinnedProfiles.map((p, i) => ({
+                    ...this.selectorOptionForProfile(p),
+                    group: this.translate.instant('Pinned'),
+                    icon: p.icon ?? 'fas fa-network-wired',
+                    // Below every Recent weight, which run from -(n + 1) to -1.
+                    weight: i - (pinnedProfiles.length + recentProfiles.length + 2),
+                    callback: () => resolve(p),
+                    actions: pinAction(p),
                 }))
+
+                options = [...options, ...recentProfiles.map((p, i): SelectorOption<void> => {
+                    // The stored entry is a snapshot; the profile it was taken
+                    // of is what knows its icon now.
+                    const live = p.id ? allProfiles.find(x => x.id === p.id) : undefined
+                    return {
+                        ...this.selectorOptionForProfile(p),
+                        group: this.translate.instant('Recent'),
+                        // The group header already says these are recent, so
+                        // the row shows which profile it is.
+                        icon: live?.icon ?? p.icon ?? 'fas fa-network-wired',
+                        color: live?.color ?? p.color ?? undefined,
+                        weight: i - (recentProfiles.length + 1),
+                        callback: () => resolve(live ?? p),
+                        actions: live ? pinAction(live) : undefined,
+                    }
+                })]
                 if (recentProfiles.length) {
                     options.push({
                         name: this.translate.instant('Clear recent profiles'),
@@ -284,7 +373,7 @@ export class ProfilesService {
                     })
                 }
 
-                let profiles = await this.getProfiles()
+                let profiles = allProfiles
 
                 if (!this.config.store.terminal.showBuiltinProfiles) {
                     profiles = profiles.filter(x => !x.isBuiltin)
@@ -304,6 +393,7 @@ export class ProfilesService {
                     ...this.selectorOptionForProfile(p),
                     weight: p.isBuiltin ? 2 : 1,
                     callback: () => resolve(p),
+                    actions: pinAction(p),
                 }))]
 
                 try {
@@ -338,7 +428,11 @@ export class ProfilesService {
                     }
                 })
 
-                await this.selector.show(this.translate.instant('Select profile or enter an address'), options).catch(() => reject())
+                return options
+            }
+
+            try {
+                await this.selector.show(this.translate.instant('Select profile or enter an address'), await buildOptions()).catch(() => reject())
             } catch (err) {
                 reject(err)
             }

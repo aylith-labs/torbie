@@ -47,8 +47,9 @@ ul.nav-tabs(ngbNav, #nav='ngbNav')
 
             ng-template(#recursiveGroup let-group)
                 .collapse-item.d-flex.align-items-center.p-1((click)='toggleGroupCollapse(group)')
-                    .fa.fa-fw.far.fa-folder(*ngIf='group.collapsed')
-                    .fa.fa-fw.far.fa-folder-open(*ngIf='!group.collapsed')
+                    .fa.fa-fw.fas.fa-thumbtack(*ngIf='group.id === "pinned"')
+                    .fa.fa-fw.far.fa-folder(*ngIf='group.id !== "pinned" && group.collapsed')
+                    .fa.fa-fw.far.fa-folder-open(*ngIf='group.id !== "pinned" && !group.collapsed')
                     span.ms-3.me-auto {{ group.name || ("Ungrouped"|translate) }}
 
                     button.btn.btn-sm.btn-link.hover-reveal.ms-2(*ngIf='group.editable && group.name', (click)='$event.stopPropagation(); editProfileGroup(group)')
@@ -63,6 +64,12 @@ ul.nav-tabs(ngbNav, #nav='ngbNav')
                             span.ms-3.no-wrap {{ profile.name }}
                             .text-muted.no-wrap.ms-2 {{ getDescription(profile) }}
                             .me-auto
+                            button.btn.btn-link.hover-reveal.ms-1(
+                                *ngIf='profile.id && !profile.isTemplate',
+                                [title]='(isProfilePinned(profile) ? "Unpin" : "Pin")|translate',
+                                (click)='$event.stopPropagation(); toggleProfilePinned(profile)'
+                            )
+                                i.fas.fa-fw([class.fa-thumbtack]='!isProfilePinned(profile)', [class.fa-thumbtack-slash]='isProfilePinned(profile)')
                             button.btn.btn-link.hover-reveal.ms-1(*ngIf='!profile.isTemplate', (click)='$event.stopPropagation(); launchProfile(profile)')
                                 i.fas.fa-play
                             .ms-1.hover-reveal(ngbDropdown, placement='bottom-right top-right auto')
@@ -72,6 +79,12 @@ ul.nav-tabs(ngbNav, #nav='ngbNav')
                                     button.dropdown-item(ngbDropdownItem, (click)='$event.stopPropagation(); newProfile(profile)')
                                         i.fas.fa-fw.fa-copy
                                         span(translate) Duplicate
+                                    button.dropdown-item(ngbDropdownItem, *ngIf='profile.id && !profile.isTemplate && !isProfilePinned(profile)', (click)='$event.stopPropagation(); toggleProfilePinned(profile)')
+                                        i.fas.fa-fw.fa-thumbtack
+                                        span(translate) Pin
+                                    button.dropdown-item(ngbDropdownItem, *ngIf='profile.id && isProfilePinned(profile)', (click)='$event.stopPropagation(); toggleProfilePinned(profile)')
+                                        i.fas.fa-fw.fa-thumbtack-slash
+                                        span(translate) Unpin
                                     button.dropdown-item(ngbDropdownItem, *ngIf='profile.id && !isProfileBlacklisted(profile)', (click)='$event.stopPropagation(); blacklistProfile(profile)')
                                         i.fas.fa-fw.fa-eye-slash
                                         span(translate) Hide
@@ -82,6 +95,7 @@ ul.nav-tabs(ngbNav, #nav='ngbNav')
                                         i.fas.fa-fw.fa-trash-alt
                                         span(translate) Delete
                             .ms-1(class='badge text-bg-{{getTypeColorClass(profile)}}') {{ getTypeLabel(profile) }}
+                            .ms-1.text-muted.fas.fa-thumbtack.pin-mark(*ngIf='group.id !== "pinned" && isProfilePinned(profile)', [title]='"Pinned"|translate')
                             .ms-1.text-danger.fas.fa-eye-slash(*ngIf='isProfileBlacklisted(profile)')
 
                     ng-container(*ngFor='let child of group.children')

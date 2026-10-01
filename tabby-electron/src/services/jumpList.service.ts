@@ -79,6 +79,7 @@ export class JumpListService {
     async build (
         recentProfiles: PartialProfile<Profile>[],
         profiles: PartialProfile<Profile>[],
+        pinnedProfiles: PartialProfile<Profile>[] = [],
     ): Promise<JumpListCategory[]> {
         const started = performance.now()
         const pass = await this.icons.pass()
@@ -106,21 +107,28 @@ export class JumpListService {
         // `profile <name>` resolves by name, so a second profile sharing one is
         // unreachable however it is listed — an entry that silently opens
         // somebody else's shell is worse than an entry that is not there.
-        const seen = new Set<string>()
-        const named: JumpListTask[] = []
-        for (const profile of profiles) {
-            if (!profile.name || seen.has(profile.name)) {
-                continue
+        const byName = async (list: PartialProfile<Profile>[]): Promise<JumpListTask[]> => {
+            const seen = new Set<string>()
+            const tasks: JumpListTask[] = []
+            for (const profile of list) {
+                if (!profile.name || seen.has(profile.name)) {
+                    continue
+                }
+                seen.add(profile.name)
+                tasks.push({
+                    type: 'task',
+                    program: process.execPath,
+                    args: `profile ${quoteArgument(profile.name)}`,
+                    title: profile.name,
+                    ...await iconFor(profile),
+                })
             }
-            seen.add(profile.name)
-            named.push({
-                type: 'task',
-                program: process.execPath,
-                args: `profile ${quoteArgument(profile.name)}`,
-                title: profile.name,
-                ...await iconFor(profile),
-            })
+            return tasks
         }
+        const named = await byName(profiles)
+        // `profile <name>` opens the *first* profile of that name, so a pin is
+        // only offered when that is the profile it would open.
+        const pinned = await byName(pinnedProfiles.filter(p => profiles.find(x => x.name === p.name) === p))
 
         await pass?.pruneUnused()
         if (pass?.drawn) {
@@ -135,6 +143,7 @@ export class JumpListService {
         // been opened yet and Recent is empty, upstream's list was refused
         // whole and no profiles appeared at all.
         return [
+            { type: 'custom' as const, name: this.translate.instant('Pinned'), items: pinned },
             { type: 'custom' as const, name: this.translate.instant('Recent'), items: recent },
             { type: 'custom' as const, name: this.translate.instant('Profiles'), items: named },
         ].filter(category => category.items.length > 0)
@@ -144,11 +153,12 @@ export class JumpListService {
     async update (
         recentProfiles: PartialProfile<Profile>[],
         profiles: PartialProfile<Profile>[],
+        pinnedProfiles: PartialProfile<Profile>[] = [],
     ): Promise<void> {
         if (!this.isSupported()) {
             return
         }
-        const categories = await this.build(recentProfiles, profiles)
+        const categories = await this.build(recentProfiles, profiles, pinnedProfiles)
         try {
             // Electron answers with a string rather than throwing, and upstream
             // discarded it — which is how a rejected list came to look exactly

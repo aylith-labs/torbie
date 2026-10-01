@@ -25,6 +25,7 @@ export class CoreCommandProvider extends CommandProvider {
     }
 
     async provide (): Promise<Command[]> {
+        const pinned = await this.profilesService.getPinnedProfiles()
         return [
             {
                 id: 'core:profile-selector',
@@ -35,6 +36,13 @@ export class CoreCommandProvider extends CommandProvider {
                     : require('./icons/profiles.svg'),
                 run: async () => this.activate(),
             },
+            ...pinned.map((profile, index) => ({
+                id: `core:pinned-profile-${index}`,
+                label: profile.name,
+                locations: [CommandLocation.StartPage],
+                icon: require('./icons/pin.svg'),
+                run: async () => this.profilesService.launchProfile(profile),
+            })),
             ...this.profilesService.getRecentProfiles().map((profile, index) => ({
                 id: `core:recent-profile-${index}`,
                 label: profile.name,

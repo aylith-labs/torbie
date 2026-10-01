@@ -25,16 +25,18 @@ export class DockMenuService {
         profiles = profiles.filter(x => x.id && !this.configService.store.profileBlacklist.includes(x.id))
         const recentProfiles = this.profilesService.getRecentProfiles().filter(x => x.id && !this.configService.store.profileBlacklist.includes(x.id))
 
+        const pinnedProfiles = this.profilesService.pinnedAmong(profiles)
+
         if (this.hostApp.platform === Platform.Windows) {
             // Every entry used to wear the Tabby executable's icon, so the list
             // said nothing about what you were opening. `JumpListService` draws
             // each profile's own icon into a file the shell can read.
-            await this.jumpList.update(recentProfiles, profiles)
+            await this.jumpList.update(recentProfiles, profiles, pinnedProfiles)
         }
         if (this.hostApp.platform === Platform.macOS) {
             this.electron.app.dock?.setMenu(this.electron.Menu.buildFromTemplate(
                 [
-                    ...[...recentProfiles, ...profiles].map(profile => ({
+                    ...[...pinnedProfiles, ...recentProfiles, ...profiles].map(profile => ({
                         label: profile.name,
                         click: () => this.zone.run(async () => {
                             this.profilesService.openNewTabForProfile(profile)

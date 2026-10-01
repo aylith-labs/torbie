@@ -20,7 +20,11 @@ export class NewTabContextMenu extends TabContextMenuItemProvider {
     }
 
     async getItems (tab: BaseTabComponent, tabHeader?: boolean): Promise<MenuItemOptions[]> {
-        const profiles = (await this.profilesService.getProfiles()).filter(x => x.type === 'local') as LocalProfile[]
+        const local = (await this.profilesService.getProfiles()).filter(x => x.type === 'local') as LocalProfile[]
+        // Pinned first, then everything in its usual order — a native submenu
+        // has no headings to put a second copy under.
+        const pinned = this.profilesService.pinnedAmong(local)
+        const profiles = [...pinned, ...local.filter(x => !pinned.includes(x))]
 
         const items: MenuItemOptions[] = [
             {

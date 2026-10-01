@@ -39,6 +39,12 @@
                             span.ms-2.no-wrap {{ profile.name }}
 
                             .actions
+                                .action(
+                                    *ngIf='profile.id',
+                                    [title]='(isPinned(profile) ? "Unpin" : "Pin")|translate',
+                                    (click)='$event.preventDefault(); togglePin(profile)'
+                                )
+                                    .fa.fa-fw.fas([class.fa-thumbtack]='!isPinned(profile)', [class.fa-thumbtack-slash]='isPinned(profile)')
                                 .action((click)='launchProfile(profile)')
                                     .fa.fa-fw.fas.fa-play
 

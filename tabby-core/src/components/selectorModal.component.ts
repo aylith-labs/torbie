@@ -2,7 +2,7 @@ import { firstBy } from 'thenby'
 import { Component, Input, HostListener, ViewChildren, QueryList, ElementRef } from '@angular/core' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
 import FuzzySearch from 'fuzzy-search'
-import { SelectorOption } from '../api/selector'
+import { SelectorOption, SelectorOptionAction } from '../api/selector'
 
 /** @hidden */
 @Component({
@@ -46,6 +46,10 @@ export class SelectorModalComponent<T> {
             } else if (event.key === 'ArrowDown') {
                 this.selectedIndex++
                 event.preventDefault()
+            } else if ((event.ctrlKey || event.metaKey) && !event.altKey && this.actionForKey(event.key)) {
+                event.preventDefault()
+                this.runAction(this.filteredOptions[this.selectedIndex], this.actionForKey(event.key)!)
+                return
             } else if (event.key === 'Enter') {
                 this.selectOption(this.filteredOptions[this.selectedIndex])
             } else if (event.key === 'Backspace' && !this.preventEdit) {
@@ -121,6 +125,42 @@ export class SelectorModalComponent<T> {
     selectOption (option: SelectorOption<T>): void {
         this.modalInstance.close(option.result)
         setTimeout(() => option.callback?.(this.filter))
+    }
+
+    /** The selected row's action bound to Ctrl/Cmd + `key`, if it has one. */
+    private actionForKey (key: string): SelectorOptionAction<T>|undefined {
+        return this.filteredOptions[this.selectedIndex]?.actions?.find(x => x.key && x.key.toLowerCase() === key.toLowerCase())
+    }
+
+    actionTitle (action: SelectorOptionAction<T>): string {
+        return action.key ? `${action.title} (Ctrl+${action.key.toUpperCase()})` : action.title
+    }
+
+    // By index: the options are rebuilt after an action, and rows tracked by
+    // identity would be re-created under the pointer that just clicked one.
+    trackAction (index: number): number {
+        return index
+    }
+
+    /**
+     * Run a row's action without closing. When it answers with a new list the
+     * selection stays on the row that was acted on, wherever it went — or on
+     * the same position, if that row is gone.
+     */
+    async runAction (option: SelectorOption<T>, action: SelectorOptionAction<T>): Promise<void> {
+        const replacement = await action.callback()
+        if (!replacement) {
+            return
+        }
+        const index = this.filteredOptions.indexOf(option)
+        this.options = replacement
+        this.hasGroups = this.options.some(x => x.group)
+        this.selectedIndex = Math.max(0, index)
+        this.onFilterChange()
+        const moved = this.filteredOptions.findIndex(x => x.name === option.name && x.group === option.group && x.description === option.description)
+        if (moved >= 0) {
+            this.selectedIndex = moved
+        }
     }
 
     canEditSelected (): boolean {

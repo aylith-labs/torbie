@@ -79,6 +79,7 @@ pluginBlacklist: []
 commandBlacklist: []
 providerBlacklist: []
 profileBlacklist: []
+pinnedProfiles: []
 hacks:
   disableGPU: false
   disableVibrancyWhileDragging: false

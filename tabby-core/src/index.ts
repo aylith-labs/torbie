@@ -41,7 +41,7 @@ import { FastHtmlBindDirective } from './directives/fastHtmlBind.directive'
 import { DropZoneDirective } from './directives/dropZone.directive'
 import { CdkAutoDropGroup } from './directives/cdkAutoDropGroup.directive'
 
-import { Theme, CLIHandler, TabContextMenuItemProvider, TabRecoveryProvider, HotkeyProvider, ConfigProvider, PlatformService, FileProvider, ProfilesService, ProfileProvider, QuickConnectProfileProvider, SelectorOption, Profile, SelectorService, CommandProvider, PartialProfileGroup, ProfileGroup, ToolbarButtonProvider } from './api'
+import { Theme, CLIHandler, TabContextMenuItemProvider, TabRecoveryProvider, HotkeyProvider, ConfigProvider, PlatformService, FileProvider, ProfilesService, ProfileProvider, QuickConnectProfileProvider, SelectorOption, Profile, PartialProfile, SelectorService, CommandProvider, PartialProfileGroup, ProfileGroup, ToolbarButtonProvider } from './api'
 
 import { AppService } from './services/app.service'
 import { ConfigService } from './services/config.service'
@@ -232,10 +232,13 @@ export default class AppModule { // eslint-disable-line @typescript-eslint/no-ex
 
         profiles = profiles.filter(x => !x.isTemplate && x.type === provider.id)
 
-        const options: SelectorOption<void>[] = profiles.map(p => ({
-            ...this.profilesService.selectorOptionForProfile(p),
-            callback: () => this.profilesService.openNewTabForProfile(p),
-        }))
+        const options: SelectorOption<void>[] = [
+            ...this.pinnedOptions(profiles),
+            ...profiles.map((p): SelectorOption<void> => ({
+                ...this.profilesService.selectorOptionForProfile(p),
+                callback: () => this.profilesService.openNewTabForProfile(p),
+            })),
+        ]
 
         if (provider instanceof QuickConnectProfileProvider) {
             options.push({
@@ -262,12 +265,26 @@ export default class AppModule { // eslint-disable-line @typescript-eslint/no-ex
 
         const profiles = group.profiles ?? []
 
-        const options: SelectorOption<void>[] = profiles.map(p => ({
-            ...this.profilesService.selectorOptionForProfile(p),
-            callback: () => this.profilesService.openNewTabForProfile(p),
-        }))
+        const options: SelectorOption<void>[] = [
+            ...this.pinnedOptions(profiles),
+            ...profiles.map((p): SelectorOption<void> => ({
+                ...this.profilesService.selectorOptionForProfile(p),
+                callback: () => this.profilesService.openNewTabForProfile(p),
+            })),
+        ]
 
         await this.selector.show(this.translate.instant('Select profile'), options)
+    }
+
+    /** The pinned ones among a selector's profiles, as a section above the rest. */
+    private pinnedOptions (profiles: PartialProfile<Profile>[]): SelectorOption<void>[] {
+        const pinned = this.profilesService.pinnedAmong(profiles)
+        return pinned.map((p, i): SelectorOption<void> => ({
+            ...this.profilesService.selectorOptionForProfile(p),
+            group: this.translate.instant('Pinned'),
+            weight: i - pinned.length,
+            callback: () => this.profilesService.openNewTabForProfile(p),
+        }))
     }
 
     static forRoot (): ModuleWithProviders<AppModule> {
