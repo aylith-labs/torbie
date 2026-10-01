@@ -221,8 +221,15 @@ export class AppService {
      */
     wrapAndAddTab (tab: BaseTabComponent): SplitTabComponent {
         const splitTab = this.tabsService.create({ type: SplitTabComponent })
+        // A tab that is already top-level (Settings is opened unwrapped) has
+        // to give its place to the container, or it is listed twice: once as
+        // itself and once inside the split.
+        const index = this.tabs.indexOf(tab)
+        if (index !== -1) {
+            this.tabs = this.tabs.filter(x => x !== tab)
+        }
         splitTab.addTab(tab, null, 'r')
-        this.addTabRaw(splitTab)
+        this.addTabRaw(splitTab, index !== -1 ? index : null)
         return splitTab
     }
 

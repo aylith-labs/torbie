@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { ToolbarButtonProvider, ToolbarButton, AppService, HostAppService, HotkeysService, TranslateService } from 'tabby-core'
+import { ToolbarButtonProvider, ToolbarButton, AppService, HostAppService, HotkeysService, TranslateService, SplitTabComponent } from 'tabby-core'
 
 import { SettingsTabComponent } from './components/settingsTab.component'
 
@@ -33,11 +33,22 @@ export class ButtonProvider extends ToolbarButtonProvider {
     }
 
     open (): void {
-        const settingsTab = this.app.tabs.find(tab => tab instanceof SettingsTabComponent)
-        if (settingsTab) {
-            this.app.selectTab(settingsTab)
-        } else {
-            this.app.openNewTabRaw({ type: SettingsTabComponent })
+        // A Settings tab that has been split lives inside a container, so the
+        // top-level list alone would miss it and open a second one.
+        for (const tab of this.app.tabs) {
+            if (tab instanceof SettingsTabComponent) {
+                this.app.selectTab(tab)
+                return
+            }
+            if (tab instanceof SplitTabComponent) {
+                const inner = tab.getAllTabs().find(x => x instanceof SettingsTabComponent)
+                if (inner) {
+                    this.app.selectTab(tab)
+                    tab.focus(inner)
+                    return
+                }
+            }
         }
+        this.app.openNewTabRaw({ type: SettingsTabComponent })
     }
 }

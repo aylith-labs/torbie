@@ -85,6 +85,11 @@ export class SettingsTabComponent extends BaseTabComponent {
         })
     }
 
+    /** The page that is open is the whole of this tab's state. */
+    async getRecoveryToken () {
+        return { type: 'app:settings', activeTab: this.activeTab }
+    }
+
     async ngOnInit () {
         this.isShellIntegrationInstalled = await this.platform.isShellIntegrationInstalled()
     }

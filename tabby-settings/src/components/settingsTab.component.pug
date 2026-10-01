@@ -1,5 +1,5 @@
 .content
-    ul.nav-pills(ngbNav, #nav='ngbNav', [activeId]='activeTab', orientation='vertical', (navChange)='search.open = false')
+    ul.nav-pills(ngbNav, #nav='ngbNav', [activeId]='activeTab', orientation='vertical', (navChange)='search.open = false; activeTab = $event.nextId')
         li.nav-search(role='presentation')
             settings-search(#search, [nav]='nav', [providers]='settingsProviders')
         li.nav-group-label(role='presentation') {{navGroups[0].title|translate}}
