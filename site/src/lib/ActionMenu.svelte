@@ -15,4 +15,5 @@
 </div>
 <style>
  .action-menu{display:inline-flex}button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;min-height:38px;line-height:18px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--canvas);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}.caret-only>button{width:36px;padding:0;border-radius:0 8px 8px 0;border-left:0}button:disabled{opacity:.55;cursor:wait}.menu{position:fixed;visibility:hidden;z-index:80;width:210px;padding:5px;background:var(--canvas);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 35px #0002}.menu button{width:100%;justify-content:flex-start;border:0;background:none}.menu button:hover,.menu button:focus-visible{background:var(--panel)}
+ @media(max-width:650px){button{height:44px;min-height:44px;font-size:13px}.caret-only>button{width:44px}}
 </style>
