@@ -143,6 +143,9 @@
   .view-toggle{height:44px;min-height:44px;font-size:13px}.tab-location{grid-column:1/-1;width:auto;min-width:0}.tab-location :global(.select-trigger){height:44px;min-height:44px}.plugin-actions{margin-left:0;justify-content:flex-start}.reset-demo{width:44px}.exit-immersive{min-height:44px}
   .live-preview.expanded{padding:10px}.expanded .preview-heading{margin-bottom:8px}.expanded .preview-heading h2{font-size:18px;line-height:1.25;margin:0}.expanded .preview-tools{margin-top:8px}.expanded .preview-footnote{padding-block:6px}.expanded .activity{margin-top:4px}.expanded .preview-actions{padding:8px}.expanded .preview-window{height:auto}
  }
+ @media(max-width:380px){
+  .preview-actions{grid-template-columns:minmax(0,1fr)}.tab-location{grid-column:auto}.split-button,.plugin-actions{width:100%;min-width:0}.split-button>button,.plugin-actions>button:first-child{flex:1;min-width:0}
+ }
  .live-preview.immersive{padding:0}
  .immersive .preview-heading,.immersive .preview-apps,.immersive .preview-actions,.immersive .preview-footnote{display:none}
  .immersive .preview-window{height:100%;min-height:0;border:0;border-radius:0}
