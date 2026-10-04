@@ -3519,6 +3519,57 @@ the next reset.
   `--claude` drives the real Claude Code in a WSL pane: line1, Shift+Enter,
   line2 on two rows, nothing submitted, keyboard handed back on exit.
 
+## Light or dark, told to the app (`tabby-terminal/src/colorSchemeReports.ts`)
+
+A TUI that follows the terminal's appearance — shefrd's `theme.auto_switch`,
+Neovim's `background`, anything on contour's colour-scheme spec — asks in one of
+two ways, and **inside a local or WSL tab on Windows only one of them arrives.**
+Measured through the inbox ConPTY, with a probe in WSL and node-pty acting as the
+terminal:
+
+| app writes | inbox ConPTY | node-pty's conpty 1.23 (`useConptyDll`) |
+|---|---|---|
+| `OSC 10 ; ?` / `OSC 11 ; ?` | **swallowed** — never reaches xterm, no reply | forwarded, reply forwarded back |
+| `CSI ? 996 n` | forwarded, reply forwarded back | forwarded |
+| `CSI ? 2031 h` and later `CSI ? 997 ; n n` pushes | forwarded both ways | forwarded both ways |
+| `CSI ? 2031 $ p` (DECRQM) | answered by conhost itself (`;0$y`) | forwarded |
+
+xterm.js 6.0 answers `OSC 11` correctly from its theme (`rgb:ffff/ffff/ffff` on
+the default light scheme, `rgb:1717/1717/1717` on dark) — so the colour query was
+never Torbie's gap; ConPTY just never delivers it. What xterm lacked is the other
+path: its `deviceStatusPrivate` swallows `?996n` without a reply and 2031 is an
+unknown mode. So shefrd in a light Torbie heard nothing on either path and drew
+its dark half — the screenshot that prompted this.
+
+- **This module answers `CSI ? 996 n`** with `CSI ? 997 ; 1 n` (dark) or
+  `; 2 n` (light), **tracks mode 2031**, and **pushes the report unasked when
+  the pane's colours flip** while the mode is set. `CSI ? 2031 $ p` is answered
+  where it arrives (1 set, 2 reset). RIS / DECSTR clear the mode.
+- **Light or dark is read off the colour the pane is drawn on** — the xterm
+  theme's `background`, the same value `OSC 11` reports, with the scheme's own
+  background standing in when that is transparent (vibrancy). Weights and
+  midpoint are the ones an `OSC 11` reader applies (shefrd's `inferred_appearance`),
+  so both questions get the same answer. The flip hook is `configureColors`,
+  which runs on a config save, a colour-scheme change and `platform.themeChanged$`
+  — so `colorSchemeMode: auto` following the OS pushes too.
+- Every handler that sees a sequence it does not own returns false: `?6n`,
+  every other DECSET/DECRST/DECRQM still reach xterm, and `CSI ? 1000 ; 2031 h`
+  sets both.
+- **No setting.** Answering a standard query is not a behaviour anyone opts out
+  of; nothing is sent unless an app asked (996) or set the mode (2031).
+- **Verified end to end with shefrd** (`0.9.3-source.41b451244`, the installed
+  build, isolated config with `auto_switch = true`) in a hidden dev build's WSL
+  pane: started light → `catppuccin-latte` (0 mocha cells); flipped dark → mocha
+  `panel_bg #181825` and blue `#89b4fa`; flipped back → latte; started dark →
+  mocha. Before, the same probe got nothing for 996 and nothing on a flip.
+- `colorSchemeReports.test.js` (fast) drives a stand-in parser that stops at the
+  first handler returning true, so it also asserts what xterm still sees;
+  `colorSchemeReports.cdp.js` does the same against a running build, and with
+  `--wsl` runs a probe in Ubuntu through ConPTY and asserts the 996 answer and
+  the pushed flip arrive while `OSC 11` does not.
+- **`useConptyDll` would also deliver `OSC 11`** (table above), which is one more
+  reason under *Planned* below — not a prerequisite for this.
+
 ## Pinned profiles (`tabby-core/src/profilePins.ts`)
 
 A pin is a profile **id** in `pinnedProfiles` (config, beside
@@ -3926,5 +3977,7 @@ when that matters, and the tab bar's build tooltip does not exist yet.
   turned the equivalent setting on to fix resize corruption. Worth measuring.
   It would also let apps negotiate the kitty keyboard protocol for real: the
   inbox conpty answers DA1 itself ahead of our `CSI ? u` reply, 1.23 does not
-  (measured; see *Shift+Enter is a new line in Claude Code*). The dll is not
-  copied to `build/Release/conpty/` by the native build today.
+  (measured; see *Shift+Enter is a new line in Claude Code*). It would also
+  deliver `OSC 10/11 ; ?`, which the inbox conpty swallows (measured; see *Light
+  or dark, told to the app*). The dll is not copied to `build/Release/conpty/`
+  by the native build today.

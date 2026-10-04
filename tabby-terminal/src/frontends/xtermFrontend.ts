@@ -14,6 +14,7 @@ import { SerializeAddon } from '@xterm/addon-serialize'
 import { ImageAddon } from '@xterm/addon-image'
 import { BaseTerminalProfile } from '../api/interfaces'
 import { attachKeyboardProtocol, KeyboardProtocolState } from '../keyboardProtocol'
+import { appearanceOf, attachColorSchemeReports, ColorSchemeReportState } from '../colorSchemeReports'
 import { getXtermBackgroundColor } from '../helpers'
 import { generatePalette } from '../generatePalette'
 import './xterm.css'
@@ -91,6 +92,8 @@ export class XTermFrontend extends Frontend {
     private rendererRecoveryAttempts = 0
     /** Kitty keyboard / modifyOtherKeys, for modified Enter. See keyboardProtocol.ts. */
     readonly keyboardProtocol = new KeyboardProtocolState()
+    /** Light or dark, asked (`CSI ? 996 n`) or pushed (mode 2031). See colorSchemeReports.ts. */
+    readonly colorSchemeReports = new ColorSchemeReportState()
 
     private configService: ConfigService
     private hotkeysService: HotkeysService
@@ -149,6 +152,11 @@ export class XTermFrontend extends Frontend {
             data => this.input.next(Buffer.from(data, 'utf-8')),
             () => this.isAlternateScreenActive() ? 'alternate' : 'normal',
             () => this.configService.store.terminal.kittyKeyboard,
+        )
+        attachColorSchemeReports(
+            this.xterm.parser,
+            this.colorSchemeReports,
+            data => this.input.next(Buffer.from(data, 'utf-8')),
         )
 
         this.xterm.loadAddon(this.fitAddon)
@@ -609,6 +617,14 @@ export class XTermFrontend extends Frontend {
         if (!deepEqual(this.configuredTheme, theme)) {
             this.xterm.options.theme = theme
             this.configuredTheme = theme
+        }
+
+        // What the pane is drawn on, which is also what `OSC 11 ; ?` answers.
+        // A transparent one (vibrancy) shows the window behind it, so the
+        // scheme's own background speaks for it there.
+        const report = this.colorSchemeReports.update(appearanceOf(theme.background) ?? appearanceOf(scheme.background))
+        if (report) {
+            this.input.next(Buffer.from(report, 'utf-8'))
         }
     }
 
