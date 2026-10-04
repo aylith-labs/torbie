@@ -135,5 +135,19 @@ check('formatMs missing', formatMs(undefined), '—')
 check('an unknown kind is its own label', labelFor({ kind: 'something-new' }), 'something-new')
 check('a slow span is named', labelFor({ kind: 'slow:tab:close' }), 'Slow: tab:close')
 
+// ── the page's inner tabs ───────────────────────────────────────────────────
+const { loadStartupTab, parseStartupTab, saveStartupTab, STARTUP_TAB_KEY } =
+    require(path.join(REPO, 'tabby-render-timing/src/startupTabs.ts'))
+check('a known tab is kept', ['launch', 'after', 'history'].map(parseStartupTab), ['launch', 'after', 'history'])
+check('anything else opens the waterfall', [null, undefined, '', 'builds', 42].map(parseStartupTab), ['launch', 'launch', 'launch', 'launch', 'launch'])
+const store = new Map()
+const fakeStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) }
+saveStartupTab(fakeStorage, 'history')
+check('the tab is remembered under its key', [store.get(STARTUP_TAB_KEY), loadStartupTab(fakeStorage)], ['history', 'history'])
+const throwing = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
+check('storage that throws opens the waterfall', loadStartupTab(throwing), 'launch')
+check('storage that throws on save is not an error', (() => { saveStartupTab(throwing, 'after'); return 'ok' })(), 'ok')
+check('no storage at all opens the waterfall', loadStartupTab(undefined), 'launch')
+
 console.log(`${passed} passed, ${failed} failed`)
 process.exit(failed ? 1 : 0)

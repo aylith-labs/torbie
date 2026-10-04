@@ -10,6 +10,54 @@ h3.mb-2(translate) Startup & lifecycle
     span(translate) This build does not record a lifecycle timeline.
 
 ng-container(*ngIf='!loading && snapshot && selected')
+    //- Tab labels stay fixed text: settings search finds an inner tab again
+    //- by its label, so a count or a date in one would strand its results.
+    ul.nav-tabs(ngbNav, #nav='ngbNav', [activeId]='activeTab', (activeIdChange)='setTab($event)')
+        li(ngbNavItem='launch')
+            a(ngbNavLink, draggable='false')
+                i.fas.fa-fw.fa-chart-gantt.me-2
+                span(translate) Waterfall
+                i.fas.fa-fw.fa-clock-rotate-left.ms-2.past-mark(
+                    *ngIf='!isCurrent',
+                    [attr.title]='"Showing an earlier launch"|translate'
+                )
+            ng-template(ngbNavContent)
+                ng-container(*ngTemplateOutlet='waterfallTab')
+
+        li(ngbNavItem='after')
+            a(ngbNavLink, draggable='false')
+                i.fas.fa-fw.fa-list-ul.me-2
+                span(translate) After the boot
+            ng-template(ngbNavContent)
+                ng-container(*ngTemplateOutlet='afterTab')
+
+        li(ngbNavItem='history')
+            a(ngbNavLink, draggable='false')
+                i.fas.fa-fw.fa-clock-rotate-left.me-2
+                span(translate) Launches
+            ng-template(ngbNavContent)
+                ng-container(*ngTemplateOutlet='historyTab')
+
+    div([ngbNavOutlet]='nav')
+
+// ── Which launch the waterfall and the later list are drawing ──────────────
+
+ng-template(#launchBanner)
+    .viewing-past.mb-3(*ngIf='!isCurrent', role='status')
+        i.fas.fa-fw.fa-clock-rotate-left
+        .viewing-text
+            strong(translate) Showing an earlier launch
+            span.meta
+                | {{selected.startedAt | date:'medium'}} · {{selected.version}} · {{selected.packaged ? 'packaged' : 'source'}}{{selected.dev ? ' (dev)' : ''}} · pid {{selected.pid}}
+        button.btn.btn-sm.btn-primary((click)='backToCurrent()')
+            i.fas.fa-fw.fa-rotate-left.me-1
+            span(translate) Back to this launch
+
+// ── Waterfall ──────────────────────────────────────────────────────────────
+
+ng-template(#waterfallTab)
+    ng-container(*ngTemplateOutlet='launchBanner')
+
     .summaries.mb-3
         .summary(*ngFor='let s of summaries')
             .value {{formatMs(s.value)}}
@@ -19,11 +67,10 @@ ng-container(*ngIf='!loading && snapshot && selected')
 
     .toolbar.mb-2
         .launch
-            strong(*ngIf='isCurrent', translate) This launch
-            strong(*ngIf='!isCurrent') {{selected.startedAt | date:'medium'}}
-            span.meta
+            h4.launch-title(*ngIf='isCurrent', translate) This launch
+            h4.launch-title(*ngIf='!isCurrent') {{selected.startedAt | date:'medium'}}
+            span.meta(*ngIf='isCurrent')
                 | {{selected.version}} · {{selected.packaged ? 'packaged' : 'source'}}{{selected.dev ? ' (dev)' : ''}} · pid {{selected.pid}}
-            button.btn.btn-link.btn-sm(*ngIf='!isCurrent', (click)='select(snapshot.current)', translate) Back to this launch
         .controls
             .btn-group.btn-group-sm
                 button.btn([class.btn-primary]='scope === "boot"', [class.btn-secondary]='scope !== "boot"', (click)='setScope("boot")', translate) Boot
@@ -59,7 +106,7 @@ ng-container(*ngIf='!loading && snapshot && selected')
                 .pin(*ngIf='!row.duration', [style.left]='left(row.start)')
         .empty.text-muted(*ngIf='!rows.length', translate) Nothing recorded.
 
-    .legend.mb-4
+    .legend
         span.key.type-phase
             span.swatch
             span(translate) phase (until the next one in that process)
@@ -79,18 +126,53 @@ ng-container(*ngIf='!loading && snapshot && selected')
             span.swatch.outline
             span(translate) window
 
-    ng-container(*ngIf='scope === "boot" && later.length')
-        h4.mb-2(translate) After the boot
-        .later.mb-4
-            .later-row(*ngFor='let row of later; trackBy: trackRow', [class]='"type-" + row.type', [attr.title]='row.detail || null')
-                span.clock {{clock(row)}}
-                span.at {{at(row)}}
-                span.what {{row.label}}
-                span.proc {{process(row)}}
-                span.took(*ngIf='row.duration') {{formatMs(row.duration)}}
+// ── After the boot ─────────────────────────────────────────────────────────
 
-    h4.mb-2(translate) Launches
-    .text-muted.mb-2(translate) Kept in launch-history.json beside diagnostics.log. Click one to see its waterfall.
+ng-template(#afterTab)
+    ng-container(*ngTemplateOutlet='launchBanner')
+
+    .tab-intro.mb-2
+        h4(translate) After the boot
+        span.meta(translate) What happened once the first terminal printed, newest first. Hover a row for its detail.
+
+    .later(*ngIf='later.length')
+        .later-row.later-head
+            span.clock(translate) Time
+            span.at(translate) At
+            span.what(translate) Event
+            span.proc(translate) Process
+            span.took(translate) Took
+        .later-row(*ngFor='let row of later; trackBy: trackRow', [class]='"type-" + row.type', [attr.title]='row.detail || null')
+            span.clock {{clock(row)}}
+            span.at {{at(row)}}
+            span.what
+                span.dot
+                span.text {{row.label}}
+            span.proc {{process(row)}}
+            span.took {{row.duration ? formatMs(row.duration) : ''}}
+    .later.empty.text-muted(*ngIf='!later.length', translate) Nothing has happened since the boot yet.
+
+    .legend(*ngIf='later.length')
+        span.key.type-phase
+            span.swatch
+            span(translate) phase
+        span.key.type-timed
+            span.swatch
+            span(translate) timed operation
+        span.key.type-stall
+            span.swatch
+            span(translate) event loop blocked
+        span.key.type-failure
+            span.swatch
+            span(translate) failure
+
+// ── Launches ───────────────────────────────────────────────────────────────
+
+ng-template(#historyTab)
+    .tab-intro.mb-2
+        h4(translate) Launches
+        span.meta(translate) Kept in launch-history.json beside diagnostics.log. Click one to see its waterfall.
+
     .history
         .h-row.h-head
             .h-when(translate) Started
@@ -103,11 +185,17 @@ ng-container(*ngIf='!loading && snapshot && selected')
             *ngFor='let h of history; trackBy: trackHistory',
             [class.current]='h.current',
             [class.selected]='h.record.id === selected.id',
-            (click)='select(h.record)',
+            [attr.aria-current]='h.record.id === selected.id ? "true" : null',
+            role='button',
+            tabindex='0',
+            (click)='openLaunch(h.record)',
+            (keydown.enter)='openLaunch(h.record)',
+            (keydown.space)='$event.preventDefault(); openLaunch(h.record)',
         )
             .h-when
                 span {{h.when | date:'MMM d, HH:mm:ss'}}
                 span.badge.ms-1(*ngIf='h.current', translate) now
+                span.badge.shown.ms-1(*ngIf='h.record.id === selected.id && !h.current', translate) shown
             .h-build {{h.record.version}} · {{h.record.packaged ? 'packaged' : 'source'}}
             .h-num {{formatMs(h.shown)}}
             .h-num {{formatMs(h.ready)}}
@@ -120,7 +208,7 @@ ng-container(*ngIf='!loading && snapshot && selected')
                     [style.width]='width(s, historyScale)',
                     [attr.title]='s.label + ": " + formatMs(s.duration)',
                 )
-    .legend.mt-2
+    .legend
         span.key.stage-electron
             span.swatch
             span(translate) process → Electron ready

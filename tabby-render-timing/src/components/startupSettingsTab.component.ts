@@ -2,6 +2,7 @@ import { Component, OnDestroy } from '@angular/core'
 import { PlatformService } from 'tabby-core'
 
 import { fetchLifecycle, LaunchRecord, LifecycleSnapshot } from '../lifecycle'
+import { loadStartupTab, saveStartupTab, StartupTab } from '../startupTabs'
 import { bootEnd, buildRows, formatMs, median, stages, StageSpan, WaterfallRow } from '../waterfall'
 
 interface HistoryRow {
@@ -24,7 +25,9 @@ interface Summary {
 
 /**
  * Settings → Startup: this run's whole lifecycle as a waterfall, and the
- * launches before it for comparison.
+ * launches before it for comparison — three inner tabs (waterfall, what
+ * happened after the boot, the launch history), the last one open remembered
+ * in localStorage. Picking a launch in the history opens its waterfall.
  *
  * Everything drawn here comes from `lifecycle:get` (`app/lib/lifecycle.ts`),
  * which merges the main process's timeline with every renderer's. The page
@@ -51,6 +54,7 @@ export class StartupSettingsTabComponent implements OnDestroy {
     history: HistoryRow[] = []
     historyScale = 1
     later: WaterfallRow[] = []
+    activeTab: StartupTab = loadStartupTab(storage())
 
     formatMs = formatMs
 
@@ -92,6 +96,23 @@ export class StartupSettingsTabComponent implements OnDestroy {
     select (record: LaunchRecord): void {
         this.selected = record
         this.rebuild()
+    }
+
+    setTab (tab: StartupTab): void {
+        this.activeTab = tab
+        saveStartupTab(storage(), tab)
+    }
+
+    /** A row in Launches: show that launch, on the tab that draws it. */
+    openLaunch (record: LaunchRecord): void {
+        this.select(record)
+        this.setTab('launch')
+    }
+
+    backToCurrent (): void {
+        if (this.snapshot) {
+            this.select(this.snapshot.current)
+        }
     }
 
     setScope (scope: 'boot' | 'all'): void {
@@ -216,6 +237,14 @@ export class StartupSettingsTabComponent implements OnDestroy {
         if (this.selected) {
             this.platform.setClipboard({ text: JSON.stringify(this.selected, null, 2) })
         }
+    }
+}
+
+function storage (): Storage | undefined {
+    try {
+        return window.localStorage
+    } catch {
+        return undefined
     }
 }
 
