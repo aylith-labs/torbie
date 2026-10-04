@@ -20,6 +20,23 @@
 // Values here may contain inline HTML; they are inserted as written. `desc` in
 // features.js may not — it is escaped everywhere it is rendered.
 window.FEATURE_DETAILS = {
+  "color-scheme-reports": {
+    problem: "A program can learn the terminal's appearance two ways: ask for the background colour (<code>OSC 11 ; ?</code>), or ask light-or-dark directly (<code>CSI ? 996 n</code>) and set mode 2031 to be told when it changes. xterm.js answers the first, but the inbox ConPTY that every local and WSL tab runs through never forwards that query to it. ConPTY does forward the second, which xterm.js 6.0 did not implement. So shefrd's \"follow the terminal\" theme drew its dark half in a light window.",
+    how: "Torbie answers <code>CSI ? 996 n</code> with <code>CSI ? 997 ; 1 n</code> (dark) or <code>; 2 n</code> (light), tracks mode 2031, answers whether it is set, and sends the report unasked when the pane's colours change while it is. Light or dark is read off the colour the pane is drawn on, the same colour <code>OSC 11</code> reports.",
+    sample: {
+      label: "A probe in WSL, through the inbox ConPTY, light scheme then flipped to dark",
+      text: "                         before     after\nOSC 11 ; ?               (nothing)  (nothing)\nCSI ? 996 n              (nothing)  ESC[?997;2n\nflip to dark, 2031 set   (nothing)  ESC[?997;1n",
+    },
+    notes: [
+      "Verified with shefrd in a WSL tab of a hidden build: it drew catppuccin-latte in a light window, switched to catppuccin when the scheme flipped to dark, and back.",
+      "A flip that follows the Windows theme (colour scheme mode Auto) is reported too.",
+    ],
+    caveats: [
+      "<code>OSC 11 ; ?</code> still does not arrive through the inbox ConPTY; switching to node-pty's bundled conpty would deliver it, and is not done here.",
+      "A transparent terminal background (vibrancy) is judged by the colour scheme's own background, not by what shows through.",
+    ],
+  },
+
   "settings-search": {
     problem: "A settings page can contain many sections, inner tabs and plugin controls. Finding a label in the navigation does not take you to the control itself.",
     how: "The search indexes page titles, section headings and settings as each page renders. It ranks exact matches before prefixes, word starts and inner-word matches; it opens the matching page, tab and group before scrolling to the setting.",

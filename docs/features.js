@@ -27,6 +27,12 @@
 // prose in feature-details.js may contain inline HTML; this may not.
 window.FEATURES = [
   {
+    id: "color-scheme-reports", title: "Apps can tell whether the terminal is light or dark, and hear when it flips",
+    cat: "terminal", catLabel: "Terminal", dateAdded: "2026-10-04",
+    commits: ["37e52d60"], files: 6, ins: 600, del: 2,
+    desc: "A program that follows the terminal's light or dark appearance, such as shefrd's \"follow the terminal\" theme or Neovim's background, asks the terminal which it is. On Windows the console layer every local and WSL tab runs through never passes the usual question (the background colour) on, and the other one went unanswered, so such a program always assumed dark. Torbie now answers that question and, to a program that asked to be told, sends the new answer the moment the colour scheme changes, including when it follows the Windows theme. Nothing is sent to a program that did not ask.",
+  },
+  {
     id: "shift-enter-newline", title: "Shift+Enter is a new line in Claude Code, with no plugin",
     cat: "claude", catLabel: "Claude Code", dateAdded: "2026-09-27",
     commits: ["1b98e8a8","40b8bacc"], files: 10, ins: 919, del: 1,
