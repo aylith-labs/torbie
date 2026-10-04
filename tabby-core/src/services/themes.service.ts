@@ -46,6 +46,40 @@ const ALERT_TINT = 0.14
  */
 const TEXT_CONTRAST_RATIO = 4.5
 
+/**
+ * State layers: how much of a surface's own ink is laid over it while it is
+ * hovered or pressed — Material's state-layer model. Being a share of the ink
+ * rather than a fixed grey, the step goes toward the text in a light scheme
+ * and in a dark one alike, on a neutral row as on a filled button, and on the
+ * selected segment of a group as on the others.
+ */
+export const HOVER_LAYER = 0.1
+export const PRESSED_LAYER = 0.18
+
+/**
+ * The least a filled control's hover may move it. A layer is mixed in RGB, and
+ * on a few saturated fills (Homebrew's pure blue under a white label) ten
+ * percent moved the luminance by 0.2% — a hover nobody could see.
+ */
+const MIN_STATE_STEP = 1.08
+
+/** `fill` with `ink` laid over it at `layer`, in whole channels. */
+export function stateFill (fill: ColorInstance, ink: ColorInstance, layer: number): ColorInstance {
+    return fill.alpha(1).mix(ink.alpha(1), layer).rgb().round()
+}
+
+/**
+ * The layer to use on `fill`: `layer`, or more if that is not a visible step.
+ * Capped at half, which is still unmistakably the same control.
+ */
+export function visibleLayer (fill: ColorInstance, ink: ColorInstance, layer: number): number {
+    const rest = fill.alpha(1).rgb().round()
+    while (layer < 0.5 && stateFill(fill, ink, layer).contrast(rest) < MIN_STATE_STEP) {
+        layer += 0.02
+    }
+    return layer
+}
+
 @Injectable({ providedIn: 'root' })
 export class ThemesService {
     get themeChanged$ (): Observable<Theme> { return this.themeChanged }
@@ -246,9 +280,31 @@ export class ThemesService {
                 vars[`--theme-${key}-contrast-fg`] = this.contrastingForeground(
                     Color(color), ink, paper,
                 ).string()
-                vars[`--theme-${key}-hover-contrast-fg`] = this.contrastingForeground(
-                    Color(vars[`--theme-${key}-less`]), ink, paper,
-                ).string()
+                // Hovered and pressed: the fill with its own label laid over
+                // it as a state layer, so the step is the same size and the
+                // same direction as the label on every colour and in every
+                // scheme. It used to be --theme-*-less, a fixed ladder step:
+                // a light scheme's grey button jumped from #dadada to #a3a3a3
+                // under the pointer, and the primary one went to black when
+                // pressed. Each label is measured against its own state fill.
+                //
+                // Where laying the label over the fill would cost the label its
+                // floor — AtomOneLight's blue under white went to 4.0:1 when
+                // pressed and the label flipped to black — the layer goes the
+                // other way, away from the label, so the label stays put.
+                const label = Color(vars[`--theme-${key}-contrast-fg`])
+                const labelRgb = label.rgb().round()
+                const towardLabel = stateFill(Color(color), label, PRESSED_LAYER).contrast(labelRgb) >= text
+                const layerInk = towardLabel ? label : Color(label.isLight() ? '#000' : '#fff')
+                const hoverLayer = visibleLayer(Color(color), layerInk, HOVER_LAYER)
+                const pressedLayer = Math.max(PRESSED_LAYER, hoverLayer + PRESSED_LAYER - HOVER_LAYER)
+                for (const [state, layer] of [['hover', hoverLayer], ['pressed', pressedLayer]] as const) {
+                    const fill = stateFill(Color(color), layerInk, layer)
+                    vars[`--theme-${key}-${state}-bg`] = fill.string()
+                    vars[`--theme-${key}-${state}-contrast-fg`] = (fill.contrast(labelRgb) >= text
+                        ? labelRgb
+                        : this.contrastingForeground(fill, ink, paper)).string()
+                }
                 vars[`--theme-${key}-active-contrast-fg`] = this.contrastingForeground(
                     Color(vars[`--theme-${key}-active-bg`]), ink, paper,
                 ).string()
@@ -329,6 +385,15 @@ export class ThemesService {
         }
 
         if (this.findCurrentTheme().followsColorScheme) {
+            // Text is read on a hovered row as much as on a resting one, and a
+            // hover lays the text colour itself over the row, which takes a
+            // little contrast away. So the text is floored against the page
+            // and its panels as they look hovered — in 47 of the bundled
+            // schemes it would otherwise have dipped under 4.5:1 there.
+            for (const key of ['--theme-fg', '--bs-body-color']) {
+                vars[key] = this.readableUnderHover(Color(vars[key]), this.hoverableSurfaces(vars), isDark).string()
+            }
+
             // Secondary text used to be the foreground at half opacity, which
             // is a different colour on every surface it lands on — about 2.5:1
             // on a light scheme's grey panels. This is one colour, quieter than
@@ -342,6 +407,8 @@ export class ThemesService {
                 isDark,
                 this.textSurfaces(vars),
             ).string()
+
+            this.applyStateVariables(vars, Color(theme.background), isDark)
         }
 
         for (const [key, value] of Object.entries(vars)) {
@@ -412,10 +479,86 @@ export class ThemesService {
      * the desktop and cannot be known here.
      */
     private textSurfaces (vars: Record<string, string>): ColorInstance[] {
-        return [
+        const surfaces = [
             '--body-bg', '--theme-bg', '--theme-bg-more', '--theme-bg-more-2',
             '--theme-bg-less', '--theme-bg-less-2',
         ].map(key => Color(vars[key]).alpha(1))
+        // And the page and its panels under the hover layer, since a row's
+        // secondary text is still read while the pointer is on it.
+        const ink = Color(vars['--theme-fg'])
+        return [...surfaces, ...this.hoverableSurfaces(vars).map(s => stateFill(s, ink, HOVER_LAYER))]
+    }
+
+    /** The surfaces a row or a control is hovered on: the page and its panels. */
+    private hoverableSurfaces (vars: Record<string, string>): ColorInstance[] {
+        // In whole channels, as painted: the layer is composited over the
+        // surface the browser parsed, not over its unrounded HSL.
+        return ['--body-bg', '--theme-bg', '--theme-bg-more', '--theme-bg-more-2'].map(key => Color(vars[key]).alpha(1).rgb().round())
+    }
+
+    /**
+     * `text`, moved toward black or white only as far as it needs to reach the
+     * text ratio on each of `surfaces` with a hover layer of itself over it.
+     */
+    private readableUnderHover (text: ColorInstance, surfaces: ColorInstance[], isDark: boolean): ColorInstance {
+        const minimum = this.textMinimumContrastRatio()
+        const end = Color(isDark ? '#fff' : '#000')
+        const at = (t: number) => text.mix(end, t).rgb().round()
+        const passes = (c: ColorInstance) => surfaces.every(s => c.contrast(stateFill(s, c, HOVER_LAYER)) >= minimum)
+        if (passes(at(0)) || !passes(at(1))) {
+            return passes(at(0)) ? at(0) : at(1)
+        }
+        let lo = 0
+        let hi = 1
+        for (let i = 0; i < 16; i++) {
+            const mid = (lo + hi) / 2
+            if (passes(at(mid))) {
+                hi = mid
+            } else {
+                lo = mid
+            }
+        }
+        return at(hi)
+    }
+
+    /**
+     * The state-layer contract: what every hover, press, selection and focus
+     * ring in the chrome is drawn with. See "State layers" in AGENTS.md.
+     *
+     * Neutral surfaces get a translucent layer of the text colour, so one
+     * value works over the page, a panel, a menu or a modal alike. The
+     * selected segment of a group is the scheme inverted — the text colour as
+     * the fill — which keeps it unmistakable next to a hovered neighbour, and
+     * hovering it lays its own label over it rather than washing it out.
+     */
+    private applyStateVariables (vars: Record<string, string>, paper: ColorInstance, isDark: boolean): void {
+        const ink = Color(vars['--theme-fg']).rgb().round()
+        const channels = ink.array().slice(0, 3).join(', ')
+        vars['--theme-state-ink'] = channels
+        vars['--theme-hover-layer'] = `${HOVER_LAYER * 100}%`
+        vars['--theme-pressed-layer'] = `${PRESSED_LAYER * 100}%`
+        vars['--theme-hover-bg'] = `rgba(${channels}, ${HOVER_LAYER})`
+        vars['--theme-pressed-bg'] = `rgba(${channels}, ${PRESSED_LAYER})`
+
+        const selected = ink
+        const selectedFg = this.contrastingForeground(selected, ink, paper)
+        const selectedHover = stateFill(selected, selectedFg, HOVER_LAYER)
+        vars['--theme-selected-bg'] = selected.string()
+        vars['--theme-selected-fg'] = selectedFg.string()
+        vars['--theme-selected-hover-bg'] = selectedHover.string()
+        vars['--theme-selected-hover-fg'] = (selectedHover.contrast(selectedFg) >= this.textMinimumContrastRatio()
+            ? selectedFg
+            : this.contrastingForeground(selectedHover, ink, paper)).string()
+
+        // A focus ring is a boundary: the accent, moved only as far as 3:1 on
+        // every surface it can be drawn over needs. Bootstrap's is its own
+        // compiled blue at 25%, which belongs to no scheme here.
+        vars['--theme-focus-ring'] = this.nearestMeetingContrast(
+            Color(vars['--theme-accent']),
+            Color(isDark ? '#fff' : '#000'),
+            this.textSurfaces(vars),
+            EDGE_CONTRAST_RATIO,
+        ).string()
     }
 
     /**

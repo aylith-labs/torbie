@@ -47,6 +47,7 @@ const FAST = [
     'tabby-core/test/hotkeyConsume.test.js',
     'tabby-core/test/selectAll.test.js',
     'tabby-core/test/profilePins.test.js',
+    'tabby-core/test/stateLayers.test.js',
     'tabby-electron/test/updaterState.test.js',
     'tabby-links/test/delimitedLinks.test.js',
     'tabby-links/test/integrationAccounts.test.js',

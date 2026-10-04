@@ -3793,6 +3793,48 @@ scheme.
   Bootstrap's near-black, which is what keeps the accent inside it legible —
   it is contrasted against the window, not against black.
 
+## State layers: hover, pressed, selected, focus
+
+Every interactive state in the chrome is drawn from one set of variables that
+`ThemesService.applyStateVariables` and the per-key loop derive per scheme. A
+hover is a **layer of the surface's own ink**, Material's state-layer model,
+never a fixed grey: so it steps toward the text in a light scheme and a dark one
+alike. Use these; do not write `rgba(0,0,0,.125)` or a `--theme-bg-*` step for a
+hover.
+
+| Variable | What it is |
+|---|---|
+| `--theme-hover-bg` / `--theme-pressed-bg` | The text colour at 10% / 18%, translucent. For anything whose rest is transparent or a neutral surface: rows, nav links, menu items, tab headers, accordion headers, icon buttons. |
+| `--theme-state-ink`, `--theme-hover-layer`, `--theme-pressed-layer` | The same as parts (`r, g, b` and `10%`/`18%`), for `color-mix()` over a known fill — `.list-group` uses it over its panel. |
+| `--theme-<key>-hover-bg`, `-pressed-bg` and their `-hover-contrast-fg`, `-pressed-contrast-fg` | A filled `.btn-<key>`: the fill with its label layered over it, and that state's label. |
+| `--theme-selected-bg/-fg`, `--theme-selected-hover-bg/-fg` | The selected segment of a `.btn-group` (`.btn-check:checked + .btn-secondary`, `.btn-secondary.active`): the scheme inverted, and that hovered. |
+| `--theme-focus-ring` | Every focus ring: the accent, moved to 3:1 on every surface. Replaces Bootstrap's compiled blue. |
+
+- **Every label on every state fill is ≥ 4.5:1**, and that is computed, not
+  hoped: a key's state labels keep the rest label when it still passes and are
+  re-chosen when it does not; where layering the label would cost it the floor
+  (AtomOneLight's primary pressed went to 4.0:1 and flipped to black) the layer
+  goes the other way. A layer too faint to see on a saturated fill (Homebrew's
+  blue, 1.002:1) is raised until the step reaches 1.08:1.
+- **`--theme-fg` and `--theme-muted-fg` are floored against the page and its
+  panels *as they look hovered*.** A layer of the text colour takes contrast
+  from the text on it; 47 bundled schemes dipped under 4.5:1 on a hovered row
+  until the floor took that in. A hovered inactive tab takes `--theme-fg` for
+  the same reason — `--theme-fg-more` measured 3.9:1 there.
+- **Bootstrap makes hover a no-op on a `.btn-check` label** and draws a checked
+  one with the *pressed* variables, which is how a segmented control's selection
+  came to be "whatever pressing a grey button looks like" (black on a light
+  scheme, `#636363` at 4.51:1 on a dark one) while a plain grey button jumped
+  `#dadada` → `#a3a3a3` (2.4:1) under the pointer. Both rules are in
+  `theme.new.scss` under *State layers*.
+- `tabby-core/test/stateLayers.test.js` (fast tier) runs the real service over
+  all 192 bundled schemes and holds each of the above: label floors, no label
+  flip, hover visible (> 1.02:1 for a key, ≥ 1.05:1 neutral) and quiet
+  (< 1.8:1 / 1.6:1), selection ≥ 2:1 from a hovered neighbour (C64, blue on
+  blue, is the closest at 2.1), focus ring ≥ 3:1. Live states are measured by
+  forcing pseudo-classes over CDP (`CSS.forcePseudoState`); the contrast audit
+  only ever sees rest.
+
 ## The splash screen
 
 Follows the OS scheme now. The window's backing colour already did

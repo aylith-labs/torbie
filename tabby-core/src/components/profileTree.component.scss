@@ -39,7 +39,7 @@ input {
         display: flex;
         align-items: center;
         &:hover {
-            background-color: var(--theme-secondary);
+            background-color: var(--theme-hover-bg);
             .actions {
                 display: flex;
             }

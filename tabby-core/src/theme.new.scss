@@ -21,8 +21,8 @@ app-root {
                     fill-opacity: 0.75;
                 }
 
-                &:hover { background: rgba(0, 0, 0, .125) !important; }
-                &:active { background: rgba(0, 0, 0, .25) !important; }
+                &:hover { background: var(--theme-hover-bg) !important; }
+                &:active { background: var(--theme-pressed-bg) !important; }
             }
 
             &>.tabs {
@@ -48,8 +48,8 @@ app-root {
                         border: none;
                         transition: 0.25s all;
 
-                        &:hover { background: var(--theme-bg-more-2) !important; }
-                        &:active { background: var(--theme-bg-more-2) !important; }
+                        &:hover { background: var(--theme-hover-bg) !important; }
+                        &:active { background: var(--theme-pressed-bg) !important; }
                     }
 
                     .progressbar {
@@ -63,6 +63,14 @@ app-root {
 
                     .current-tab-indicator {
                         background:var(--bs-light);
+                    }
+
+                    // The full text colour under the pointer: --theme-fg-more on
+                    // a hovered tab bar fell to 3.9:1 in Tabby Default Light,
+                    // and --theme-fg is floored against exactly that surface.
+                    &:not(.active):hover {
+                        color: var(--theme-fg);
+                        background: var(--theme-hover-bg);
                     }
 
                     &.active {
@@ -112,10 +120,11 @@ body {
     --bs-list-group-border-width: 0;
     --bs-list-group-action-color: var(--bs-body-color);
     --bs-list-group-action-hover-color: var(--theme-fg);
-    --bs-list-group-action-hover-bg: var(--theme-bg-more-2);
+    // State layers over the row's own fill (see "State layers" in AGENTS.md).
+    --bs-list-group-action-hover-bg: color-mix(in srgb, rgb(var(--theme-state-ink)) var(--theme-hover-layer), var(--bs-list-group-bg));
 
     --bs-list-group-action-active-color: var(--theme-fg);
-    --bs-list-group-action-active-bg: var(--theme-bg-more-2);
+    --bs-list-group-action-active-bg: color-mix(in srgb, rgb(var(--theme-state-ink)) var(--theme-pressed-layer), var(--bs-list-group-bg));
     --bs-list-group-disabled-color: var(--bs-secondary-color);
     --bs-list-group-disabled-bg: var(--bs-body-bg);
     --bs-list-group-active-color: var(--bs-primary-color);
@@ -151,6 +160,15 @@ select.form-control {
     --bs-nav-pills-border-radius: #{$nav-pills-border-radius};
     --bs-nav-pills-link-active-color: var(--theme-primary-fg);
     --bs-nav-pills-link-active-bg: var(--theme-primary);
+
+    .nav-link:not(.active):not(.disabled):hover {
+        background-color: var(--theme-hover-bg);
+    }
+
+    .nav-link.active:hover {
+        color: var(--theme-primary-hover-contrast-fg);
+        background-color: var(--theme-primary-hover-bg);
+    }
 }
 
 .nav-tabs {
@@ -196,6 +214,13 @@ select.form-control {
 
 .dropdown-menu {
     --bs-dropdown-bg: var(--theme-bg-more);
+    // Bootstrap's are compiled: a grey from its own palette on hover, and its
+    // own blue, #0d6efd, for the keyboard-active item.
+    --bs-dropdown-link-color: var(--theme-fg);
+    --bs-dropdown-link-hover-color: var(--theme-fg);
+    --bs-dropdown-link-hover-bg: var(--theme-hover-bg);
+    --bs-dropdown-link-active-color: var(--theme-primary-contrast-fg);
+    --bs-dropdown-link-active-bg: var(--theme-primary);
 }
 
 .progress {
@@ -220,13 +245,17 @@ tab-body {
         --bs-btn-disabled-bg: var(--theme-#{$color});
         --bs-btn-disabled-border-color: var(--theme-#{$color});
 
-        --bs-btn-hover-border-color: var(--theme-#{$color}-less);
-        --bs-btn-hover-bg: var(--theme-#{$color}-less);
+        // Hovered and pressed are the fill under a state layer of its own
+        // label, so every colour steps the same way in every scheme. It was
+        // --theme-*-less, a fixed ladder step: a light scheme's grey button
+        // jumped from #dadada to #a3a3a3 under the pointer.
+        --bs-btn-hover-border-color: var(--theme-#{$color}-hover-bg);
+        --bs-btn-hover-bg: var(--theme-#{$color}-hover-bg);
 
-        --bs-btn-active-border-color: var(--theme-#{$color});
-        --bs-btn-active-bg: var(--theme-#{$color}-active-bg);
+        --bs-btn-active-border-color: var(--theme-#{$color}-pressed-bg);
+        --bs-btn-active-bg: var(--theme-#{$color}-pressed-bg);
 
-        --bs-btn-focus-shadow-rgb: 130, 138, 145;
+        --bs-btn-focus-box-shadow: 0 0 0 2px var(--theme-focus-ring);
         --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
 
         // Each state's label is measured against that state's own fill at
@@ -234,7 +263,7 @@ tab-body {
         // where "Test connection" sat, at 4.3:1.
         --bs-btn-color: var(--theme-#{$color}-contrast-fg);
         --bs-btn-hover-color: var(--theme-#{$color}-hover-contrast-fg);
-        --bs-btn-active-color: var(--theme-#{$color}-active-contrast-fg);
+        --bs-btn-active-color: var(--theme-#{$color}-pressed-contrast-fg);
         --bs-btn-disabled-color: var(--theme-#{$color}-contrast-fg);
     }
 
@@ -297,9 +326,12 @@ tab-body {
     .btn-outline-#{$color} {
         --bs-btn-color: var(--theme-#{$color}-text);
         --bs-btn-border-color: var(--theme-#{$color}-text);
-        --bs-btn-hover-color: var(--theme-#{$color}-contrast-fg);
-        --bs-btn-hover-bg: var(--theme-#{$color});
-        --bs-btn-hover-border-color: var(--theme-#{$color});
+        // Hover is a tint of the outline's own colour, not the full fill: the
+        // fill is what pressing it looks like.
+        --bs-btn-hover-color: var(--theme-#{$color}-text);
+        --bs-btn-hover-bg: color-mix(in srgb, var(--theme-#{$color}-text) var(--theme-hover-layer), transparent);
+        --bs-btn-hover-border-color: var(--theme-#{$color}-text);
+        --bs-btn-focus-box-shadow: 0 0 0 2px var(--theme-focus-ring);
         --bs-btn-active-color: var(--theme-#{$color}-contrast-fg);
         --bs-btn-active-bg: var(--theme-#{$color});
         --bs-btn-active-border-color: var(--theme-#{$color});
@@ -353,8 +385,8 @@ multi-hotkey-input {
     }
 
     .add, .item .body, .item .remove {
-        &:hover { background: var(--theme-bg-more); }
-        &:active { background: var(--theme-bg-more-2); }
+        &:hover { background: var(--theme-hover-bg); }
+        &:active { background: var(--theme-pressed-bg); }
     }
 
     .add:has(.duplicate), .item:has(.duplicate) .body, .item:has(.duplicate) .remove {
@@ -540,6 +572,68 @@ terminal-toolbar .btn {
     text-decoration: none;
 }
 
+// State layers — the contract is in AGENTS.md ("State layers"), and every
+// value is derived per scheme by ThemesService.applyStateVariables.
+//
+// Segmented controls: a `.btn-group` of `.btn-check` radios, or of buttons
+// toggled with `.active`. Bootstrap makes hover a no-op on a checkable label
+// and draws the selected one with the same variables as a pressed button, so
+// the selection was whatever pressing a grey button looked like: black on a
+// light scheme, a muddy #636363 on a dark one. The selected segment is the
+// scheme inverted, and each state, hover on the selection included, has its
+// own measured label.
+.btn-check:not(:checked) + .btn:not(:disabled):hover {
+    color: var(--bs-btn-hover-color);
+    background-color: var(--bs-btn-hover-bg);
+    border-color: var(--bs-btn-hover-border-color);
+}
+
+.btn-check:checked + .btn-secondary,
+.btn-secondary.active {
+    --bs-btn-active-color: var(--theme-selected-fg);
+    --bs-btn-active-bg: var(--theme-selected-bg);
+    --bs-btn-active-border-color: var(--theme-selected-bg);
+
+    &:hover {
+        color: var(--theme-selected-hover-fg);
+        background-color: var(--theme-selected-hover-bg);
+        border-color: var(--theme-selected-hover-bg);
+    }
+}
+
+// A selected list row keeps its tint under the pointer, with its own text
+// laid over it, rather than ignoring the hover.
+.list-group-item.active.list-group-item-action:hover,
+.list-group-light .list-group-item.active:hover {
+    background-color: color-mix(in srgb, var(--bs-list-group-active-color) var(--theme-hover-layer), var(--bs-list-group-active-bg));
+}
+
+// Rows on a surface of their own (a modal, a panel) lay the layer over
+// whatever is behind them, not over the list's panel colour.
+.list-group-flush,
+.list-group-light {
+    --bs-list-group-action-hover-bg: var(--theme-hover-bg);
+    --bs-list-group-action-active-bg: var(--theme-pressed-bg);
+}
+
+// One focus ring. Bootstrap compiles its own blue at 25% into every one of
+// these; this is the accent, measured to 3:1 on every surface.
+.nav-link,
+.list-group-item,
+.dropdown-item {
+    &:focus-visible {
+        outline: 2px solid var(--theme-focus-ring);
+        outline-offset: -2px;
+        box-shadow: none;
+    }
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--theme-focus-ring) 35%, transparent);
+}
+
 ngx-colors-panel .opened {
     background: var(--bs-body-bg) !important;
 
@@ -634,7 +728,7 @@ ngx-colors-panel .opened {
         }
 
         &:hover {
-            background-color: var(--theme-bg-more);
+            background-color: var(--theme-hover-bg);
         }
 
         // Bootstrap marks an open header with an inset shadow, and its own
@@ -647,7 +741,7 @@ ngx-colors-panel .opened {
         }
 
         &:focus-visible {
-            outline: 2px solid var(--theme-accent, var(--bs-primary));
+            outline: 2px solid var(--theme-focus-ring, var(--bs-primary));
             outline-offset: -2px;
         }
 
