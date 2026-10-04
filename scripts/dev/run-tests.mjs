@@ -61,6 +61,7 @@ const FAST = [
     'tabby-terminal/test/colorSchemeTone.test.js',
     'tabby-terminal/test/imagePaste.test.js',
     'tabby-terminal/test/keyboardProtocol.test.js',
+    'tabby-terminal/test/ptySizeGuard.test.js',
 ]
 
 /**

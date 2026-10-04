@@ -28,6 +28,7 @@ import { TerminalColorSchemeProvider } from './api/colorSchemeProvider'
 import { TerminalSettingsTabProvider, AppearanceSettingsTabProvider, ColorSchemeSettingsTabProvider } from './settings'
 import { DebugDecorator } from './features/debug'
 import { ZModemDecorator } from './features/zmodem'
+import { PTYSizeGuardDecorator } from './ptySizeGuard'
 import { TerminalConfigProvider } from './config'
 import { TerminalHotkeyProvider } from './hotkeys'
 import { CopyPasteContextMenu, MiscContextMenu, LegacyContextMenu, ReconnectContextMenu, SaveAsProfileContextMenu } from './tabContextMenu'
@@ -57,6 +58,7 @@ import { DefaultColorSchemes } from './colorSchemes'
         { provide: HotkeyProvider, useClass: TerminalHotkeyProvider, multi: true },
         { provide: TerminalDecorator, useClass: ZModemDecorator, multi: true },
         { provide: TerminalDecorator, useClass: DebugDecorator, multi: true },
+        { provide: TerminalDecorator, useClass: PTYSizeGuardDecorator, multi: true },
 
         { provide: TabContextMenuItemProvider, useClass: CopyPasteContextMenu, multi: true },
         { provide: TabContextMenuItemProvider, useClass: WebSearchContextMenu, multi: true },
