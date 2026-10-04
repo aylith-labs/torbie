@@ -1147,6 +1147,16 @@ capped at four. `linkTooltip.maxHeight` defaults 720 and caps the complete scrol
 WSL distributions are authoritative. Unknown ones are resolved by registered distributions
 and asynchronous existence checks, accepting a unique match only. Never run a shell from a
 hover. Explicit Windows drive paths stay Windows paths, including mapped `Z:` drives.
+Detection never ends a path on sentence punctuation (`see /a/b.md.` stops before the dot).
+
+**`~/` is part of the path (Lintel rule 6).** It expands against the home of whoever printed
+it: a non-WSL tab gets `os.homedir()`; a WSL tab gets its distro's default user's home, found
+by `tabby-links/src/wslHomes.ts` the way Mullion does it (`utils.cpp`, `WslHomeDirectory`) —
+`DefaultUid` from the distro's `HKCU\…\Lxss\{guid}` key (absent = root) through the in-process
+`windows-native-registry`, then that uid's sixth field in `\\wsl.localhost\<distro>\etc\passwd`,
+read asynchronously. No shell, no `wsl.exe`. Successes are cached per distro; a hover waits at
+most 1s for an unread home and otherwise leaves the `~/` path unresolved rather than guessing,
+as does a WSL tab whose distro cannot be named. Pure checks: `tabby-links/test/homePaths.test.js`.
 
 The new rich-content, embedded-link and path cases are part of the 733 link logic checks.
 Lint/type checks and bundle compilation do not replace live hover verification after restart.
@@ -1799,10 +1809,10 @@ folder, and a click that did nothing at all.
 - **Clicking takes the new route only when translation changed the path.** A
   Windows path and an `http` link still go through the handler exactly as they
   did; asserted both ways in `tabby-links/test/wslPath.cdp.js`.
-- Still wrong, and left alone: `~/notes` in a WSL tab is untildified to the
-  *Windows* home by `BaseFileHandler.convert`, so it resolves to the wrong file
-  if that path happens to exist. Fixing it needs the distro's home, which costs
-  a `wsl.exe` spawn on a hover.
+- `~/notes` in a WSL tab used to be untildified to the *Windows* home by
+  `BaseFileHandler.convert`. It now resolves against the distro's own home,
+  read from the registry and `/etc/passwd` with no spawn — see *Rich content,
+  contextual headers and embedded links* above for how.
 
 ## Bringing back what a pane was running (`tabby-resume`)
 

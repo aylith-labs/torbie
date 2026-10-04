@@ -1,5 +1,6 @@
 import { EmbeddedLinksService } from './services/embeddedLinks.service'
 import { pathPatterns } from './pathPatterns'
+import { pathKind } from './pathResolution'
 import { ApplicationRef, ComponentRef, createComponent, EnvironmentInjector, Inject, Injectable, NgZone, Optional } from '@angular/core'
 import { ConfigService } from 'tabby-core'
 import { LinkHandler } from 'tabby-linkifier'
@@ -1203,6 +1204,11 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             // nothing recognises. Resolve it anyway, so a `file://` opens as a
             // path rather than as a URL Windows cannot parse.
             const target = await this.targets.resolve(link.text, link.text, state.tab)
+            if (!target.filePath && pathKind(link.text) === 'home') {
+                // A `~/` whose home is not known yet has nothing to open, and
+                // handing `~/x` to the shell as a URL would only be a guess.
+                return
+            }
             await this.actions.open(target.filePath ? '' : link.text, target.filePath)
             return
         }

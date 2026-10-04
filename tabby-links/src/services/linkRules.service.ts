@@ -17,12 +17,12 @@ export interface CompiledRule {
 }
 
 /**
- * A rule's notion of a scheme. A bare absolute POSIX path has none, but is a
+ * A rule's notion of a scheme. A bare absolute POSIX path (or a `~/` one) has none, but is a
  * file for every purpose a rule cares about — common from anything running
  * inside WSL — so it is reported as `file`, same as the other fork.
  */
 export function schemeOf (text: string): string {
-    if (text.startsWith('/')) {
+    if (text.startsWith('/') || text.startsWith('~/')) {
         return 'file'
     }
     if (/^[a-zA-Z]:[\\/]/.test(text) || text.startsWith('\\\\')) {

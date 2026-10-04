@@ -1,5 +1,7 @@
-import { pathCandidates, pathKind, selectPathCandidate } from '../pathResolution'
+import { PathHomes, pathCandidates, pathKind, selectPathCandidate } from '../pathResolution'
+import { WslHomes } from '../wslHomes'
 import * as fs from 'fs/promises'
+import * as os from 'os'
 import * as path from 'path'
 import { Injectable } from '@angular/core'
 import { HostAppService, Platform } from 'tabby-core'
@@ -101,8 +103,12 @@ function isRooted (p: string): boolean {
  * is testable on its own; this is a port of the Windows Terminal fork's
  * `Utils::ResolveFileUriTarget`, minus the parts that only exist because
  * `PathCreateFromUrlW` mis-decodes UTF-8 escapes a byte at a time.
+ *
+ * `homes` is what `~/` expands against (Lintel rule 6): key '' for the host's
+ * own home, a distro's name for that distro's. With no home for whoever
+ * printed the path, a `~/` path resolves to nothing rather than to a guess.
  */
-export function filesystemPath (input: string, distro: string | null, onWindows: boolean): string {
+export function filesystemPath (input: string, distro: string | null, onWindows: boolean, homes: PathHomes = {}): string {
     let candidate = input
 
     if (/^file:\/\//i.test(candidate)) {
@@ -125,13 +131,44 @@ export function filesystemPath (input: string, distro: string | null, onWindows:
         }
     }
 
-    const candidates = pathCandidates(candidate, onWindows, distro)
+    const candidates = pathCandidates(candidate, onWindows, distro, [], homes)
     return candidates[0]?.path ?? (isRooted(candidate) ? candidate : '')
 }
 
+/**
+ * How long a hover waits for a WSL home it has never read before. Past this the
+ * `~/` path is unresolved for that hover, and the read finishes into the cache
+ * for the next one.
+ */
+const WSL_HOME_WAIT_MS = 1000
+
 @Injectable({ providedIn: 'root' })
 export class LinkTargetService {
+    /** Shared with nothing else; per distro, successes only. */
+    readonly wslHomes = new WslHomes()
+
     constructor (private hostApp: HostAppService) { }
+
+    /**
+     * The homes `~/` may expand against for a path printed in this tab —
+     * `distro` as `distroHost` answers it.
+     *
+     * Not WSL: the host's own home (`os.homedir()`, the Windows profile
+     * directory on Windows). A named WSL distro: that distro's home, once it
+     * has been read — never the Windows one in its place. A WSL tab whose
+     * distro could not be named: nothing, since the home of an unknown
+     * distribution is not something to guess.
+     */
+    async homesFor (distro: string | null, text: string): Promise<PathHomes> {
+        if (distro === null) {
+            return { '': os.homedir() }
+        }
+        if (!distro || pathKind(text) !== 'home') {
+            return {}
+        }
+        const home = await this.wslHomes.within(distro, WSL_HOME_WAIT_MS)
+        return home ? { [distro]: home } : {}
+    }
 
     /**
      * The distro a tab is running, or null when it is not a WSL tab.
@@ -190,10 +227,15 @@ export class LinkTargetService {
     ): Promise<ResolvedTarget> {
         const onWindows = this.hostApp.platform === Platform.Windows
         // A bare path is literal; URI decoding belongs only to file:// inputs.
+        // `~/` is a path too, and expands here against the home of whoever
+        // printed it — not the handler's `untildify`, which always means the
+        // Windows user.
         const input = pathKind(text) !== 'none' ? text : (converted || text)
-        const candidatePath = filesystemPath(input, this.distroHost(tab), onWindows)
-        const candidates = pathCandidates(candidatePath, onWindows, this.distroHost(tab),
-            onWindows && pathKind(candidatePath) === 'posix' ? this.registeredDistros() : [])
+        const distro = this.distroHost(tab)
+        const homes = await this.homesFor(distro, input)
+        const candidatePath = filesystemPath(input, distro, onWindows, homes)
+        const candidates = pathCandidates(candidatePath, onWindows, distro,
+            onWindows && pathKind(candidatePath) === 'posix' ? this.registeredDistros() : [], homes)
         const presence = await Promise.all(candidates.map(candidate => this.exists(candidate.path)))
         const selected = selectPathCandidate(candidates, presence)
         if (!selected) {
