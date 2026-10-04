@@ -1,0 +1,16 @@
+// YAML token colours, shared by the highlighted raw editor and the structured
+// tree. Every one is a text colour ThemesService has already floored to 4.5:1
+// against the page, the raised panels and an input's fill (--theme-<key>-text
+// and --theme-muted-fg), so nothing here dims them further: no opacity.
+@mixin yaml-token-colors {
+    .y-key { color: var(--theme-primary-text, var(--bs-body-color)); }
+    .y-string { color: var(--theme-success-text, var(--bs-body-color)); }
+    .y-number { color: var(--theme-warning-text, var(--bs-body-color)); }
+    .y-boolean { color: var(--theme-danger-text, var(--bs-body-color)); }
+    .y-null { color: var(--theme-muted-fg, var(--bs-body-color)); font-style: italic; }
+    .y-comment { color: var(--theme-muted-fg, var(--bs-body-color)); font-style: italic; }
+    .y-punct { color: var(--theme-muted-fg, var(--bs-body-color)); }
+    .y-meta { color: var(--theme-warning-text, var(--bs-body-color)); font-style: italic; }
+}
+
+$yaml-font: 'Source Code Pro', monospace;

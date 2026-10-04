@@ -1,0 +1,42 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 420px;
+    min-width: 0;
+}
+
+.view-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.panes {
+    display: flex;
+    flex: 1 1 0;
+    min-height: 0;
+    gap: 16px;
+}
+
+.pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+}
+
+.defaults-title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.parse-error pre {
+    white-space: pre-wrap;
+    font-size: 12px;
+    color: inherit;
+}

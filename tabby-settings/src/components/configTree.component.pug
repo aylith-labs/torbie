@@ -1,0 +1,125 @@
+.tree-toolbar
+    .filter
+        i.fas.fa-fw.fa-filter
+        input.form-control.form-control-sm(
+            type='search',
+            [(ngModel)]='filter',
+            (ngModelChange)='onFilterChange()',
+            (keydown.escape)='clearFilter()',
+            [placeholder]='"Filter keys and values"|translate',
+            [attr.aria-label]='"Filter keys and values"|translate'
+        )
+    .btn-group.btn-group-sm
+        button.btn.btn-secondary((click)='expandAll()')
+            i.fas.fa-fw.fa-angle-double-down.me-1
+            span(translate) Expand all
+        button.btn.btn-secondary((click)='collapseAll()')
+            i.fas.fa-fw.fa-angle-double-up.me-1
+            span(translate) Collapse all
+
+.legend(*ngIf='annotated')
+    span.chip.chip-changed(translate) changed
+    span(translate) differs from the default
+    span.chip.chip-added(translate) not in defaults
+    span(translate) set by hand or by a plugin
+    span.chip.chip-fork Torbie
+    span(translate) not in upstream Tabby
+
+.tree(role='tree')
+    .empty(*ngIf='!rows.length && filter', translate) Nothing matches this filter.
+    .empty(*ngIf='!rows.length && !filter', translate) The config is empty.
+    ng-container(*ngFor='let row of rows; trackBy: trackRow')
+        .tree-row(
+            role='treeitem',
+            [attr.aria-level]='row.node.depth + 1',
+            [attr.aria-expanded]='row.node.children.length ? row.expanded : null',
+            [class.matched]='row.matched && filter',
+            [style.padding-left.px]='row.node.depth * 18'
+        )
+            button.toggle(
+                *ngIf='row.node.children.length',
+                type='button',
+                (click)='toggleRow(row)',
+                [attr.aria-label]='(row.expanded ? "Collapse" : "Expand")|translate'
+            )
+                i.fas.fa-fw([class.fa-chevron-down]='row.expanded', [class.fa-chevron-right]='!row.expanded')
+            span.toggle-spacer(*ngIf='!row.node.children.length')
+
+            span.label(
+                [class.y-key]='row.node.label[0] !== "["',
+                [class.index]='row.node.label[0] === "["',
+                (click)='row.node.children.length && toggleRow(row)'
+            ) {{row.node.label}}
+            span.y-punct.colon(*ngIf='row.node.label[0] !== "["') :
+
+            //- A branch: what it holds, and what in it differs.
+            ng-container(*ngIf='row.node.type === "map" || row.node.type === "list"')
+                span.hint(*ngIf='row.node.hint') {{row.node.hint}}
+                span.count(*ngIf='row.node.children.length') {{countLabel(row.node)}}
+                span.count(*ngIf='!row.node.children.length') {{row.node.type === 'list' ? '[]' : '{}'}}
+                span.chip.chip-changed(
+                    *ngIf='row.node.changedCount && !row.expanded',
+                    [title]='"Values in here that differ from the defaults or are not in them"|translate'
+                ) {{row.node.changedCount}} changed
+
+            //- A scalar, cut short when it is long.
+            ng-container(*ngIf='row.node.type !== "map" && row.node.type !== "list"')
+                ng-container(*ngIf='!isLongValue(row.node.value)')
+                    span.value([ngClass]='"y-" + row.node.type') {{display(row.node)}}
+                ng-container(*ngIf='isLongValue(row.node.value)')
+                    span.value.y-string.truncated(*ngIf='!fullValues.has(row.node.path)') {{preview(row.node).text}}
+                    button.btn.btn-link.btn-sm.value-toggle(type='button', (click)='toggleValue(row.node)')
+                        ng-container(*ngIf='!fullValues.has(row.node.path)')
+                            span(translate) Show all
+                            span.detail  ({{preview(row.node).detail}})
+                        span(*ngIf='fullValues.has(row.node.path)', translate) Collapse value
+
+            //- Annotations; any of them opens the notes.
+            button.chip.chip-changed(
+                *ngIf='row.node.diff === "changed"',
+                type='button',
+                (click)='toggleNotes(row.node)',
+                [attr.aria-expanded]='openNotes.has(row.node.path)',
+                translate
+            ) changed
+            button.chip.chip-added(
+                *ngIf='row.node.diff === "added"',
+                type='button',
+                (click)='toggleNotes(row.node)',
+                [attr.aria-expanded]='openNotes.has(row.node.path)',
+                translate
+            ) not in defaults
+            button.chip.chip-fork(
+                *ngIf='row.node.forkAdded',
+                type='button',
+                (click)='toggleNotes(row.node)',
+                [attr.aria-expanded]='openNotes.has(row.node.path)'
+            ) Torbie
+            button.chip.chip-note(
+                *ngIf='row.node.configOnlyNote',
+                type='button',
+                (click)='toggleNotes(row.node)',
+                [attr.aria-expanded]='openNotes.has(row.node.path)',
+                [attr.aria-label]='"Note"|translate'
+            )
+                i.fas.fa-info-circle
+
+        pre.full-value(
+            *ngIf='fullValues.has(row.node.path)',
+            [style.margin-left.px]='row.node.depth * 18 + 40'
+        ) {{row.node.value}}
+
+        .notes(
+            *ngIf='openNotes.has(row.node.path) && hasNotes(row.node)',
+            [style.margin-left.px]='row.node.depth * 18 + 40'
+        )
+            .note(*ngIf='row.node.diff === "changed"')
+                span(translate) Default:
+                | &ngsp;
+                code {{row.node.defaultText}}
+            .note(*ngIf='row.node.diff === "added"', translate) The defaults have no such key. A plugin that is not loaded, an older version, or a hand edit may have put it here.
+            .note(*ngIf='row.node.forkAdded', translate) Added by Torbie: upstream Tabby has no such setting.
+            .note(*ngIf='row.node.configOnlyNote')
+                span(translate) Upstream Tabby gives this no control.
+                | &ngsp;
+                span {{row.node.configOnlyNote}}

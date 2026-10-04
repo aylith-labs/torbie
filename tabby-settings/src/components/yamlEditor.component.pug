@@ -1,0 +1,15 @@
+.yaml-editor([class.readonly]='readonly')
+    .layer-clip(aria-hidden='true')
+        pre.layer(#layer)
+    textarea(
+        #editor,
+        spellcheck='false',
+        autocomplete='off',
+        autocapitalize='off',
+        wrap='off',
+        [readonly]='readonly',
+        [attr.aria-readonly]='readonly',
+        [ngModel]='text',
+        (ngModelChange)='onInput($event)',
+        (scroll)='syncScroll()'
+    )

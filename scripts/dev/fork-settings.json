@@ -12,8 +12,10 @@
     "for keys with no control is wrong in both directions — see `excluded` —",
     "so every entry here was confirmed by hand and carries its reason.",
     "",
-    "The runtime never reads this file. The marks live in the templates; this",
-    "exists to be the thing they are held against."
+    "The marks live in the templates; this exists to be the thing they are",
+    "held against. One reader at runtime: the Config file page's structured",
+    "view bundles `forkAdded` and `configOnly` to annotate keys",
+    "(tabby-settings/src/components/configFileView.component.ts)."
   ],
   "forkAdded": [
     "appearance.accentColor",

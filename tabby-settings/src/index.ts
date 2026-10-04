@@ -22,6 +22,9 @@ import { ProfilesSettingsTabComponent } from './components/profilesSettingsTab.c
 import { ReleaseNotesComponent } from './components/releaseNotesTab.component'
 import { ConfigSyncSettingsTabComponent } from './components/configSyncSettingsTab.component'
 import { ShowSecretModalComponent } from './components/showSecretModal.component'
+import { ConfigFileViewComponent } from './components/configFileView.component'
+import { ConfigTreeComponent } from './components/configTree.component'
+import { YamlEditorComponent } from './components/yamlEditor.component'
 
 import { ConfigSyncService } from './services/configSync.service'
 
@@ -69,6 +72,9 @@ import { HotkeySettingsTabProvider, WindowSettingsTabProvider, VaultSettingsTabP
         ConfigSyncSettingsTabComponent,
         ReleaseNotesComponent,
         ShowSecretModalComponent,
+        ConfigFileViewComponent,
+        ConfigTreeComponent,
+        YamlEditorComponent,
     ],
 })
 export default class SettingsModule {

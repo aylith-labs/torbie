@@ -152,18 +152,11 @@
                 span(translate) Config file
             ng-template.test(ngbNavContent)
                 .d-flex.flex-column.w-100.h-100
-                    .h-100.d-flex
-                        .w-100.d-flex.flex-column
-                            h3(translate) Config file
-                            textarea.form-control.h-100(
-                                [(ngModel)]='configFile'
-                            )
-                        .w-100.d-flex.flex-column(*ngIf='showConfigDefaults')
-                            h3(translate) Defaults
-                            textarea.form-control.h-100(
-                                [(ngModel)]='configDefaults',
-                                readonly
-                            )
+                    //- Structured tree or highlighted raw text: configFileView.component.
+                    config-file-view(
+                        [(text)]='configFile',
+                        [showDefaults]='showConfigDefaults'
+                    )
                     .mt-3.d-flex.flex-wrap.row-gap-2
                         button.btn.btn-primary((click)='saveConfigFile()', *ngIf='isConfigFileValid()')
                             i.fas.fa-check.me-2

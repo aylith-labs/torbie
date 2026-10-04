@@ -1,0 +1,36 @@
+.view-header
+    h3.m-0(translate) Config file
+    .btn-group.btn-group-sm(role='group', [attr.aria-label]='"View"|translate')
+        button.btn.btn-secondary(
+            type='button',
+            [class.active]='view === "structured"',
+            [attr.aria-pressed]='view === "structured"',
+            (click)='setView("structured")'
+        )
+            i.fas.fa-fw.fa-sitemap.me-1
+            span(translate) Structured
+        button.btn.btn-secondary(
+            type='button',
+            [class.active]='view === "raw"',
+            [attr.aria-pressed]='view === "raw"',
+            (click)='setView("raw")'
+        )
+            i.fas.fa-fw.fa-code.me-1
+            span(translate) Raw
+
+.panes
+    .pane
+        ng-container(*ngIf='view === "structured"')
+            .alert.alert-danger.parse-error(*ngIf='parseError')
+                div(translate) The config does not parse, so there is no tree to draw. Switch to Raw to fix it.
+                pre.mb-0.mt-2 {{parseError}}
+            config-tree(*ngIf='!parseError', [nodes]='tree', [annotated]='true')
+        yaml-editor(
+            *ngIf='view === "raw"',
+            [text]='text',
+            (textChange)='onTextChange($event)'
+        )
+    .pane(*ngIf='showDefaults')
+        h4.defaults-title(translate) Defaults
+        config-tree(*ngIf='view === "structured"', [nodes]='defaultsTree')
+        yaml-editor(*ngIf='view === "raw"', [text]='defaultsText', [readonly]='true')

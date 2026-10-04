@@ -1,0 +1,243 @@
+@use './yamlTokens' as *;
+
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+}
+
+@include yaml-token-colors;
+
+.tree-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+
+    .filter {
+        position: relative;
+        flex: 1 1 220px;
+        min-width: 0;
+
+        > i {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--theme-muted-fg);
+            pointer-events: none;
+        }
+
+        > input {
+            padding-left: 30px;
+        }
+    }
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--theme-muted-fg);
+
+    > span:not(.chip) {
+        margin-right: 8px;
+    }
+}
+
+.tree {
+    flex: 1 1 0;
+    min-height: 120px;
+    overflow: auto;
+    padding: 6px 4px;
+    background: var(--bs-form-control-bg, var(--theme-bg-more-2));
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius, 4px);
+    font-family: $yaml-font;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+.empty {
+    padding: 8px 12px;
+    color: var(--theme-muted-fg);
+    font-family: var(--bs-body-font-family);
+}
+
+.tree-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 6px;
+    min-height: 22px;
+    padding-right: 8px;
+    border-radius: 3px;
+
+    &:hover {
+        background: var(--theme-bg-more);
+    }
+
+    // A match is marked by an edge and weight, not a fill, so the token
+    // colours keep the contrast they were measured at.
+    &.matched {
+        box-shadow: inset 2px 0 0 var(--theme-primary-text, var(--bs-body-color));
+
+        > .label {
+            font-weight: 600;
+        }
+    }
+}
+
+.toggle,
+.toggle-spacer {
+    flex: none;
+    width: 20px;
+    align-self: center;
+}
+
+.toggle {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--theme-muted-fg);
+    line-height: 20px;
+    font-size: 10px;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--bs-body-color);
+    }
+}
+
+.label {
+    flex: none;
+    white-space: nowrap;
+
+    &.index {
+        color: var(--theme-muted-fg);
+    }
+}
+
+.colon {
+    margin-left: -6px;
+}
+
+.value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.truncated {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(60ch, 100%);
+}
+
+.hint {
+    color: var(--bs-body-color);
+    font-style: italic;
+}
+
+.count {
+    color: var(--theme-muted-fg);
+    font-family: var(--bs-body-font-family);
+}
+
+.value-toggle {
+    padding: 0;
+    border: 0;
+    font-size: 12px;
+    line-height: 20px;
+    vertical-align: baseline;
+    font-family: var(--bs-body-font-family);
+
+    .detail {
+        color: var(--theme-muted-fg);
+    }
+}
+
+// Chips: text in the key's own text colour on the page's input fill, ringed
+// in its border colour — a colour carries meaning, the word carries it too.
+.chip {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px;
+    border: 1px solid currentColor;
+    border-radius: 9px;
+    background: transparent;
+    font-family: var(--bs-body-font-family);
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+button.chip {
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible,
+    &[aria-expanded='true'] {
+        background: var(--theme-bg-more);
+    }
+}
+
+.chip-changed {
+    color: var(--theme-warning-text, var(--bs-body-color));
+    border-color: var(--theme-warning-border, currentColor);
+}
+
+.chip-added {
+    color: var(--theme-info-text, var(--bs-body-color));
+    border-color: var(--theme-info-border, currentColor);
+}
+
+.chip-fork {
+    color: var(--theme-success-text, var(--bs-body-color));
+    border-color: var(--theme-success-border, currentColor);
+}
+
+.chip-note {
+    color: var(--theme-muted-fg, var(--bs-body-color));
+}
+
+.notes {
+    margin: 2px 8px 6px 0;
+    padding: 4px 10px;
+    border-left: 2px solid var(--bs-border-color);
+    color: var(--bs-body-color);
+    font-family: var(--bs-body-font-family);
+    font-size: 12px;
+    line-height: 18px;
+
+    // Not the accent <code> gets elsewhere: that is floored against the page
+    // only, and this sits on the input fill (measured 3.7:1 on a light scheme).
+    code {
+        color: var(--bs-body-color);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+    }
+}
+
+.full-value {
+    margin: 2px 8px 6px 0;
+    padding: 6px 10px;
+    max-height: 360px;
+    overflow: auto;
+    background: var(--theme-bg-more);
+    border-radius: 3px;
+    color: var(--theme-success-text, var(--bs-body-color));
+    font-family: $yaml-font;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: pre;
+}
