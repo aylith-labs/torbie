@@ -175,6 +175,7 @@
     "fs/promises",
     "http",
     "https",
+    "os",
     "path",
     "rxjs",
     "tabby-core",
