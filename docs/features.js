@@ -276,8 +276,8 @@ window.FEATURES = [
     id: "wsl-links", title: "A WSL path resolves before anything asks whether it exists",
     cat: "links", catLabel: "Links",
     dateAdded: "2026-09-06",
-    commits: ["ded273ff"],
-    files: 7, ins: 596, del: 30,
+    commits: ["ded273ff", "32bc4d91"],
+    files: 16, ins: 996, del: 47,
     desc: "The \\\\wsl.localhost translation was correct and never ran: existence was checked on the path as written, so /home/you/notes.md was asked about as C:\\home\\you\\notes.md, came back false, and the click did nothing. Existence is now asked once, of the path that would actually be opened — and a #L6-L7 fragment is stripped as a fragment rather than carried into the filename.",
   },
   {
