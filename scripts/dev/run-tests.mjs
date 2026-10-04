@@ -55,6 +55,7 @@ const FAST = [
     'tabby-render-timing/test/waterfall.test.js',
     'tabby-resume/test/logic.test.js',
     'tabby-settings/test/navGroups.test.js',
+    'tabby-settings/test/releaseNotes.test.js',
     'tabby-settings/test/settingsSearch.test.js',
     'tabby-terminal/test/webSearch.test.js',
     'tabby-terminal/test/colorSchemeTone.test.js',

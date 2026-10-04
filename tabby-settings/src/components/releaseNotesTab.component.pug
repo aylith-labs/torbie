@@ -1,4 +1,4 @@
-.container(
+.page(
     infiniteScroll,
     [infiniteScrollDistance]='2',
     [infiniteScrollThrottle]='50',
@@ -6,7 +6,89 @@
     [fromRoot]='true',
     (scrolled)='onScrolled()'
 )
-    div(*ngFor='let release of releases')
-        h1 {{release.name}}
-        .text-muted {{release.version}} / {{release.date|tabbyDate}}
-        section([fastHtmlBind]='release.content')
+    header.page-header
+        div
+            h1(translate) What's new
+            .lead
+                span(*ngIf='appVersion') You're on #[code {{appVersion}}]
+                span(*ngIf='latest && !isInstalled(latest)')
+                    | &nbsp;·&nbsp;
+                    span.newer {{latest.version}} is available
+        button.btn.btn-secondary.btn-sm((click)='open("https://github.com/aylith-labs/torbie/releases")')
+            i.fas.fa-external-link-alt
+            span(translate) All releases on GitHub
+
+    article.release(
+        *ngFor='let release of releases; trackBy: trackRelease',
+        [class.installed]='isInstalled(release)'
+    )
+        .rail
+            .dot
+        .body
+            .release-head
+                h2
+                    a.version((click)='open(release.url)', [title]='release.url') {{release.version}}
+                .badges
+                    span.badge.latest(*ngIf='release === latest') Latest
+                    span.badge.installed(*ngIf='isInstalled(release)') Your version
+                    span.badge.pre(*ngIf='release.prerelease') Pre-release
+                .when([title]='release.date|tabbyDate')
+                    | {{relative(release.date)}} · {{absolute(release.date)}}
+
+            .title(*ngIf='release.name && release.name !== release.version') {{release.name}}
+
+            section.notes(*ngIf='release.content', [fastHtmlBind]='release.content')
+
+            ng-container([ngSwitch]='release.state')
+                .status(*ngSwitchCase='"loading"')
+                    i.fas.fa-circle-notch.fa-spin
+                    span Reading what changed…
+                .status.error(*ngSwitchCase='"error"')
+                    i.fas.fa-exclamation-triangle
+                    span {{release.error}}
+                    button.btn.btn-link.btn-sm((click)='retry(release)') Retry
+                ng-container(*ngSwitchCase='"ready"')
+                    .status(*ngIf='release.previous === null && !release.content')
+                        i.fas.fa-flag
+                        span The first Torbie release — everything it carries beyond Tabby is in the #[a((click)='open("https://torbie.aylith.com/")') feature catalogue].
+                    .status(*ngIf='release.previous && !release.groups.length')
+                        i.fas.fa-check
+                        span Packaging only — no changes to the app since {{release.previous}}.
+
+                    .group(
+                        *ngFor='let group of release.groups; trackBy: trackGroup',
+                        [class.minor]='!group.prominent',
+                        [attr.data-group]='group.id'
+                    )
+                        button.group-head(
+                            type='button',
+                            (click)='toggleGroup(release, group)',
+                            [attr.aria-expanded]='isOpen(release, group)'
+                        )
+                            i.chevron.fas([class.fa-chevron-down]='isOpen(release, group)', [class.fa-chevron-right]='!isOpen(release, group)')
+                            i.group-icon([class]='group.icon')
+                            span.group-title {{group.title}}
+                            span.count {{group.entries.length}}
+                        ul(*ngIf='isOpen(release, group)')
+                            li(*ngFor='let entry of group.entries; trackBy: trackEntry')
+                                span.scope(*ngIf='entry.scope') {{entry.scope}}
+                                span.breaking(*ngIf='entry.breaking') breaking
+                                span.text {{entry.text}}
+                                a.sha((click)='open(commitURL(entry.sha))', [title]='entry.sha') {{entry.sha.substring(0, 7)}}
+
+            .release-foot(*ngIf='release.state === "ready" || release.state === "error"')
+                span.summary(*ngIf='release.summary') {{release.summary}}
+                a((click)='open(compareURL(release))')
+                    span(*ngIf='release.previous') Compare {{release.previous}}…{{release.version}}
+                    span(*ngIf='!release.previous') Commits
+                    i.fas.fa-external-link-alt
+
+    .page-status(*ngIf='loadingPage')
+        i.fas.fa-circle-notch.fa-spin
+        span Loading releases…
+    .page-status.error(*ngIf='pageError')
+        i.fas.fa-exclamation-triangle
+        span {{pageError}}
+        button.btn.btn-link.btn-sm((click)='loadNextPage()') Retry
+    .page-status(*ngIf='!loadingPage && !pageError && exhausted && !releases.length')
+        span No published releases yet.
