@@ -23,7 +23,7 @@ try {
  phase='split';await page.getByRole('button',{name:'More split options'}).click();await page.getByRole('menuitem',{name:'Split below',exact:true}).click();await expect(frame.locator('demo-terminal')).toHaveCount(5);
  await page.getByRole('button',{name:'Exit full screen'}).click();await expect(page.locator('.live-preview')).toHaveAttribute('data-view','inline');
  await page.getByRole('button',{name:'Plugins',exact:true}).click();await expect(frame.locator('demo-plugins')).toContainText('Plugins 13');
- await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('torbie-preview-tabs-v1')||'[]').length)).toBe(4);
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('torbie-preview-tabs-v1')||'[]').length)).toBe(5);await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('torbie-preview-tabs-v1')||'[]').filter(token=>token.type==='app:split-tab').length)).toBe(4);await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('torbie-preview-tabs-v1')||'[]').filter(token=>token.type==='app:settings'&&token.activeTab==='demo-plugins').length)).toBe(1);
  phase='navigation recovery';await page.goto(new URL('features/torbie/',url).href);await page.locator('.live-preview').scrollIntoViewIfNeeded();await ready();
  await expect(frame.locator('demo-terminal')).toHaveCount(5);
  for(const name of ['Polygit','Shefrd','Codex','Claude Code'])await expect(frame.locator('tab-header').filter({hasText:name}).first()).toBeVisible();

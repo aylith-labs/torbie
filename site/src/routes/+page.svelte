@@ -3,8 +3,11 @@
  import {base} from '$app/paths';
  import LivePreview from '$lib/LivePreview.svelte';
  let preview:LivePreview;
+ const canonical = base
+  ? 'https://aylith-labs.github.io/torbie/home/'
+  : 'https://torbie.aylith.com/home/';
 </script>
-<svelte:head><title>Torbie · A terminal your agents can drive</title><meta name="description" content="Your terminal, your tools, a little more together. Explore Torbie’s workspaces, link previews, diagnostics and build doctor." /></svelte:head>
+<svelte:head><title>Torbie · A terminal your agents can drive</title><meta name="description" content="Your terminal, your tools, a little more together. Explore Torbie’s workspaces, link previews, diagnostics and build doctor." /><link rel="canonical" href={canonical} /></svelte:head>
 <div class="showcase-page">
  <section class="intro wrap">
   <a class="intro-kicker" href={`${base}/features/torbie/`} data-guide-title="A familiar starting point" data-guide="Torbie derives from Tabby and preserves its plugin API. Your existing plugin package names and module imports stay in place."><span></span>Built on Tabby. A little more curious.<span aria-hidden="true"><Icon name="external"/></span></a>
@@ -22,9 +25,9 @@
    <details class="discovery" data-guide-title="Come back to your work" data-guide="Return to your pane layout and restart supported commands. Open this card to see what can be restored."><summary><div class="resume-visual" aria-hidden="true"><div><span>~/project</span><b>› npm run dev</b></div><span class="resume-bridge"><Icon name="reset"/></span><div><span>Welcome back</span><b><i></i>Command resumed</b></div></div><div class="discovery-label"><h3>Step away.<br />Pick it back up.</h3><span><Icon name="plus"/></span></div></summary><p>Restore the layout and restart supported commands in their shells.</p><a href={`${base}/features/session-resume/`}>What can be restored <Icon name="external"/></a></details>
   </div>
  </section>
- <section class="honest-notes wrap"><span class="eyebrow">Good to know</span><h2>A work in progress.<br />An open book.</h2><div class="notes-list">
+ <section class="honest-notes wrap"><span class="eyebrow">Good to know</span><h2>Choose with the details<br />in hand.</h2><div class="notes-list">
   <details><summary>Before you install <span><Icon name="plus"/></span></summary><p>Builds are unsigned. Windows SmartScreen warns; macOS requires “Open anyway”. Linux deb/rpm packages replace tabby-terminal. Check the guidance beside your download.</p><a href={`${base}/download/`}>Choose your download <Icon name="external"/></a></details>
-  <details><summary>A few rough edges <span><Icon name="plus"/></span></summary><p>Some emoji use the wrong cell width. Stale glyph artifacts remain unexplained. macOS has been reviewed in source, but has not been visually tested on a Mac.</p></details>
+  <details><summary>Display details <span><Icon name="plus"/></span></summary><p>Some emoji can take the wrong cell width, and an occasional redraw can leave a stale glyph. If exact glyph rendering matters to your work, try Torbie with the fonts you use.</p></details>
   <details><summary>Is Torbie right for you? <span><Icon name="plus"/></span></summary><p>Torbie is an Electron app. If low memory use is your first priority, consider Alacritty or WezTerm. Torbie is for keeping a flexible terminal workspace and understanding what it is doing.</p></details>
  </div></section>
  <section class="final-invitation wrap"><div class="eyebrow">A little more possibility</div><h2>Your next session<br />starts here.</h2><a class="button" href={`${base}/download/`}>Get Torbie <span aria-hidden="true"><Icon name="external"/></span></a><p>Open source. Yours to explore.</p></section>

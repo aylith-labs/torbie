@@ -68,6 +68,17 @@ jobs:
       contents: read
       pages: write
     steps:
+      - name: Check verified base against the current Pages binding
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TORBIE_CUSTOM_DOMAIN: ${{ inputs.root_path && '1' || vars.TORBIE_CUSTOM_DOMAIN }}
+        run: |
+          cname=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.cname // ""')
+          if [ "$TORBIE_CUSTOM_DOMAIN" = "1" ]; then
+            test "$cname" = "torbie.aylith.com"
+          else
+            test -z "$cname"
+          fi
       - uses: actions/download-artifact@v8
         with:
           name: verified-site
