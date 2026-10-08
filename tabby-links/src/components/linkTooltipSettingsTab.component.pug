@@ -314,10 +314,10 @@ div(ngbAccordion, [destroyOnHide]='false', [animation]='config.store.accessibili
 .form-line
     .header
         .title(translate) URI schemes that open without a warning
-        .description(translate) Separate schemes with commas, for example: vscode, ms-settings. Links using any other scheme ask for confirmation first. http, https, ftp and mailto never ask
+        .description(translate) Separate schemes with commas, for example: vscode, ms-settings. Links using any other scheme ask for confirmation first. http, https, ftp, mailto and stith never ask
     input.form-control(
         type='text',
-        placeholder='vscode, stith',
+        placeholder='vscode',
         [(ngModel)]='safeSchemes',
     )
 

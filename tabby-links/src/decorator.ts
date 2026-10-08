@@ -14,6 +14,7 @@ import { LinkPreviewRequest } from './components/linkPreviewTab.component'
 import { DELIMITED_LINK_PRIORITY, findDelimitedLinks } from './delimitedLinks'
 import { BufferRange, getLineWindow, rangeFor } from './linkComputer'
 import { MAX_TEXT_INPUT } from './regexGuard'
+import { isOsc8LinkAllowed } from './safeSchemes'
 import { IntegrationRuntimeService } from './services/integrationRuntime.service'
 import { LinkActionsService } from './services/linkActions.service'
 import { LinkClicksService } from './services/linkClicks.service'
@@ -460,6 +461,12 @@ export class LinkTooltipDecorator extends TerminalDecorator {
      * whether to open, from `clickableLinks.modifier`; leaving it in would mean
      * an OSC 8 link ignoring both the chords and the `osc8` kind filter, and
      * opening twice whenever they agreed.
+     *
+     * `allowNonHttpProtocols` is always on, because without it xterm discards
+     * every OSC 8 link that is not http(s) before any handler sees it — a
+     * `stith://focus/<id>` link was plain text. Which schemes count is decided
+     * per link by `isOsc8LinkAllowed` instead, so anything outside the
+     * built-in safe list neither shows a card nor opens.
      */
     private wrapLinkHandler (state: TabState): void {
         const existing = state.xterm.options.linkHandler
@@ -468,11 +475,17 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         }
         state.xterm.options.linkHandler = {
             __tabbyLinksWrapped: true,
-            allowNonHttpProtocols: existing?.allowNonHttpProtocols,
+            allowNonHttpProtocols: true,
             activate: (event: MouseEvent, uri: string, range: BufferRange) => {
+                if (!isOsc8LinkAllowed(uri)) {
+                    return
+                }
                 this.activate(state, this.osc8Link(uri, range), event)
             },
             hover: (_event: MouseEvent, uri: string, range: BufferRange) => {
+                if (!isOsc8LinkAllowed(uri)) {
+                    return
+                }
                 this.onHover(state, this.osc8Link(uri, range))
             },
             leave: () => this.onLeave(state),

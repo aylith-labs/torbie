@@ -53,6 +53,7 @@ const FAST = [
     'tabby-links/test/integrationAccounts.test.js',
     'tabby-links/test/wslPath.test.js',
     'tabby-links/test/homePaths.test.js',
+    'tabby-links/test/safeSchemes.test.js',
     'tabby-plugin-manager/test/pluginSearch.test.js',
     'tabby-render-timing/test/waterfall.test.js',
     'tabby-resume/test/logic.test.js',

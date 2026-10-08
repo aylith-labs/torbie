@@ -3,10 +3,8 @@ import { CommandService, ConfigService, NotificationsService, PlatformService, T
 import { BaseTerminalTabComponent } from 'tabby-terminal'
 
 import { LinkTooltipAction } from '../api'
+import { safeSchemeList } from '../safeSchemes'
 import { schemeOf } from './linkRules.service'
-
-/** Schemes `PlatformService.openExternal` already opens without asking. */
-const ALWAYS_SAFE = ['http', 'https', 'ftp', 'mailto']
 
 @Injectable({ providedIn: 'root' })
 export class LinkActionsService {
@@ -18,10 +16,9 @@ export class LinkActionsService {
         private translate: TranslateService,
     ) { }
 
-    /** Extra schemes the user marked as safe on the Link Tooltip page. */
+    /** The built-in safe schemes plus the ones the user listed on the Link Tooltip page. */
     safeSchemes (): string[] {
-        const configured: string[] = this.config.store.linkTooltip?.safeSchemes ?? []
-        return [...ALWAYS_SAFE, ...configured.map(x => x.trim().toLowerCase()).filter(x => x)]
+        return safeSchemeList(this.config.store.linkTooltip?.safeSchemes)
     }
 
     isSafeScheme (uri: string): boolean {

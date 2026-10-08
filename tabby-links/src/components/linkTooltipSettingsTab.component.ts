@@ -17,6 +17,7 @@ import { FILE_TYPE_GROUP_LABELS } from '../fileTypes'
 import { PresetGroup, RulePreset, applyPreset, presetForRule, presetGroups, presetInUse, rulePresets } from '../presets'
 import { ProbeSegment, RuleProbe, probeCaptures, probeRule, probeSegments } from '../ruleProbe'
 import { checkPattern, GuardedRegex } from '../regexGuard'
+import { safeSchemeList } from '../safeSchemes'
 import { IntegrationRegistryService } from '../services/integrationRegistry.service'
 import { LinkClicksService } from '../services/linkClicks.service'
 import { LinkSettingsNavService, RuleTarget } from '../services/linkSettingsNav.service'
@@ -235,7 +236,7 @@ export class LinkTooltipSettingsTabComponent implements OnInit, OnDestroy {
 
     saveConfiguration (): void {
         this.config.save()
-        this.platform.extraSafeSchemes = this.config.store.linkTooltip.safeSchemes ?? []
+        this.platform.extraSafeSchemes = safeSchemeList(this.config.store.linkTooltip.safeSchemes)
     }
 
     // ── the rule list ────────────────────────────────────────────────────────

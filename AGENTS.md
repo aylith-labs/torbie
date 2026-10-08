@@ -1190,6 +1190,15 @@ The parts that cost real time:
   and earlier providers win, so an OSC 8 link never reaches ours; it reaches
   `xterm.options.linkHandler`, which is *wrapped* rather than replaced (the
   linkifier writes it too, and only one of us can be last).
+- **xterm 6 drops a non-http(s) OSC 8 link before any handler sees it** unless
+  `linkHandler.allowNonHttpProtocols` is set — so a `stith://focus/<id>` link
+  rendered as plain text, with no hover and no click. The wrapper sets it, and
+  because the flag is all-or-nothing, `isOsc8LinkAllowed` (`safeSchemes.ts`)
+  then admits only `DEFAULT_SAFE_SCHEMES` (`http`, `https`, `ftp`, `mailto`,
+  `stith`) — deliberately not the user's `safeSchemes` too, since OSC 8 is text
+  any program can print. Any other OSC 8 link shows no card and does not open,
+  but xterm now underlines it on hover with a pointer cursor: the flag decides
+  the decoration, and there is no per-link hook for it.
 - **`provideLinks` must call its callback exactly once, on every path.**
   `OscLinkProvider` answers `[]` — truthy — so our links only ever arrive through
   the "every provider replied" pass. A provider that never calls back silently

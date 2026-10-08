@@ -16,6 +16,7 @@ import { LinkTooltipSettingsTabComponent } from './components/linkTooltipSetting
 import { LinksConfigProvider } from './config'
 import { LinkTooltipDecorator } from './decorator'
 import { IntegrationsSettingsTabProvider, LinkTooltipSettingsTabProvider } from './providers'
+import { safeSchemeList } from './safeSchemes'
 import { LinkClicksService } from './services/linkClicks.service'
 
 /** @hidden */
@@ -53,7 +54,7 @@ export default class LinksModule {
         // does not know, and it cannot read the config itself without a
         // dependency cycle. Pushing the list here keeps the setting live.
         const apply = () => {
-            platform.extraSafeSchemes = config.store.linkTooltip?.safeSchemes ?? []
+            platform.extraSafeSchemes = safeSchemeList(config.store.linkTooltip?.safeSchemes)
         }
         // The legacy modifier is carried onto the chords here rather than in the
         // decorator or the settings page, because both of those only exist once
