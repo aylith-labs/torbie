@@ -27,7 +27,7 @@
     "readable-stream": "4.7.0",
     "uuid": "^14.0.2",
     "@messageformat/core": "^3.4.0",
-    "filesize": "^11.0.24"
+    "filesize": "^11.0.25"
   },
   "peerDependencies": {
     "@angular/animations": "^22.1.7",

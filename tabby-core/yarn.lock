@@ -115,10 +115,10 @@ events@^3.3.0:
   resolved "https://registry.yarnpkg.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
   integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
 
-filesize@^11.0.24:
-  version "11.0.24"
-  resolved "https://registry.npmjs.org/filesize/-/filesize-11.0.24.tgz#d1e470e9c7095536829ddeccfd25610fdefad503"
-  integrity sha512-R+YVXTiRPxjX02Ul2Ta2cCas43gjdwKaxTIxl9/7bkaAy97U4BXb31N/xXk7Kp9pIkg3o/RScNypKr6RlcZMyA==
+filesize@^11.0.25:
+  version "11.0.25"
+  resolved "https://registry.yarnpkg.com/filesize/-/filesize-11.0.25.tgz#4ca7f2a0703041e7c6eabaf1ddf5896ffef6c0b4"
+  integrity sha512-oPVK4S+B5nRK8eL5FORi4RSzbz/1PmUx17NQLMIWv8tlNVDUFgLY0GNApL7tEebL4WgkBqSJGB3AJsCXUs01hw==
 
 fuzzy-search@^3.3.0:
   version "3.3.0"
