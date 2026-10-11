@@ -63,8 +63,10 @@
             span(translate) Show in pane
         button.btn.btn-sm.btn-secondary(*ngIf='model.showEmbed', (click)='handlers?.toggleEmbed()')
             i.fas.fa-fw.me-1([class.fa-expand]='!model.embedOpen', [class.fa-compress]='model.embedOpen')
-            span(*ngIf='!model.embedOpen', translate) Details
-            span(*ngIf='model.embedOpen', translate) Close details
+            //- Named for what it does and whose page it is: the card already has an
+            //- Open (the browser), and the preview has a Details group.
+            span(*ngIf='!model.embedOpen') {{'Show {name} page'|translate:{ name: model.preview?.integrationName } }}
+            span(*ngIf='model.embedOpen') {{'Hide {name} page'|translate:{ name: model.preview?.integrationName } }}
         button.btn.btn-sm.btn-secondary(
             *ngFor='let action of model.actions; trackBy: trackAction',
             (click)='handlers?.custom(action)',
