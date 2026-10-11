@@ -352,6 +352,13 @@ export interface IntegrationManifest {
      * `fields` there. Here it renders.
      */
     html?: string
+    /**
+     * URL template of the service's own page for the matched thing, expanded
+     * like a matcher's `link`. Offered on the card as **Details**, which shows
+     * the page in a frame inside the card. Same key, same meaning, in the
+     * Windows Terminal fork, which hosts it in WebView2.
+     */
+    embed?: string
 }
 
 /** A manifest plus where it came from and what the user has configured. */
@@ -470,4 +477,6 @@ export interface LinkPreview {
      * strings.
      */
     data: Record<string, any>
+    /** The manifest's `embed` URL, expanded for this match. Empty when it has none. */
+    embed?: string
 }

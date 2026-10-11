@@ -94,6 +94,15 @@ interface TabState {
      * real path. Kept so hiding uses the same answer showing did.
      */
     settings: ReturnType<LinkRulesService['resolve']> | null
+    /**
+     * Details is showing: the card holds the integration's own page and is
+     * something being read, not a hover. Hovering other links, leaving the
+     * card and output do not touch it; Esc, a press on the terminal or the
+     * button put it away.
+     */
+    embedOpen?: boolean
+    /** Removes the window-level Esc listener that exists only while Details is open. */
+    disposeEmbedKeys?: () => void
 }
 
 @Injectable()
@@ -255,6 +264,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
             return
         }
         this.states.delete(tab)
+        state.disposeEmbedKeys?.()
         clearTimeout(state.showTimer)
         clearTimeout(state.hideTimer)
         for (const disposable of state.disposables) {
@@ -499,7 +509,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
     // ── hover lifecycle ──────────────────────────────────────────────────────
 
     private onHover (state: TabState, link: HoveredLink): void {
-        if (!this.rules.enabled) {
+        if (!this.rules.enabled || state.embedOpen) {
             return
         }
         const key = `${link.kind}:${link.text}:${link.range.start.y}:${link.range.start.x}`
@@ -530,6 +540,9 @@ export class LinkTooltipDecorator extends TerminalDecorator {
 
     private onLeave (state: TabState): void {
         clearTimeout(state.showTimer)
+        if (state.embedOpen) {
+            return
+        }
         if (!state.externalAnchor && this.panes.followsHover(state.tab)) {
             ++state.generation // Invalidate a path lookup or fetch still in flight.
             state.shownKey = ''
@@ -648,6 +661,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         model.loading = false
         model.preview = preview
         model.integrationName = preview?.integrationName ?? ''
+        model.showEmbed = !!preview?.embed && !preview.error
         if (preview?.link && link.kind === 'text') {
             // A text match only becomes openable once an integration says what
             // it refers to.
@@ -728,7 +742,42 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         }
     }
 
+    /**
+     * Swap the card's body for the integration's own page, or back.
+     *
+     * Esc is listened for on the window, in the capture phase, only while the
+     * page is up: the terminal would otherwise hand it to the shell. Inside the
+     * frame it never reaches us -- that is another document, on another origin
+     * -- so there a press on the terminal or the button is the way out.
+     */
+    private setEmbed (state: TabState, open: boolean): void {
+        state.embedOpen = open
+        state.disposeEmbedKeys?.()
+        state.disposeEmbedKeys = undefined
+        if (open) {
+            clearTimeout(state.hideTimer)
+            const onKey = (event: KeyboardEvent) => {
+                if (event.key === 'Escape') {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    this.zone.run(() => this.hide(state))
+                }
+            }
+            window.addEventListener('keydown', onKey, true)
+            state.disposeEmbedKeys = () => window.removeEventListener('keydown', onKey, true)
+        }
+        const instance = state.componentRef.instance
+        instance.model.embedOpen = open
+        instance.refresh()
+        if (state.hovered) {
+            this.place(state, instance.model, state.hovered.range)
+        }
+    }
+
     private hide (state: TabState): void {
+        if (state.embedOpen) {
+            this.setEmbed(state, false)
+        }
         state.shownKey = ''
         state.hovered = null
         state.settings = null
@@ -768,11 +817,12 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         // nothing once the card is already wider than the pane — `maxWidth`
         // defaults to 640px and knows nothing about how the window is split —
         // so the cap has to come first and the measurement has to see it.
-        const configured = state.settings?.maxWidth ?? this.config.store.linkTooltip.maxWidth
+        // Details is a page, not a tooltip: it gets what the pane has room for.
+        const configured = state.embedOpen ? 0 : state.settings?.maxWidth ?? this.config.store.linkTooltip.maxWidth
         const available = Math.max(0, bounds.right - bounds.left - CARD_MARGIN * 2)
         const cap = configured > 0 ? Math.min(configured, available) : available
         host.style.setProperty('--link-card-max-width', `${Math.round(cap)}px`)
-        const maxHeight = this.config.store.linkTooltip.maxHeight ?? 720
+        const maxHeight = state.embedOpen ? 0 : this.config.store.linkTooltip.maxHeight ?? 720
         const availableHeight = Math.max(1, bounds.bottom - bounds.top - CARD_MARGIN * 2)
         host.style.setProperty('--link-card-max-height', `${maxHeight > 0 ? Math.min(maxHeight, availableHeight) : availableHeight}px`)
 
@@ -890,6 +940,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
                     this.paneRequest(state, link, filePath, integration, model), state.tab))
             },
             custom: (action: LinkTooltipAction) => void this.actions.runCustom(action, uri(), state.tab),
+            toggleEmbed: () => this.setEmbed(state, !state.embedOpen),
             pointerEnter: () => {
                 state.pointerInCard = true
                 clearTimeout(state.hideTimer)
@@ -988,6 +1039,7 @@ export class LinkTooltipDecorator extends TerminalDecorator {
         this.zone.run(() => {
             const instance = state.componentRef.instance
             instance.model.preview = preview
+            instance.model.showEmbed = !!preview?.embed && !preview.error
             instance.refresh()
             this.place(state, instance.model, link.range)
         })
@@ -1002,6 +1054,12 @@ export class LinkTooltipDecorator extends TerminalDecorator {
      * selection drag, so it waits for the release, which is `activate` below.
      */
     private onPress (state: TabState, event: MouseEvent): void {
+        // A press on the terminal while Details is open puts it away, the way a
+        // click outside any popup does. Presses on the card never get here.
+        if (state.embedOpen) {
+            this.zone.run(() => this.hide(state))
+            return
+        }
         state.press = { x: event.clientX, y: event.clientY, button: event.button }
 
         const link = this.linkUnderPointer(state)

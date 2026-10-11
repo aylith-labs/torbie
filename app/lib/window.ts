@@ -1,6 +1,6 @@
 import * as glasstron from 'glasstron'
 import { Subject, Observable, debounceTime } from 'rxjs'
-import { BrowserWindow, app, ipcMain, Rectangle, Menu, screen, BrowserWindowConstructorOptions, TouchBar, nativeImage, WebContents, nativeTheme } from 'electron'
+import { BrowserWindow, app, ipcMain, Rectangle, Menu, screen, BrowserWindowConstructorOptions, TouchBar, nativeImage, WebContents, nativeTheme, shell } from 'electron'
 import { enable as enableRemote } from '@electron/remote/main'
 import * as os from 'os'
 import * as path from 'path'
@@ -685,7 +685,14 @@ export class Window {
             this.touchBarControl.selectedIndex = selectedIndex
         })
 
-        this.window.webContents.setWindowOpenHandler(() => {
+        // Nothing gets a second Electron window. A web page hosted in the
+        // renderer -- an integration's embed page in the link card -- that asks
+        // for a new window (target=_blank, window.open) gets the system browser
+        // instead, for http(s) only, rather than silently nothing.
+        this.window.webContents.setWindowOpenHandler(({ url }) => {
+            if (/^https?:\/\//i.test(url)) {
+                void shell.openExternal(url)
+            }
             return { action: 'deny' }
         })
 

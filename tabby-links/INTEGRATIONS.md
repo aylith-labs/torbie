@@ -256,8 +256,9 @@ fatal.
 Top-level keys: `id` (required — a manifest without one is invalid), `name`, `icon`, `version`
 (informational), `cacheSeconds`, `settings`, `credentials`, `matchers`, `fetch`, `fields`,
 [`fieldGroups`](#field-groups), [`tabs`](#tabs), [`actions`](#actions),
-[`detectPatterns`](#detectpatterns), and `html` (see
-[HTML representation](#html-representation)). **Unknown keys are ignored**, which is what lets the
+[`detectPatterns`](#detectpatterns), `html` (see
+[HTML representation](#html-representation)), and `embed` (see
+[Embed pages (Details)](#embed-pages-details)). **Unknown keys are ignored**, which is what lets the
 format grow — and is what let the four keys above be added without breaking anything that had
 never heard of them.
 
@@ -524,8 +525,8 @@ The manifest format is the same. Two things about the surrounding app are not:
   `sendInput` or `command` (a Tabby command id) with `%u` substituted for the hovered link —
   the same substitution that fork applies to `SendInput` and `ExecuteCommandline`.
 
-- **The `html` representation runs here and is switched off there.** See
-  [Availability](#availability). The contract is identical; only whether it draws differs.
+- **`html` and `embed` run in both.** See [Availability](#availability). Here the page is an
+  iframe; there it is a WebView2.
 - **`icon` names a file both forks carry.** The built-ins write
   `ms-appx:///IntegrationIcons/<file>.png` — that fork's package scheme, resolved by its
   `IconPathConverter`; here the file name is looked up in a map of PNGs webpack has inlined
@@ -609,11 +610,29 @@ the whole point of the format.
 
 ### Availability
 
-In this fork `html` renders. In the Windows Terminal fork it is compiled in but **disabled**:
-rendering it needs both the `Feature_HyperlinkPreviewHtml` flag and `WebView2Loader.dll` beside
-the app, and neither ships today, so a manifest that sets `html` falls back to its `fields` list
-there. Write a `fields` list as well as an `html` document if the manifest is meant to be useful
-in both.
+`html` renders in both forks. In the Windows Terminal fork (mullion) it needs the WebView2
+Runtime, and a machine without it falls back to the `fields` list, so write a `fields` list as
+well as an `html` document.
+
+## Embed pages (Details)
+
+A manifest's `embed` key is a URL template for the service's own page about the matched thing,
+expanded like a matcher's `link` (`{{settings.*}}`, named groups such as `{{id}}`). When it is
+set and the preview has no error, the card offers **Details**. Pressing it replaces the preview
+with that page in a frame and grows the card to what the pane has room for.
+
+- The frame is a cross-origin `https` iframe with `sandbox="allow-scripts allow-same-origin
+  allow-popups allow-popups-to-escape-sandbox allow-forms"`. It keeps its own origin and storage,
+  has no reach into the renderer, and subframes get no Node. Only `http(s)` URLs are framed.
+- `target=_blank` and `window.open` from the page open in the system browser. The main window's
+  `setWindowOpenHandler` does that for `http(s)` URLs and still denies a second Electron window.
+- While Details is open the card is not a hover any more: other links, leaving the card and output
+  leave it alone. **Esc** (outside the frame), a press on the terminal, or **Close details** puts
+  it away.
+- The page follows the app's light/dark setting through `prefers-color-scheme`.
+
+`stith.json` sets `"embed": "{{settings.baseUrl}}/embed/s/{{id}}?host=torbie"`, stith's
+chromeless session view.
 
 ## Shared Lintel presets
 

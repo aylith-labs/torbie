@@ -9,6 +9,7 @@
     #root,
     [class.actions-top]='model.actionsFirst',
     [class.attr-top]='model.attributionFirst',
+    [class.embed-open]='model.embedOpen',
     (mouseenter)='handlers?.pointerEnter()',
     (mouseleave)='handlers?.pointerLeave()',
 )
@@ -31,7 +32,18 @@
     //- defaults, which are the card's limits: bodies scroll rather than grow,
     //- and a plugin's own page is clamped to 320px. "Show in pane" below is how
     //- you ask for the version with room in it.
-    link-preview-view([model]='model', [handlers]='handlers')
+    link-preview-view(*ngIf='!model.embedOpen', [model]='model', [handlers]='handlers')
+
+    //- Details: the integration's own page for this link, in place of the
+    //- preview. A cross-origin https frame, so the page keeps its own origin
+    //- (and its storage) and has no reach into the renderer; subframes get no
+    //- Node either. Popups go to the system browser via the main process.
+    iframe.embed-frame(
+        *ngIf='model.embedOpen && embedSrc',
+        [src]='embedSrc',
+        sandbox='allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms',
+        referrerpolicy='no-referrer',
+    )
 
     .actions(*ngIf='hasActions')
         button.btn.btn-sm.btn-secondary(*ngIf='model.showOpen', (click)='handlers?.open()')
@@ -49,6 +61,10 @@
         button.btn.btn-sm.btn-secondary(*ngIf='model.showInPane', (click)='handlers?.showInPane()')
             i.fas.fa-fw.fa-table-columns.me-1
             span(translate) Show in pane
+        button.btn.btn-sm.btn-secondary(*ngIf='model.showEmbed', (click)='handlers?.toggleEmbed()')
+            i.fas.fa-fw.me-1([class.fa-expand]='!model.embedOpen', [class.fa-compress]='model.embedOpen')
+            span(*ngIf='!model.embedOpen', translate) Details
+            span(*ngIf='model.embedOpen', translate) Close details
         button.btn.btn-sm.btn-secondary(
             *ngFor='let action of model.actions; trackBy: trackAction',
             (click)='handlers?.custom(action)',

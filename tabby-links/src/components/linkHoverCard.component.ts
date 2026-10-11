@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core'
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 
 import { revealLabel } from '../fileTypes'
 import { LinkTooltipAction } from '../api'
@@ -23,6 +24,10 @@ export interface CardModel extends PreviewModel {
     showCopyPath: boolean
     showReveal: boolean
     showInPane: boolean
+    /** The integration has a page of its own for this link (manifest `embed`). */
+    showEmbed: boolean
+    /** That page is showing in place of the preview. */
+    embedOpen: boolean
     actions: LinkTooltipAction[]
     /**
      * "Matched by <rule>", "No rule matched", or "Detected by the <X>
@@ -55,6 +60,8 @@ export interface CardHandlers extends PreviewHandlers {
     reveal: () => void
     /** Put this same preview in a pane, where there is room to read it. */
     showInPane: () => void
+    /** Show the integration's own page in the card, or go back to the preview. */
+    toggleEmbed: () => void
     custom: (action: LinkTooltipAction) => void
     pointerEnter: () => void
     pointerLeave: () => void
@@ -72,6 +79,8 @@ export function emptyModel (): CardModel {
         showCopyPath: false,
         showReveal: false,
         showInPane: false,
+        showEmbed: false,
+        embedOpen: false,
         actions: [],
         attribution: '',
         attributionRuleIndex: -1,
@@ -105,7 +114,28 @@ export class LinkHoverCardComponent {
 
     @ViewChild('root') root?: ElementRef<HTMLElement>
 
-    constructor (private changeDetector: ChangeDetectorRef) { }
+    private embedUrl = ''
+    private embedSafeUrl: SafeResourceUrl | null = null
+
+    constructor (
+        private changeDetector: ChangeDetectorRef,
+        private sanitizer: DomSanitizer,
+    ) { }
+
+    /**
+     * The frame's src, trusted once per URL. A fresh SafeResourceUrl on every
+     * change-detection pass would read as a new value and reload the page.
+     * Only http(s) is accepted: the URL comes from a manifest, and a
+     * javascript: or file: URL has no business in a frame inside the renderer.
+     */
+    get embedSrc (): SafeResourceUrl | null {
+        const url = this.model.preview?.embed ?? ''
+        if (url !== this.embedUrl) {
+            this.embedUrl = url
+            this.embedSafeUrl = /^https?:\/\//i.test(url) ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : null
+        }
+        return this.embedSafeUrl
+    }
 
     refresh (): void {
         // Everything that drives this component arrives from xterm's own DOM
@@ -120,6 +150,7 @@ export class LinkHoverCardComponent {
         return this.model.showOpen || this.model.showCopyLink
             || this.model.showCopyPath || this.model.showReveal
             || this.model.showInPane
+            || this.model.showEmbed
             || !!this.model.actions.length
     }
 

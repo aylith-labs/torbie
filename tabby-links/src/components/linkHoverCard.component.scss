@@ -120,3 +120,22 @@
         margin-bottom: 6px;
     }
 }
+
+// Details: the integration's own page, sized to what the pane has room for.
+// The decorator lifts the tooltip limits while it is open, so the two custom
+// properties here are the pane's own size less the card's margins. The
+// allowance under the height is the link line, the button row and padding.
+.link-card.embed-open {
+    // The page scrolls itself; a second scrollbar around it would only fight it.
+    overflow-y: hidden;
+}
+
+.embed-frame {
+    display: block;
+    border: 0;
+    border-radius: 4px;
+    margin-top: 6px;
+    width: min(900px, calc(var(--link-card-max-width, 900px) - 22px));
+    height: max(160px, min(680px, calc(var(--link-card-max-height, 720px) - 140px)));
+    background: var(--theme-bg);
+}

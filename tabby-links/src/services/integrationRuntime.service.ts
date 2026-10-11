@@ -579,6 +579,7 @@ export class IntegrationRuntimeService {
             link: match.matcher.link ? this.expand(match.matcher.link, match, {}, null, false) : '',
             html: integration.manifest.html ?? '',
             data: {},
+            embed: integration.manifest.embed ? this.expand(integration.manifest.embed, match, {}, null, false) : '',
         }
 
         const githubAuth = integration.id === 'github' ? await githubAuthentication(integration.credentials.token ?? '') : null
