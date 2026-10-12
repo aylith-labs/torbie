@@ -748,13 +748,13 @@ window.FEATURE_DETAILS = {
     problem:
       "Upstream restores the furniture — the tabs, the splits, the profiles, and via the serialized scrollback a picture of what was on screen. Every pane still comes back as a fresh shell, so the agent you had a two-hour conversation with, the multiplexer holding six sessions and the dev server are all simply not running any more. Restoring the furniture is not restoring the work.",
     how:
-      "Each pane is asked what it is running, the answer is persisted alongside the layout, and on the next start it is typed back into the restored pane. A native pane is read from the process tree — the <em>shallowest</em> non-shell descendant of the pane's own shell, not the deepest, because an agent spawns a child per MCP server. A WSL pane cannot be read that way at all, so <code>tabby-local</code> now mints a <code>TABBY_SESSION</code> per pane and appends it to <code>WSLENV</code>, and one probe per distro greps every <code>/proc/*/environ</code> at once.",
+      "Each pane is asked what it is running, the answer is persisted alongside the layout, and on the next start the command is typed back into the restored pane's fresh shell — the original process is gone, the same command in the same directory is what returns. A native pane is read from the process tree — the <em>shallowest</em> non-shell descendant of the pane's own shell, not the deepest, because an agent spawns a child per MCP server. A WSL pane cannot be read that way at all, so <code>tabby-local</code> now mints a <code>TABBY_SESSION</code> per pane and appends it to <code>WSLENV</code>, and one probe per distro greps every <code>/proc/*/environ</code> at once.",
     steps: [
       "Turn on <strong>Restore tabs</strong> under Settings → Startup — resume rides on the persisted layout.",
       "Leave <code>resume.agents</code> and <code>resume.multiplexers</code> on. Anything else goes in <code>resume.extraPrograms</code> by name.",
       "Open a pane and start something: an agent, or <code>tmux new-session -s demo</code>.",
       "Close the window, or kill it outright.",
-      "Reopen. The pane comes back on its own profile, in its own directory, running what it was running.",
+      "Reopen. The pane comes back on its own profile, in its own directory, running the command it was running.",
     ],
     settings: [
       { key: "resume.agents", def: "true", note: "Reopen a known agent's conversation, keeping the options it was launched with." },

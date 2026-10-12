@@ -316,7 +316,7 @@ window.FEATURES = [
     dateAdded: "2026-09-06",
     commits: ["49960f39"],
     files: 29, ins: 3487, del: 9,
-    desc: "Upstream restores the furniture — the tabs, the splits, the profiles, a picture of what was on screen — but every pane comes back as a fresh shell, so the agent you had a two-hour conversation with and the multiplexer holding six sessions are simply not running any more. Each pane is asked what it is running, the answer is persisted with the layout, and it is typed back into the restored pane.",
+    desc: "Upstream restores the furniture — the tabs, the splits, the profiles, a picture of what was on screen — but every pane comes back as a fresh shell, so the agent you had a two-hour conversation with and the multiplexer holding six sessions are simply not running any more. Each pane is asked what it is running, the answer is persisted with the layout, and the command is typed back into the restored pane's fresh shell — the agent reopens its conversation, the multiplexer reattaches.",
   },
   {
     id: "window-geometry", title: "Each window remembers where it was",

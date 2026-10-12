@@ -2,8 +2,8 @@
 
 A terminal for Windows, macOS and Linux, built on the [Tabby](https://github.com/Eugeny/tabby)
 codebase and diverged from it. It keeps Tabby's plugin API — third-party plugins written for Tabby
-load unchanged — and catalogues its additions in [`docs/`](docs/index.html), covering
-diagnostics, link previews, session resume, build management and the terminal itself.
+are found and loaded the same way — and catalogues its additions in [`docs/`](docs/index.html),
+covering diagnostics, link previews, session resume, build management and the terminal itself.
 
 ## Install
 
@@ -40,7 +40,7 @@ claim, and the commits behind it.
 | | |
 | --- | --- |
 | **Link previews** | A hover card over terminal links, driven by declarative integration manifests that fetch what a link refers to — Jira, GitHub, Slack and more. Rules customise per-pattern behaviour; a preview can open in a real pane beside the terminal. |
-| **Session resume** | A restored pane comes back running what it was running, not just a shell — the agent, the multiplexer, the dev server. |
+| **Session resume** | A restored pane comes back running the command it was running, typed into a fresh shell — the agent's conversation, the multiplexer session. Agents and multiplexers are recognised out of the box; anything else is opted in by name. |
 | **Claude Code awareness** | A docked session panel and tab hover cards for Claude Code sessions, joined to tabs by launch directory. |
 | **Diagnostics** | `diagnostics.log` records what blocks an event loop, in the main process and every renderer, with attribution to the synchronous calls responsible. Plus render timing, for the frames the event loop cannot explain. |
 | **A watchdog** | A process that can never show a window does not get to hold the single-instance lock indefinitely. |
@@ -74,16 +74,17 @@ scripts run locally and produce the same artifacts, unsigned.
 
 Torbie loads plugins built for Tabby. The package-name prefix (`tabby-`), the npm keywords
 (`tabby-plugin`, `tabby-builtin-plugin`) and the module names plugins `require` are all unchanged,
-and there is no version gate — a plugin that worked with Tabby works here. That compatibility is the
-reason this codebase is a Tabby derivative rather than a rewrite, and it is not going to be traded
-away.
+and there is no version gate, so a plugin written for Tabby is found and loaded here. Each one still
+runs against this build's Angular and Electron, which are newer than Tabby's, so a plugin that
+reaches into framework internals may need an update. That compatibility is the reason this codebase is
+a Tabby derivative rather than a rewrite, and it is not going to be traded away.
 
 Third-party plugins are installed from Settings → Plugins, which searches npm for the `tabby-plugin`
 keyword.
 
 ## Themes
 
-Colour schemes and window themes are plugins like anything else, and Tabby's are compatible. The
+Colour schemes and window themes are plugins like anything else, and Tabby's load the same way. The
 built-in schemes are unchanged.
 
 ## Relationship to Tabby

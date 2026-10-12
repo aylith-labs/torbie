@@ -9,9 +9,9 @@ description: >-
 category: developer-tools
 websiteUrl: https://torbie.aylith.com/
 features:
-  - Loads plugins written for Tabby unchanged — the compatibility contract is deliberate
+  - Discovers and loads plugins written for Tabby — the compatibility contract is deliberate
   - Records what blocks an event loop, in the main process and every renderer, with per-call attribution
-  - A restored pane comes back running what it was running, not a bare shell
+  - A restored pane comes back running its agent or multiplexer session, not a bare shell
   - Hover cards over terminal links, driven by declarative integration manifests
   - Health-checks every build on the machine and names the cause when one will not start
   - A watchdog, so a process that can never show a window cannot hold the single-instance lock
@@ -46,8 +46,8 @@ Two reasons, and they pull in the same direction.
 
 The first is the plugin ecosystem. A terminal is only as useful as what people have already built
 for it, and Tabby's plugin API has a real one. Torbie keeps it — the package names, the npm keyword,
-the modules plugins `require` — so a plugin written for Tabby loads here unchanged. That is not a
-transitional courtesy; it is the reason this is a derivative rather than one more terminal written
+the modules plugins `require` — so a plugin written for Tabby is found and loaded here, with no
+version gate. That is not a transitional courtesy; it is the reason this is a derivative rather than one more terminal written
 from scratch.
 
 The second is that terminals are opaque when they misbehave. A window that freezes for ninety
@@ -71,7 +71,9 @@ no longer blocks the main loop in a modal dialog nobody is looking at.
 **It brings a pane back running.** Restoring a session normally restores the furniture: the tabs,
 the splits, a picture of the scrollback. Every pane still comes back as a fresh shell, so the agent
 you had a two-hour conversation with is simply not there. Torbie asks each pane what it is running,
-persists that with the layout, and types it back.
+persists that with the layout, and types the command back into the fresh shell — reopening the
+agent's conversation or reattaching the multiplexer. The original process does not survive a
+restart; what comes back is the same command, in the same directory.
 
 **It previews what a link refers to.** A hover card over a terminal link, driven by declarative
 integration manifests that fetch a summary — a ticket's status, a pull request's checks, a commit's
