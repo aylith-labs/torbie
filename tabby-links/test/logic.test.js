@@ -24,6 +24,7 @@ const originalResolve = Module._resolveFilename
 const stubs = {
     '@angular/core': new Proxy({}, { get: () => (() => (target) => target) }),
     '@angular/common': {},
+    '@angular/platform-browser': {},
     '@angular/forms': {},
     '@ng-bootstrap/ng-bootstrap': {},
     'rxjs': require(path.join(REPO, 'node_modules/rxjs')),
@@ -829,12 +830,31 @@ check('the template never grants same-origin',
     viewPug.includes('allow-same-origin'), false)
 check('the sandbox is not bound',
     /\[attr\.sandbox\]|\[sandbox\]/.test(viewPug), false)
+//
+// The one exception is the card's Details frame (manifest `embed`), which is a
+// different thing: the integration's own page, loaded from http(s), so it
+// keeps its own origin and `allow-same-origin` gives it that origin, never
+// this window's. What makes that true is that its src can only be an http(s)
+// URL — a file:// or javascript: src there would be the escape described above.
 check('nothing else in the package renders an iframe',
     require('fs').readdirSync(path.join(REPO, 'tabby-links/src/components'))
         .filter(f => f.endsWith('.pug') && f !== 'linkPreviewView.component.pug')
         .filter(f => require('fs').readFileSync(
             path.join(REPO, 'tabby-links/src/components', f), 'utf8').includes('iframe')),
-    [])
+    ['linkHoverCard.component.pug'])
+{
+    const cardPug = require('fs').readFileSync(
+        path.join(REPO, 'tabby-links/src/components/linkHoverCard.component.pug'), 'utf8')
+    const cardTs = require('fs').readFileSync(
+        path.join(REPO, 'tabby-links/src/components/linkHoverCard.component.ts'), 'utf8')
+    check('the card has exactly one iframe, the Details frame',
+        cardPug.split('\n').filter(l => /^\s*iframe\b/.test(l)).map(l => l.trim()),
+        ['iframe.embed-frame('])
+    check('the Details frame is bound only to embedSrc',
+        cardPug.includes("[src]='embedSrc'") && !/\[src\]='(?!embedSrc')/.test(cardPug), true)
+    check('embedSrc trusts only an http(s) URL',
+        cardTs.includes('/^https?:\\/\\//i.test(url) ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : null'), true)
+}
 check('csp denies by default', hh.HTML_CSP.startsWith("default-src 'none'"), true)
 check('csp blocks the network', hh.HTML_CSP.includes("connect-src 'none'"), true)
 check('csp blocks form submission', hh.HTML_CSP.includes("form-action 'none'"), true)

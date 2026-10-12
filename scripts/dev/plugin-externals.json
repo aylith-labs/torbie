@@ -168,6 +168,7 @@
     "@angular/common",
     "@angular/core",
     "@angular/forms",
+    "@angular/platform-browser",
     "@ng-bootstrap/ng-bootstrap",
     "child_process",
     "electron",
