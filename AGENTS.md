@@ -23,7 +23,7 @@ ecosystem is why this is a derivative rather than a rewrite. The `tabby-` packag
 prefix, the `tabby-plugin` npm keyword and the module names plugins `require` are
 therefore *not* renamed and never will be — see *What the rename did not touch*.
 
-Run from source; not yet distributed as an installer.
+Installers for Windows, macOS and Linux (x64 and arm64) ship from GitHub Releases; development runs from source.
 
 ## Commands
 
