@@ -303,6 +303,7 @@
     "@angular/animations",
     "@angular/common",
     "@angular/core",
+    "@angular/core/rxjs-interop",
     "@angular/forms",
     "@ng-bootstrap/ng-bootstrap",
     "crypto",
