@@ -268,8 +268,7 @@ async function parsePluginInfo (pluginDir: string, packageName: string): Promise
             return null
         }
 
-        let author = info.author
-        author = author.name || author
+        const author = info.author?.name ?? info.author ?? ''
 
         console.log(`Found ${name} in ${pluginDir}`)
 

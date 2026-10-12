@@ -39,6 +39,7 @@ const FAST = [
     'app/test/sentry.test.js',
     'app/test/protocols.test.js',
     'app/test/updateFeed.test.js',
+    'app/test/pluginDiscovery.test.js',
     'scripts/dev/cdp.test.cjs',
     'scripts/dev/pluginExternals.test.cjs',
     'tabby-builds/test/newBuildChoice.test.js',
