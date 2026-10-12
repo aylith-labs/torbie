@@ -789,7 +789,6 @@ export class SSHSession {
                 }
             }
         }
-        return null
     }
 
     async addPortForward (fw: ForwardedPort): Promise<void> {
