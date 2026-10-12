@@ -22,9 +22,9 @@
     "color": "^5.0.3",
     "deepmerge": "^4.3.1",
     "fuzzy-search": "^3.3.0",
-    "js-yaml": "^5.4.2",
+    "js-yaml": "^5.4.3",
     "ngx-translate-messageformat-compiler": "^7.3.0",
-    "readable-stream": "4.7.0",
+    "readable-stream": "4.8.0",
     "uuid": "^14.0.2",
     "@messageformat/core": "^3.4.0",
     "filesize": "^11.0.25"
