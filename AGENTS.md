@@ -1,8 +1,5 @@
 # Torbie — agent guidance
 
-> This file is `AGENTS.md`. `CLAUDE.md` is a symlink to it, because Claude Code
-> loads only that name. Edit this file.
-
 <!-- aylith-handbook:start -->
 > **📖 Aylith handbook (authoritative).** This repo is part of the `aylith-labs` lab. Before any
 > cross-repo, catalog, design-system, CI/runner, or data-flow work you **must** consult the org
