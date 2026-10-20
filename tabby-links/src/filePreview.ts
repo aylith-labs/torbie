@@ -1,8 +1,10 @@
 import * as fs from 'fs/promises'
+import * as os from 'os'
 import * as path from 'path'
 import { load } from 'js-yaml'
 import { LinkPreview } from './api'
 import { fileTypeOf } from './fileTypes'
+import { isRemoteUncPath } from './pathResolution'
 
 export interface SourceToken { text: string, kind: string }
 export interface MetadataRow { key: string, value: string, depth: number }
@@ -73,6 +75,8 @@ export async function readLocalPreview (filePath: string): Promise<LinkPreview> 
     const type = fileTypeOf(filePath)
     const preview: LinkPreview = { integrationId: 'file', integrationName: type.name, icon: type.icon, fields: [], groups: [], tabs: [], actions: [], skipped: [], error: '', link: '', html: '', data: {} }
     try {
+        // A preview runs on hover, so it never opens an SMB connection to another machine.
+        if (isRemoteUncPath(filePath, [os.hostname()])) throw new Error('Network paths are not previewed.')
         const stat = await fs.stat(filePath)
         if (!stat.isFile()) throw new Error('This path is not a regular file.')
         const field = (key: string, value: string, kind: 'title' | 'text') => ({ key, value, kind, label: '', iconUri: key === 'metadata' ? type.icon : '', color: '' })

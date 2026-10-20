@@ -42,3 +42,23 @@ export function selectPathCandidate (candidates: readonly PathCandidate[], exist
     const found = candidates.filter((_, index) => exists[index])
     return found.length === 1 ? found[0] : null
 }
+/** Whose file a file:// host, or a UNC path's server, names. The host supplies its own machine names; '' and localhost are always local. */
+export type FileHostKind = 'local' | 'wsl' | 'remote'
+export function fileHostKind (host: string, localNames: readonly string[] = []): FileHostKind {
+    const name = host.toLowerCase()
+    if (!name || ['localhost', '127.0.0.1', '::1'].includes(name) || localNames.some(local => local.toLowerCase() === name)) return 'local'
+    return name === 'wsl$' || name === 'wsl.localhost' ? 'wsl' : 'remote'
+}
+/** A \\server\... or //server/... path on another machine, the \\.\ device namespace included. Never touched without a click. */
+export function isRemoteUncPath (path: string, localNames: readonly string[] = []): boolean {
+    if (!/^[\\/]{2}/.test(path)) return false
+    let rest = path.slice(2)
+    if (/^\?[\\/]/.test(rest)) {
+        rest = rest.slice(2)
+        if (/^[a-z]:/i.test(rest)) return false
+        if (!/^unc[\\/]/i.test(rest)) return true
+        rest = rest.slice(4)
+    }
+    const server = rest.split(/[\\/]/, 1)[0]
+    return !server || server === '.' || fileHostKind(server, localNames) === 'remote'
+}

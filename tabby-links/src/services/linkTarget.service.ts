@@ -1,4 +1,4 @@
-import { PathHomes, pathCandidates, pathKind, selectPathCandidate } from '../pathResolution'
+import { PathHomes, fileHostKind, isRemoteUncPath, pathCandidates, pathKind, selectPathCandidate } from '../pathResolution'
 import { WslHomes } from '../wslHomes'
 import * as fs from 'fs/promises'
 import * as os from 'os'
@@ -108,7 +108,7 @@ function isRooted (p: string): boolean {
  * own home, a distro's name for that distro's. With no home for whoever
  * printed the path, a `~/` path resolves to nothing rather than to a guess.
  */
-export function filesystemPath (input: string, distro: string | null, onWindows: boolean, homes: PathHomes = {}): string {
+export function filesystemPath (input: string, distro: string | null, onWindows: boolean, homes: PathHomes = {}, localNames: readonly string[] = []): string {
     let candidate = input
 
     if (/^file:\/\//i.test(candidate)) {
@@ -122,6 +122,9 @@ export function filesystemPath (input: string, distro: string | null, onWindows:
         // own distro and so needs no guessing. `localhost` is the empty
         // authority spelled out (RFC 8089).
         if (authority && authority.toLowerCase() !== 'localhost') {
+            // Lintel rule 7: another machine's file is no local path. As
+            // `\\server\…` a hover would open an SMB connection to it.
+            if (fileHostKind(authority, localNames) === 'remote') return ''
             return onWindows ? `\\\\${authority}${backslashes(candidate)}` : candidate
         }
         // `file:///c:/x` — drop the empty authority's slash on Windows.
@@ -233,10 +236,12 @@ export class LinkTargetService {
         const input = pathKind(text) !== 'none' ? text : (converted || text)
         const distro = this.distroHost(tab)
         const homes = await this.homesFor(distro, input)
-        const candidatePath = filesystemPath(input, distro, onWindows, homes)
+        const localNames = [os.hostname()]
+        const candidatePath = filesystemPath(input, distro, onWindows, homes, localNames)
         const candidates = pathCandidates(candidatePath, onWindows, distro,
             onWindows && pathKind(candidatePath) === 'posix' ? this.registeredDistros() : [], homes)
-        const presence = await Promise.all(candidates.map(candidate => this.exists(candidate.path)))
+        // A share on another machine is never probed: this runs on hover.
+        const presence = await Promise.all(candidates.map(candidate => isRemoteUncPath(candidate.path, localNames) ? false : this.exists(candidate.path)))
         const selected = selectPathCandidate(candidates, presence)
         if (!selected) {
             const ambiguous = presence.filter(Boolean).length > 1

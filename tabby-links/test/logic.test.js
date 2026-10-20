@@ -576,6 +576,13 @@ check('a Windows path is already a path',
     fsPath('C:\\Windows\\notepad.exe', 'Ubuntu', true), 'C:\\Windows\\notepad.exe')
 check('a UNC path is already a path',
     fsPath('\\\\server\\share\\x', 'Ubuntu', true), '\\\\server\\share\\x')
+// Lintel rule 7: a host on another machine is no local path, or a hover opens SMB to it.
+check('another machine is not a UNC path',
+    fsPath('file://server/share/x.md', 'Ubuntu', true), '')
+check('another machine is not a path off Windows either',
+    fsPath('file://nitromarchy/home/stevenp/x.md', null, false), '')
+check('this machine by name is still this machine',
+    fsPath('file://NEXTGEN/c$/x.md', null, true, {}, ['nextgen']), '\\\\NEXTGEN\\c$\\x.md')
 // Rooted or nothing: a text rule matches things like an issue key, and asking
 // the filesystem about a relative name answers against the app's own directory.
 check('a url is not a path', fsPath('https://example.com/x', 'Ubuntu', true), '')
@@ -1819,6 +1826,8 @@ async function localPreviewTests () {
     try {
         const file = path.join(folder,'README.md')
         await fs.writeFile(file,metadataSource)
+        const share = await filePreview.readLocalPreview('\\\\server\\share\\README.md')
+        check('a share on another machine is not previewed',share.error,'Network paths are not previewed.')
         const preview = await filePreview.readLocalPreview(file)
         check('Markdown file read intact',preview.file.text,metadataSource)
         check('Markdown mode detected',preview.file.markdown,true)
