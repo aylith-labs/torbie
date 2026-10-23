@@ -1611,7 +1611,7 @@ Each of these was shipped and wrong; they are listed because the shape recurs.
   before succeeding failed to parse, reporting "produced no usable output" about
   output that was fine. Now separate, and any credential appearing in stderr is
   redacted — a failing command usually echoes the command line it was given.
-- **An unconfigured integration lost Open / Copy link**: resolving `CAB-8209` to
+- **An unconfigured integration lost Open / Copy link**: resolving `ACME-8209` to
   a URL needs only the matcher, not a credential. Only *previewing* needs one.
 - The **punycode/IDN annotation was missing entirely** — a homograph warning the
   reference has and this port had silently dropped.
@@ -1792,7 +1792,7 @@ folder, and a click that did nothing at all.
   upstream code, and every line changed there is rebase surface. Nothing is lost:
   it *is* the existence check, and it was being run on the wrong string.
 - **What replaces it as the "is this a path" test is rootedness**, not existence.
-  A text rule matches things like an issue key, and `fs.access('CAB-8209')` is
+  A text rule matches things like an issue key, and `fs.access('ACME-8209')` is
   answered against the app's own working directory, where it could plausibly
   exist. Anything not rooted is not asked about — which also drops the
   `fs.access` that every hovered `http` URL used to cost.

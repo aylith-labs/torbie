@@ -466,8 +466,8 @@ async function main () {
             primaryAction: 'copyLink', alternativeAction: '',
             actions: [],
         }]
-        ${WRITE('ticket CAB-8209 filed', 'CAB-8209')}
-        const link = T.links.find(l => l.text === 'CAB-8209')
+        ${WRITE('ticket ACME-8209 filed', 'ACME-8209')}
+        const link = T.links.find(l => l.text === 'ACME-8209')
         if (!link) { store.linkTooltip.rules = T.saved.rules; return { skipped: true } }
         const withRules = await T.click(link)
         T.setChords({ clickableKinds: ['detected', 'osc8'] })
@@ -481,7 +481,7 @@ async function main () {
         failed++
     } else {
         check('a text match is clickable while "rules" is ticked, and runs its rule\'s action',
-            text.withRules, [['copy', 'CAB-8209']])
+            text.withRules, [['copy', 'ACME-8209']])
         check('and stops responding when "rules" is unticked', text.without, [])
     }
 

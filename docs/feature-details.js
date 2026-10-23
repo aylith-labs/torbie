@@ -679,7 +679,7 @@ window.FEATURE_DETAILS = {
       "Click it, or use Show in folder. Explorer opens the real file inside the distro.",
     ],
     notes: [
-      "<strong>Rootedness, not existence, is the right test.</strong> A text rule matches things like an issue key, and <code>fs.access('CAB-8209')</code> is answered against the app's own working directory, where it could plausibly exist. It also drops the <code>fs.access</code> that every hovered <code>http</code> URL used to cost.",
+      "<strong>Rootedness, not existence, is the right test.</strong> A text rule matches things like an issue key, and <code>fs.access('ACME-8209')</code> is answered against the app's own working directory, where it could plausibly exist. It also drops the <code>fs.access</code> that every hovered <code>http</code> URL used to cost.",
       "<strong><code>#L6-L7</code> is a fragment, not part of the name</strong> (RFC 3986 §3.5), and it was being carried into both the existence check and the shared path. It is stripped before percent-decoding, so a <code>#</code> genuinely in a filename — which has to arrive as <code>%23</code> — survives. Upstream has been asked for this since 2022 (GH#14116).",
       "<strong>An OSC 8 <code>file://</code> link arrives with no handler</strong>, so the <code>file://</code> branch of the resolver was dead code. That is the form Claude Code emits, and the one that carries a fragment.",
       "<code>file://&lt;authority&gt;/…</code> is a UNC path, which is how an editor writes a WSL link that already names its own distro. <code>/mnt/&lt;letter&gt;/</code> becomes the drive, since the share would answer for a file sitting on the local disk.",

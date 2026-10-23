@@ -206,15 +206,15 @@ console.log('── setting normalization ──')
 const reg = loadSource('tabby-links/src/services/integrationRegistry.service.ts')
 const hostField = { key: 'host', normalize: 'host', suffix: '.atlassian.net' }
 check('a pasted URL is reduced to its host',
-    reg.normalizeSettingValue(hostField, 'https://cloudbeds.atlassian.net/browse/CAB-8209'), 'cloudbeds.atlassian.net')
+    reg.normalizeSettingValue(hostField, 'https://acme.atlassian.net/browse/ACME-8209'), 'acme.atlassian.net')
 check('a pasted URL with a query too',
-    reg.normalizeSettingValue(hostField, 'https://cloudbeds.atlassian.net/jira/software/c/projects/CAB?x=1'), 'cloudbeds.atlassian.net')
+    reg.normalizeSettingValue(hostField, 'https://acme.atlassian.net/jira/software/c/projects/ACME?x=1'), 'acme.atlassian.net')
 check('a bare name gets the suffix',
-    reg.normalizeSettingValue(hostField, 'cloudbeds'), 'cloudbeds.atlassian.net')
+    reg.normalizeSettingValue(hostField, 'acme'), 'acme.atlassian.net')
 check('an already-correct host is left alone',
-    reg.normalizeSettingValue(hostField, 'cloudbeds.atlassian.net'), 'cloudbeds.atlassian.net')
+    reg.normalizeSettingValue(hostField, 'acme.atlassian.net'), 'acme.atlassian.net')
 check('whitespace is trimmed',
-    reg.normalizeSettingValue(hostField, '  cloudbeds  '), 'cloudbeds.atlassian.net')
+    reg.normalizeSettingValue(hostField, '  acme  '), 'acme.atlassian.net')
 check('a self-hosted host is not given the suffix',
     reg.normalizeSettingValue(hostField, 'jira.internal.example.com'), 'jira.internal.example.com')
 check('a port is dropped',
@@ -586,7 +586,7 @@ check('this machine by name is still this machine',
 // Rooted or nothing: a text rule matches things like an issue key, and asking
 // the filesystem about a relative name answers against the app's own directory.
 check('a url is not a path', fsPath('https://example.com/x', 'Ubuntu', true), '')
-check('an issue key is not a path', fsPath('CAB-8209', 'Ubuntu', true), '')
+check('an issue key is not a path', fsPath('ACME-8209', 'Ubuntu', true), '')
 check('a relative path is not asked about', fsPath('./notes.md', 'Ubuntu', true), '')
 
 check('a fragment is everything after the first hash',
@@ -983,7 +983,7 @@ console.log('\n── preset menu groups ──')
 // what a rule made from a preset is called, and what recognises that rule
 // afterwards, so every existing rule list depends on it staying as it was.
 check('names are unchanged by grouping', allPresets.map(p => p.name), [
-    'Jira: Issue keys in output, like CAB-8209', 'Jira: Issue links',
+    'Jira: Issue keys in output, like ACME-8209', 'Jira: Issue links',
     'GitHub: Pull request links', 'GitHub: Issue links', 'GitHub: Commit links',
     'GitHub: Pull requests and issues (repo#number)',
     'Slack: Message links',
@@ -1132,8 +1132,8 @@ for (const preset of allPresets) {
 
 // …and not the obvious near-misses.
 const nearMisses = {
-    'jira-issue-keys': ['cab-8209', 'CAB8209', 'C-1'],
-    'jira-issue-links': ['https://example.atlassian.net/browse/cab-8209', 'https://example.atlassian.net/CAB-8209'],
+    'jira-issue-keys': ['acme-8209', 'ACME8209', 'C-1'],
+    'jira-issue-links': ['https://example.atlassian.net/browse/acme-8209', 'https://example.atlassian.net/ACME-8209'],
     'github-pull-requests': ['https://github.com/Eugeny/tabby/issues/11383', 'https://gitlab.com/a/b/pull/1', 'http://github.com/a/b/pull/1'],
     'github-issues': ['https://github.com/Eugeny/tabby/pull/11511', 'https://github.com/Eugeny/tabby/issues/'],
     'github-commits': ['https://github.com/Eugeny/tabby/commit/zzzzzzz', 'https://github.com/Eugeny/tabby/commit/abc'],

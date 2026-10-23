@@ -104,7 +104,7 @@ async function main () {
         card.model = Object.assign(card.model, {
             key: 'rich:' + Date.now(),
             allowHtml: true, loading: false,
-            text: 'CAB-1', target: 'https://x.test/CAB-1',
+            text: 'ACME-1', target: 'https://x.test/ACME-1',
             preview: {
                 integrationId: 'x', integrationName: 'X', icon: '', error: '', link: '',
                 html: '', data: {}, skipped: ['devsummary'],

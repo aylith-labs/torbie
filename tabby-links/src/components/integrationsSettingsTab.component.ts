@@ -193,7 +193,7 @@ export class IntegrationsSettingsTabComponent implements OnDestroy {
     /**
      * Tidy a setting when the field loses focus — paste a Jira URL straight out
      * of the address bar and it becomes the host the guard compares, and a bare
-     * `cloudbeds` becomes `cloudbeds.atlassian.net`. Done on blur rather than
+     * `acme` becomes `acme.atlassian.net`. Done on blur rather than
      * per keystroke so nothing is rewritten mid-word.
      */
     normalizeSetting (integration: Integration, field: IntegrationField): void {

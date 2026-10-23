@@ -85,7 +85,7 @@ function backslashes (posix: string): string {
  * Whether a string is worth asking the filesystem about at all.
  *
  * A relative path deliberately is not: text rules match things like an issue
- * key, and `fs.access('CAB-8209')` is answered against the *app's* working
+ * key, and `fs.access('ACME-8209')` is answered against the *app's* working
  * directory, where it could plausibly exist and would then be offered as this
  * link's file.
  */

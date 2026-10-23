@@ -6,9 +6,9 @@ export const presetCatalog = [
         "label": "Issue keys in output",
         "description": "Turns a bare issue key printed by a build or a commit message into a hoverable link",
         "match": "text",
-        "example": "CAB-8209",
+        "example": "ACME-8209",
         "preview": true,
-        "sample": "Deployed CAB-8209 to staging",
+        "sample": "Deployed ACME-8209 to staging",
         "legacyNames": [
             "Jira: Issue keys in output (Text)"
         ]
@@ -19,7 +19,7 @@ export const presetCatalog = [
         "label": "Issue links",
         "description": "Jira issue URLs, the /browse/ form",
         "match": "link",
-        "example": "https://example.atlassian.net/browse/CAB-8209",
+        "example": "https://example.atlassian.net/browse/ACME-8209",
         "preview": true,
         "legacyNames": [
             "Jira: Issue links (URL)"

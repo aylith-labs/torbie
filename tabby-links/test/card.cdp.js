@@ -75,7 +75,7 @@ async function main () {
     const detected = await evaluate(`
         const { xterm, core } = window.__T
         xterm.clear()
-        xterm.write('\\r\\nsee https://example.com/a,b and 10.0.0.7 and C:\\\\\\\\Windows\\\\\\\\notepad.exe CAB-8209 done\\r\\n')
+        xterm.write('\\r\\nsee https://example.com/a,b and 10.0.0.7 and C:\\\\\\\\Windows\\\\\\\\notepad.exe ACME-8209 done\\r\\n')
         await new Promise(r => setTimeout(r, 400))
         const buffer = xterm.buffer.active
         // Find the row we just wrote.
@@ -104,7 +104,7 @@ async function main () {
         // drops anything that is not a parseable URL.
         check('a bare IP is detected (broken upstream)', detected.texts.some(t => t === '10.0.0.7'), true)
         check('a Windows path is detected (broken upstream)', detected.texts.some(t => t.includes('notepad.exe')), true)
-        check('the Jira key is detected by the text rule', detected.texts.includes('CAB-8209'), true)
+        check('the Jira key is detected by the text rule', detected.texts.includes('ACME-8209'), true)
     }
 
     console.log('\n── hovering shows a card, inside the window ──')

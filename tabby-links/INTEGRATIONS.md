@@ -69,7 +69,7 @@ stays usable, just without a preview.
 
 | Plugin | Recognizes | Needs | Notes |
 |---|---|---|---|
-| **Jira** | `https://<host>/browse/<KEY>` links, and (opt-in) issue keys like `CAB-8209` in plain text | Site host (setting) + account email and API token (credentials) | Credentials are only ever sent to the configured host — see [Host guarding](#host-guarding). Create an API token at `id.atlassian.com` → Security → API tokens. |
+| **Jira** | `https://<host>/browse/<KEY>` links, and (opt-in) issue keys like `ACME-8209` in plain text | Site host (setting) + account email and API token (credentials) | Credentials are only ever sent to the configured host — see [Host guarding](#host-guarding). Create an API token at `id.atlassian.com` → Security → API tokens. |
 | **Slack** | `https://<workspace>.slack.com/archives/<channel>/p<ts>` permalinks, including thread replies (`?thread_ts=`) | A bot token (credential) | The token needs the `channels:history`, `groups:history` and `users:read` scopes, and the bot must be a member of the channel it's reading. |
 | **stith** | `stith://session/<id>`, `stith://focus/<id>`, and `https://<server>/(s\|agent\|sessions\|embed/s)/<id>` links | Server URL (setting) | No credentials. Its fetch step allows an untrusted certificate, so a self-signed `lvh.me` cert doesn't block the preview. A [`detectPatterns`](#detectpatterns) entry claims a bare `stith://…` in plain output. |
 | **GitHub** | Issue, pull request, commit and repository links | The `gh` CLI's token when you are logged in, otherwise a stored token | Thirteen fetch steps, most of them [optional](#optional-steps), so a token without a scope loses that section rather than the whole card. |
@@ -140,7 +140,7 @@ Link previews aren't limited to real hyperlinks. A **Link Tooltip rule** with `m
 turns a regular expression into a hoverable, clickable match anywhere it appears in terminal
 output.
 
-Jira's built-in text matcher recognizes issue keys like `CAB-8209`. Once a text rule for it is
+Jira's built-in text matcher recognizes issue keys like `ACME-8209`. Once a text rule for it is
 enabled, any matching text becomes hoverable: the card shows the same Jira preview a real
 `/browse/` link would, Open navigates to the issue, and Copy link copies its URL.
 
@@ -221,7 +221,7 @@ fatal.
             "kind": "text",
             "pattern": "\\b(?<key>[A-Z][A-Z0-9]{1,9}-\\d{1,7})\\b",
             "suggested": true,
-            "description": "Issue keys in output, like CAB-8209",
+            "description": "Issue keys in output, like ACME-8209",
             // How a text match becomes a URL for Open / Copy link / click.
             "link": "https://{{settings.host}}/browse/{{key}}"
         }
@@ -548,7 +548,7 @@ meant for both should carry one.
 Two smaller behaviours are worth stating because they are easy to assume otherwise:
 
 - `hostSetting` guards **link** matchers only. A `text` matcher that carries one is not
-  host-guarded — matching a ticket key like `CAB-8209` has no host to check it against.
+  host-guarded — matching a ticket key like `ACME-8209` has no host to check it against.
 - A user's display-field selection distinguishes "never chose" from "chose nothing". Unticking
   every box shows no fields, rather than springing back to the manifest's defaults.
 

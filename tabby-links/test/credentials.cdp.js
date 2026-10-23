@@ -115,8 +115,8 @@ async function main () {
         const term = all.find(t => t.frontend && t.frontend.xterm)
         const runtime = (term.decorators || []).find(d => d.constructor.name === 'LinkTooltipDecorator').runtime
         return {
-            evil: runtime.canPreview('link', 'https://evil.example/browse/CAB-1', ''),
-            real: runtime.canPreview('link', 'https://acme.atlassian.net/browse/CAB-1', ''),
+            evil: runtime.canPreview('link', 'https://evil.example/browse/ACME-1', ''),
+            real: runtime.canPreview('link', 'https://acme.atlassian.net/browse/ACME-1', ''),
         }
     `)
     check('a look-alike host is still refused', guard.evil, false)

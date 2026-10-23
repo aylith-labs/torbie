@@ -107,7 +107,7 @@ export function normalizeSettingValue (field: IntegrationField, raw: string): st
         }
     }
     if (field.suffix && value && !value.includes('.')) {
-        // A bare name: `cloudbeds` is what people say, `cloudbeds.atlassian.net`
+        // A bare name: `acme` is what people say, `acme.atlassian.net`
         // is what the guard needs.
         value += field.suffix
     }

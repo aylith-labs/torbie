@@ -182,7 +182,7 @@ export interface IntegrationField {
     normalize?: 'host'
     /**
      * Settings only. Appended when the entered value looks like a bare name
-     * rather than a hostname — `cloudbeds` becomes `cloudbeds.atlassian.net`.
+     * rather than a hostname — `acme` becomes `acme.atlassian.net`.
      */
     suffix?: string
 }

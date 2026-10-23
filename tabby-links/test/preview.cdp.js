@@ -137,7 +137,7 @@ async function main () {
         const cachedMs = performance.now() - started
         // A look-alike host must not match Jira's host-guarded matcher, even
         // though the path shape is right.
-        const lookalike = runtime.canPreview('link', 'https://evil.example/browse/CAB-1', '')
+        const lookalike = runtime.canPreview('link', 'https://evil.example/browse/ACME-1', '')
         const hintedNone = runtime.canPreview('link', uri, 'none')
         const hintedWrong = runtime.canPreview('link', uri, 'jira')
         return { cachedMs, lookalike, hintedNone, hintedWrong }

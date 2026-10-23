@@ -411,7 +411,7 @@ export class IntegrationRuntimeService {
      * The link a text match resolves to, if an integration recognises it.
      *
      * Deliberately does not require the integration to be configured. Turning
-     * `CAB-8209` into a link needs nothing but the matcher's own template — it
+     * `ACME-8209` into a link needs nothing but the matcher's own template — it
      * is *fetching* the issue that needs a credential. Requiring one here meant
      * an unconfigured Jira left the ticket unclickable, which is the opposite of
      * what someone who has not set it up yet needs.
