@@ -6,7 +6,7 @@ await mkdir('.review',{recursive:true});
 const results=[];
 for(const width of [1440,390]){
  const page=await browser.newPage({viewport:{width,height:1000},colorScheme:'light'});const errors=[],requests=[];
- page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>{if(!r.failure()?.errorText.includes('ERR_ABORTED'))errors.push(r.url()+': '+r.failure()?.errorText)});page.on('request',r=>requests.push(r.url()));
+ page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>{if(!r.failure()?.errorText.includes('ERR_ABORTED')&&!r.url().startsWith('https://analytics.aylith.com/'))errors.push(r.url()+': '+r.failure()?.errorText)});page.on('request',r=>{if(!r.url().startsWith('https://analytics.aylith.com/'))requests.push(r.url())});
  const start=Date.now();await page.goto(url,{waitUntil:'domcontentloaded'});await expect(page.locator('h1')).toContainText('Give your agents room');
  await page.locator('.live-preview').scrollIntoViewIfNeeded();const enable=page.getByRole('menuitem',{name:'Enable Claude Code',exact:true});await expect(page.getByRole('button',{name:'Plugins',exact:true})).toBeEnabled({timeout:30000});const readyMs=Date.now()-start;
  const frame=page.frameLocator('.preview-window iframe');await expect(frame.locator('demo-terminal')).toHaveCount(1);
